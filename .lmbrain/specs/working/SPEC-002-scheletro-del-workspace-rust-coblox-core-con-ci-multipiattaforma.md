@@ -76,12 +76,18 @@ Layout: `core/` (workspace members `coblox-core`, `coblox-node`, `coblox-ffi`), 
 - `core/**`, `apps/desktop/**`, `apps/android/**`, `.github/workflows/**`, `rust-toolchain.toml`, `deny.toml`, `README.md` (sezione build), `.lmbrain/knowledge/build-toolchain.md`
 
 ## Acceptance criteria
-- [ ] `cargo build --workspace` e `cargo test --workspace` passano su Windows e Linux in CI.
-- [ ] La CI produce la libreria Android (`.so` per aarch64) e i bindings Kotlin; il progetto Gradle compila e il test che chiama `core_version()` passa (emulatore o unit test JVM sui bindings, a scelta motivata).
-- [ ] L'app Tauri si builda in CI su Windows e Linux e mostra la versione letta dal core (screenshot o log come evidenza).
-- [ ] `clippy -D warnings`, `rustfmt --check` e `cargo deny check` passano e sono bloccanti in CI.
-- [ ] Il runbook `.lmbrain/knowledge/build-toolchain.md` permette a un altro agente di riprodurre ogni build in locale.
-- [ ] La pipeline completa (tutti i job) gira in < 20 minuti con cache calda.
+
+> **Deroga dell'operatore del 2026-08-25.** La fatturazione dell'account GitHub impedisce l'esecuzione di qualsiasi job (vedi l'esito della prima run più sotto). I criteri che richiedono la verifica **in CI** sono derogati e coperti da [DEBT-001]; la verifica **locale** equivalente resta obbligatoria e non è derogata. Alla ripresa della CI, [DEBT-001] impone la ri-verifica di ognuno di essi.
+
+- [~] `cargo build --workspace` e `cargo test --workspace` passano su Windows e Linux in CI. | waived=DEBT-001 — resta obbligatoria l'esecuzione locale su Windows, con output incollato.
+- [~] La CI produce la libreria Android (`.so` per aarch64) e i bindings Kotlin; il progetto Gradle compila e il test che chiama `core_version()` passa (emulatore o unit test JVM sui bindings, a scelta motivata). | waived=DEBT-001 — resta obbligatoria la produzione locale del `.so` e l'esecuzione locale del test Gradle sui bindings.
+- [~] L'app Tauri si builda in CI su Windows e Linux e mostra la versione letta dal core (screenshot o log come evidenza). | waived=DEBT-001 — resta obbligatoria la build locale su Windows con evidenza della versione letta dal core.
+- [~] `clippy -D warnings`, `rustfmt --check` e `cargo deny check` passano e sono bloccanti in CI. | waived=DEBT-001 — resta obbligatoria l'esecuzione locale dei tre comandi; la configurazione che li rende bloccanti in CI deve comunque essere presente e ispezionabile nel workflow.
+- [~] La pipeline completa (tutti i job) gira in < 20 minuti con cache calda. | waived=DEBT-001 — non misurabile senza una run; da verificare alla ripresa.
+- [ ] Il runbook `.lmbrain/knowledge/build-toolchain.md` permette a un altro agente di riprodurre ogni build in locale. **Non derogato.**
+- [ ] `scripts/build-android.sh` viene eseguito con successo e l'output è incluso nell'evidenza (chiude DIFETTO-A).
+- [ ] `apps/android/` contiene il wrapper Gradle con versione pinnata, e il runbook usa `./gradlew` anziché `gradle` dal PATH (chiude DIFETTO-B).
+- [ ] Esiste un `.gitignore` di root che esclude `target/`, `**/target/` e `node_modules/`; `git status --short` su un albero pulito non mostra directory di build (chiude DIFETTO-C).
 
 ## Implementation plan
 1. Workspace Cargo + crate segnaposto con test unitari banali ma reali.
@@ -93,8 +99,8 @@ Layout: `core/` (workspace members `coblox-core`, `coblox-node`, `coblox-ffi`), 
 ## Required verification
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
-- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Link/output della run CI completamente verde su tutti i job (Windows, Linux, Android cross-build, Tauri).
-- [ ] GATE-LOCAL-REPRO | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Build locale riprodotta seguendo esclusivamente il runbook, con output incollato.
+- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=artifact | DEROGATO dall'operatore il 2026-08-25 e coperto da DEBT-001 (fatturazione GitHub bloccante). Requisito originale, da ripristinare alla chiusura del debito: link/output della run CI completamente verde su tutti i job (Windows, Linux, Android cross-build, Tauri).
+- [ ] GATE-LOCAL-REPRO | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Build locale riprodotta seguendo esclusivamente il runbook, con output incollato. **Non derogato: con la CI ferma è l'unica verifica reale che questa spec produce, quindi il suo standard si alza — deve coprire workspace, Android e Tauri.**
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
@@ -129,6 +135,7 @@ $ cargo ndk -t arm64-v8a --platform 26 -o apps/android/core/src/main/jniLibs bui
 
 - **DIFETTO-A — `scripts/build-android.sh` è rotto.** Usa `cargo ndk -t arm64-v8a -p 26`. In cargo-ndk 4.x `-p` è l'abbreviazione di `--package`, quindi `26` viene interpretato come nome di pacchetto e il comando va in panic con `unknown package: 26`. Il flag corretto per il livello di API è `--platform 26`. Con quella sola correzione la build passa. Lo script non è quindi mai stato eseguito con successo.
 - **DIFETTO-B — manca il wrapper Gradle.** In `apps/android/` non esistono `gradlew`/`gradlew.bat` né `gradle/wrapper/`, e lo script invoca `gradle` dal PATH. Un progetto Gradle senza wrapper non è riproducibile: né un altro agente né un runner CI possono seguire il runbook senza installare a mano una versione non pinnata. Aggiungere il wrapper con versione fissata.
+- **DIFETTO-C — manca il `.gitignore` di root.** Emerso durante il push di bootstrap eseguito dal Lead. Il repository non ha alcun `.gitignore` alla radice: un `git add -A` avrebbe committato `target/` (1,5 GB), `apps/desktop/src-tauri/target/` (2.754 file, ~1,4 GB, con la sua directory di build separata perché il crate è escluso dal workspace) e due `node_modules/`. Il Lead ha aggirato il problema selezionando i percorsi a mano, ma la lacuna resta e il prossimo `git add -A` la farebbe esplodere. Aggiungere un `.gitignore` di root che copra almeno `target/`, `**/target/`, `node_modules/` e gli artefatti generati; valutare anche se `apps/desktop/src-tauri/gen/schemas/` debba essere versionato.
 
 ### Gate: stato reale
 
@@ -159,6 +166,26 @@ Nessuna delle quattro regole è sbagliata: sono incompatibili solo per la prima 
 - **(b) deroga documentata**, declassando il gate a "CI configurata e verificata in locale" e rimandando la run verde alla prima spec successiva. Sblocca subito ma svuota di senso la spec, il cui obiettivo dichiarato è sbancare il rischio di toolchain **prima** che il codice cresca.
 
 Raccomandazione del Lead: **(a)**. La deroga (b) rimanderebbe la scoperta di eventuali rotture cross-platform al momento in cui costano di più.
+
+**Esito: l'operatore ha scelto (a) il 2026-08-25.** Il Lead ha eseguito il push di bootstrap su `main` (commit `4ea0db9`), escludendo a mano le directory di build data l'assenza del `.gitignore` (DIFETTO-C): 173 file, 1,2 MB. La pipeline è stata accodata su GitHub Actions.
+
+### Esito della prima run: BLOCCO ESTERNO, non un difetto del codice
+
+Run `32789685296`, conclusione `failure` dopo 6 secondi. **Nessun job è stato eseguito**: tutti e cinque risultano falliti con zero step avviati. L'annotazione di GitHub dà la causa esatta:
+
+```text
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased. Please check the 'Billing & plans'
+section in your settings
+```
+
+Questo **non dice nulla** sulla qualità della pipeline o del codice: la CI non ha ancora eseguito una singola riga. Il push di bootstrap ha comunque reso un servizio, scoprendo il blocco subito invece che alla prima spec pronta per la chiusura.
+
+Conseguenze:
+
+- `GATE-CI-GREEN` resta **non verificabile** finché il problema di fatturazione o di limite di spesa dell'account GitHub non è risolto. È un'azione dell'operatore sulle impostazioni del proprio account, fuori dalla portata del Lead e degli specialisti.
+- L'alternativa (b), la deroga documentata sul gate, torna sul tavolo: non più come scorciatoia, ma come unica via se lo sblocco dell'account non è imminente. In quel caso la deroga va registrata come debito, non come chiusura silenziosa.
+- I difetti A, B e C restano da correggere a prescindere: sono indipendenti dalla CI.
 
 ## Instructions for the assigned specialist
 - If this spec is in `ready`, run `spec_start` as your first implementation action and `spec_submit` when the implementation is complete. If this spec is already in `review` for remediation, do not move it back to `working`; update evidence and report completion for re-review.

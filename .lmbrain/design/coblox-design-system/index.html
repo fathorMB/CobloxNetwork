@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coblox — Design system</title>
+    <link rel="stylesheet" href="./tokens/tokens.css" />
+    <link rel="stylesheet" href="./css/base.css" />
+    <link rel="stylesheet" href="./css/components.css" />
+    <link rel="stylesheet" href="./css/app-shell.css" />
+    <!-- Punto d'ingresso del pacchetto, richiesto dalla convenzione di .lmbrain/design/.
+         Scritto a mano dal Lead durante lo spostamento del pacchetto nel brain: non è
+         generato da tools/, e AGENT-006 può assorbirlo nei propri generatori. -->
+  </head>
+  <body>
+    <div class="mock-page">
+      <header class="cbx-stack">
+        <p class="cbx-label">Coblox · SPEC-003 · AGENT-006</p>
+        <h1 class="cbx-title" style="font-size: var(--cbx-font-size-3xl)">Design system</h1>
+        <p class="cbx-prose">
+          Dark-first, monospace per i dati, densità da terminale — con leggibilità da prodotto vero.
+          Il testo dell'interfaccia è in inglese; questi documenti di lavoro sono in italiano.
+        </p>
+      </header>
+      <div class="cbx-grid cbx-grid--3">
+        <a class="cbx-card" href="./preview/index.html" style="text-decoration: none">
+          <span class="cbx-label">Componenti</span>
+          <span class="cbx-section-title">Galleria dei componenti</span>
+          <span class="cbx-hint">Bottoni, campi, card, tabelle, badge di stato, toast e sparkline, in tema scuro e chiaro.</span>
+        </a>
+        <a class="cbx-card" href="./mockups/index.html" style="text-decoration: none">
+          <span class="cbx-label">Schermate</span>
+          <span class="cbx-section-title">Mockup delle tre schermate</span>
+          <span class="cbx-hint">Dashboard, dettaglio attività e onboarding, ciascuna in cinque artboard.</span>
+        </a>
+        <a class="cbx-card" href="./PRINCIPLES.md" style="text-decoration: none">
+          <span class="cbx-label">Regole</span>
+          <span class="cbx-section-title">Principi del design system</span>
+          <span class="cbx-hint">Uso del monospace, formato dei numeri, lingua e tono del copy, accessibilità.</span>
+        </a>
+      </div>
+      <section class="cbx-stack" style="margin-top: var(--cbx-space-8)">
+        <h2 class="cbx-section-title">Sorgenti</h2>
+        <p class="cbx-prose">
+          I valori nascono in <code class="cbx-mono">tokens/tokens.json</code> e generano
+          <code class="cbx-mono">tokens/tokens.css</code>. La verifica del contrasto vive in
+          <code class="cbx-mono">tokens/CONTRAST.md</code>: 130 coppie su 130 soddisfano WCAG AA.
+          Le pagine sono prodotte dagli script in <code class="cbx-mono">tools/</code>; l'output
+          committato resta HTML e CSS puri, apribili con doppio clic.
+        </p>
+      </section>
+    </div>
+  </body>
+</html>

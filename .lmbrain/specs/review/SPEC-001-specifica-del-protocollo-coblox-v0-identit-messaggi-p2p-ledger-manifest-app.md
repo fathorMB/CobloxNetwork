@@ -159,9 +159,9 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
 - Specified ledger transactions, blocks, Ed25519 quorum certificates,
   validator-set continuity, mint/burn invariants covering all ADR-005 flows, and
   challenge evidence. Direct user-to-user transfer is not representable.
-- Specified a depth-256 sparse Merkle state tree, compressed balance proof, and
-  a seven-step light-client verification procedure from genesis trust anchor to
-  authenticated balance.
+- Specified a depth-256 sparse Merkle account tree, canonical compressed proofs,
+  and a nine-step light-client procedure anchored by a recent external weak-
+  subjectivity checkpoint with persisted-height non-regression.
 - Specified the signed WASM manifest, capability sandbox, resource limits,
   pricing, deterministic `.cobloxapp` byte layout, installation validation, and
   distribution integrity.
@@ -169,10 +169,24 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
   `publisher_reward` mint with deterministic active-subscription eligibility,
   added signed desired-replica requirements to the manifest, and made hosting
   prices exclusively validator-governed protocol parameters.
+- Remediated the authorized Lotto A of REVIEW-002: fixed one strict weighted-
+  power quorum predicate and boundary fixtures; made Ed25519/ZIP-215 acceptance
+  consensus-exact; bound every signature and core identifier to a genesis-
+  derived chain ID; added consensus-key proof of possession; made enrollment
+  PoW recent-block-bound; defined and fixture-tested all missing hash preimages
+  and their retrievability; canonicalized Peer IDs/protobuf keys; made ledger
+  ordering nonce-aware; bounded replay state fail-closed; required exact-height
+  fresh balance responses; rejected redundant sparse-Merkle siblings; added
+  ADR-006 app escrow/funding/suspension state; and specified DNS pinning against
+  rebinding across redirects.
 - Expanded beyond the compact context pack only for direct requirements:
   ADR-005 was read in full for economic-flow reconciliation, and current
   official libp2p specifications were consulted for Identify, Kademlia,
   AutoNAT, Circuit Relay v2, DCUtR, GossipSub, and hole punching.
+- For REVIEW-002 direct verification, read the complete security review and all
+  five protocol documents and reconciled the assigned findings against RFC 8032,
+  ZIP-215, the official libp2p Peer ID specification, and the CometBFT light-
+  client trust model. No Lotto B protocol decision was implemented.
 
 ### Files changed
 
@@ -181,16 +195,16 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
 - `docs/protocol/wire.md`
 - `docs/protocol/ledger.md`
 - `docs/protocol/app-manifest.md`
-- `.lmbrain/specs/working/SPEC-001-specifica-del-protocollo-coblox-v0-identit-messaggi-p2p-ledger-manifest-app.md` (acceptance checklist and implementation evidence only)
+- `.lmbrain/specs/review/SPEC-001-specifica-del-protocollo-coblox-v0-identit-messaggi-p2p-ledger-manifest-app.md` (implementation evidence only; lifecycle unchanged)
 
 ### Verification performed
 
 - Parsed every fenced canonical JSON example and verified compact sorted-key
   serialization; checked exactly five deliverable files, non-empty sections,
   and local document targets.
-- Reconciled the complete wire enum against message schema headings, all four
-  ADR-005 flows, absence of a transfer transaction kind, anti-Sybil cost and
-  proof binding, the seven light-client steps, all local anchors, and ownership
+- Reconciled the complete wire enum against message schema headings, all ADR-005
+  flows plus ADR-006 app escrow funding, absence of a direct transfer transaction
+  kind, anti-Sybil cost/recent-block binding, the nine light-client steps, all local anchors, and ownership
   in every `DRAFT` section.
 - Reconciled RF-001/RF-002/RF-003 against ADR-006: verified publisher-reward
   schema/evidence/uniqueness, replica bounds and host-selection ownership, the
@@ -199,8 +213,14 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
 - Reviewed official current libp2p primary sources; the v0 baseline deliberately
   uses AutoNAT v1 while treating AutoNAT v2 as optional because its official
   specification is still a working draft.
+- Executed targeted Lotto A checks for six strict quorum boundaries, all nine
+  registered hash vectors, the canonical Peer ID/public-key/node-ID fixture,
+  canonical JSON, local links/anchors, nonce-aware ordering requirements, chain
+  binding, bounded replay behavior, sparse-proof minimality, app escrow state,
+  DNS pinning, and absence of the reserved Lotto B mechanisms.
 - `GATE-SECREVIEW` is not an implementer claim. Owner: AGENT-LEAD; scheduled
-  after `spec_submit` and before `spec_done`; requested reviewer: AGENT-007.
+  for re-review of this remediation and before `spec_done`; requested reviewer:
+  AGENT-007.
 
 ### Verification transcript
 
@@ -215,16 +235,24 @@ $ lmbrain_validate
 PASS unique_ids=true; lifecycle/contract errors=0 (informational workspace diagnostics only)
 $ python -  # REVIEW-001 targeted ADR-006 remediation verifier
 PASS json_examples=17 local_anchors=ok RF-001=pass RF-002=pass RF-003=pass
+$ python -  # REVIEW-002 Lotto A conformance verifier
+PASS files=5 json_examples=18 quorum_boundaries=6 peer_id=ok node_id=ok hash_vectors=9 lotto_b_guard=ok
+$ python -  # local Markdown target and anchor verifier
+PASS local_links_and_anchors=ok
+$ lmbrain_validate
+PASS unique_ids=true; lifecycle/contract errors=0; one unrelated SPEC-002 verification-policy warning and informational tag diagnostics only
 ```
 
 ### Deviations from the specification
 
-None. Final numeric economic values, launch enrollment difficulty, and validator
+None within the authorized Lotto A. Final numeric economic values, launch enrollment difficulty, and validator
 election remain explicitly `DRAFT` as required by the scope exclusions; every
 draft lists bounded alternatives and its decision owner. No quality-policy
 exception was used. ADR-006 was accepted after initial implementation and has
-now been incorporated through REVIEW-001 remediation without changing the
-original acceptance criteria or spec lifecycle state.
+now been incorporated through REVIEW-001 remediation. REVIEW-002 Lotto B
+(RF-005, RF-007, RF-004(c), RF-013, RF-015) remains intentionally untouched
+pending the threat-model/product decisions recorded above. The acceptance
+criteria and spec lifecycle state were not changed.
 
 ### Handoff status
 - [x] Ready for Project Lead review

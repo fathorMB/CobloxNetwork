@@ -33,6 +33,39 @@ review_events:
     evidence_refs: ["SPEC-001", "REVIEW-001", "ADR-001", "ADR-002", "ADR-006", "docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/wire.md", "docs/protocol/app-manifest.md", "docs/protocol/README.md"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-003"
+    timestamp: "2026-08-25T01:37:23.214147700+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Seconda remediation autorizzata, limitata al Lotto A del triage Lead: chiusi RF-001, RF-002, RF-003, RF-004(a,b), RF-006, RF-008, RF-009, RF-010, RF-011, RF-012, RF-014, RF-016, RF-017 e RF-018 con specifica normativa coordinata, fixture e verifica meccanica. RF-005, RF-007, RF-004(c), RF-013 e RF-015 sono rimasti intenzionalmente invariati in attesa delle decisioni threat-model/prodotto."
+    evidence_refs: [".lmbrain/specs/review/SPEC-001-specifica-del-protocollo-coblox-v0-identit-messaggi-p2p-ledger-manifest-app.md#implementation-evidence", "docs/protocol/README.md#consensus-critical-ed25519-verification", "docs/protocol/README.md#hash-preimage-registry", "docs/protocol/identity.md#canonical-libp2p-peer-id", "docs/protocol/identity.md#one-time-anti-sybil-proof-of-work", "docs/protocol/ledger.md#quorum-predicate", "docs/protocol/ledger.md#validator-set-continuity", "docs/protocol/ledger.md#light-client-balance-verification", "docs/protocol/ledger.md#state-transition-order", "docs/protocol/wire.md#signed-envelope", "docs/protocol/app-manifest.md#capabilities"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-004"
+    timestamp: "2026-08-25T01:44:17.871497500+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "AGENT-001 ha rimediato il Lotto A dei finding di sicurezza (RF-001, RF-002, RF-003, RF-004 a/b, RF-006, RF-008, RF-009, RF-010, RF-011, RF-012, RF-014, RF-016, RF-017, RF-018) nei documenti di protocollo. Il Lotto B (RF-005, RF-007, RF-004c, RF-013, RF-015) resta intenzionalmente aperto in attesa della decisione anti-Sybil dell'operatore, che sara istruita da SPEC-004. Remediation segnalata come completata dall'operatore."
+    evidence_refs: ["docs/protocol/README.md", "docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "docs/protocol/wire.md"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-005"
+    timestamp: "2026-08-25T01:44:34.845471100+02:00"
+    action: "remediation-verification"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Verifica indipendente del Lead sui documenti aggiornati (1709 righe, da 1327). RF-002 chiuso: la soglia e ora una sola formula intera signed_power*3 > total_power*2 con aritmetica controllata, presente sia in identity.md sia in ledger.md; nessuna occorrenza residua di 2f+1 o di due terzi piu uno. RF-001 chiuso: regola ZIP-215 scritta per esteso, equazione cofactorless esplicitamente vietata, rifiuto delle chiavi di ordine piccolo, conformita sui vettori 0-11 di ed25519-speccheck. RF-003 chiuso: checkpoint di soggettivita debole con vincolo di freschezza, e il client nuovo deve rifiutare la sincronizzazione dalla sola genesi. RF-006 chiuso: pow_input lega ora recent_block_id e recent_block_height. RF-008 chiuso: le preimmagini sono definite con dominio esplicito, inclusa policy_hash e il nuovo hosting_rate_card_hash. RF-004 a/b chiuso: la chiave di consenso richiede proof of possession e key_binding_signature verificata sul certificato. RF-010 chiuso: sezione dedicata alla Peer ID canonica, con codifica legacy obbligatoria dentro gli oggetti firmati. RF-012 chiuso: tetto max_envelope_validity_ms sulla finestra di validita. RF-016 chiuso: un sibling di default fornito esplicitamente e non canonico e viene rifiutato, con caso di test citato. RF-017 chiuso: esiste l'account dell'app con saldo e nonce propri, e il burn di hosting e pagato da payer_app_id. RF-018 chiuso: risoluzione DNS una sola volta, validazione di ogni indirizzo restituito contro loopback, privati, link-local, multicast e metadata service su IPv4 e IPv6, connessione all'indirizzo bloccato senza nuova risoluzione e SNI preservato. Verifica aggiuntiva delle fixture: il node_id di entrambi gli esempi di identity.md deriva effettivamente dalla chiave pubblica secondo la regola documentata, ricalcolato dal Lead, quindi le fixture non sono piu solo illustrative. Controlli strutturali rieseguiti: 18 esempi JSON tutti canonici, 16 link interni tutti risolti."
+    evidence_refs: ["docs/protocol/README.md", "docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "docs/protocol/wire.md", "REVIEW-002"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
 links: []
 created: 2026-08-25
 updated: 2026-08-25
@@ -42,6 +75,12 @@ activity:
     action: "created"
   - date: 2026-08-25
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-25
+    action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "recorded review remediation-verification"
 ---
 # Review
 

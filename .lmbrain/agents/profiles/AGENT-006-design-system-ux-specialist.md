@@ -8,7 +8,7 @@ activation: manual
 can_implement: true
 can_review: true
 domains: [design, ui-ux, design-system, accessibility]
-primary_files: ["design/", ".lmbrain/design/"]
+primary_files: [".lmbrain/design/"]
 review_focus: [ui-fidelity, usability, accessibility]
 context_pack: spec
 constraints:

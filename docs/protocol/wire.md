@@ -98,13 +98,13 @@ SignedEnvelope = {
 }
 ```
 
-`message_id` is the `request_hash`-style chain-bound hash from the registry in
-[README.md](README.md#hash-preimage-registry), applied to the envelope without
-`message_id` and `signature`. Receivers recompute it, reject an expiry before
+`message_id` is SHA-256 of `"coblox-message-id-v0\0" || chain_id_32` plus JCS
+of the envelope without `message_id` and `signature`. Receivers recompute it,
+reject an expiry before
 creation, and require `expires_at_ms - created_at_ms <= max_envelope_validity_ms`
 from the active signed consensus parameters. They cache message IDs and
 `(sender_node_id, nonce)` until expiry. The cache has protocol caps
-`max_replay_entries_total` and `max_replay_entries_per_sender`; an insertion
+`replay_cache_entries_global` and `replay_cache_entries_per_peer`; an insertion
 that would exceed either cap rejects the new envelope as `rate_limited` and
 MUST NOT evict a still-live entry. Clock rollback, unavailable durable cache,
 or loss of cache integrity fails closed for protected protocols. Either
@@ -136,7 +136,7 @@ against the request key, not a certificate.
 
 ```text
 EnrollmentResponse = {
-  "request_hash": sha256-string,
+  "enrollment_request_hash": sha256-string,
   "status": "accepted" | "pending" | "rejected",
   "certificate": EnrollmentCertificate,   // required only when accepted
   "error_code": enum                      // required only when rejected
@@ -145,7 +145,8 @@ EnrollmentResponse = {
 
 Allowed error codes are `invalid_request`, `invalid_pow`, `stale_parameters`,
 `duplicate_identity`, `rate_limited`, and `internal_unavailable`. The response
-MUST NOT echo the proof or expose validation internals.
+hash MUST equal the registry `enrollment_request_hash` of the received request.
+The response MUST NOT echo the proof or expose validation internals.
 
 ### `challenge_request`
 

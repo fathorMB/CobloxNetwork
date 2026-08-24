@@ -14,6 +14,10 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 - [SPEC-003] Fondamenta del design system — AGENT-006, M-01, medium
 - [SPEC-004] Threat model iniziale — AGENT-007, M-01, high
 
+## Debiti aperti
+
+- [DEBT-001] La pipeline CI non è mai stata eseguita, `GATE-CI-GREEN` derogato — high, owner AGENT-008, M-01. Sbloccabile solo dalla fatturazione GitHub dell'operatore.
+
 ## Next
 
 - Decisione sul nome del token/unità (branding, coinvolge AGENT-006).

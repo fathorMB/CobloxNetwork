@@ -21,7 +21,7 @@ Ogni utente riceve un **reddito di esistenza** di base per la sola presenza dimo
 ## Outcomes and success metrics
 
 - Una devnet con ≥ 3 piattaforme di nodo funzionanti (desktop, Android, headless) e ledger BFT stabile.
-- Reddito di esistenza accreditato solo a nodi con presenza crittograficamente dimostrata (zero accrediti a nodi emulati nei test di attacco).
+- Reddito di esistenza accreditato solo a nodi con presenza crittograficamente dimostrata. **Resistenza Sybil** (riformulata da [ADR-007] dopo [SPEC-004]; la formulazione precedente, "zero accrediti a nodi emulati", è stata dimostrata irraggiungibile): nei test di attacco una flotta di `N ≥ 10.000` identità emulate su un singolo host (a) non aumenta di nulla l'emissione totale dell'epoca, (b) non ottiene alcun accredito in `storage` o `compute`, (c) non ottiene più di una quota `X` dichiarata dell'emissione, (d) non ottiene alcun seggio di validatore. Il valore di `X` è aperto in [DEBT-007].
 - Dashboard in tempo reale: latenza percepita tra evento sulla rete e visualizzazione < pochi secondi.
 - Almeno un'app dimostrativa end-to-end: pubblicata spendendo token, hostata da nodi terzi, con abbonamenti attivi.
 - Economia stabile in simulazione (niente spirali inflattive/deflattive nei modelli agent-based).
@@ -48,7 +48,7 @@ Ogni utente riceve un **reddito di esistenza** di base per la sola presenza dimo
 - **Lingua del prodotto: inglese.** Tutto ciò che vede l'utente finale — interfacce (desktop, Android, headless), documentazione pubblica, specifiche di protocollo, SDK — è in inglese. L'italiano resta la lingua di lavoro tra operatore e team di agenti, e degli artefatti interni in `.lmbrain/`. La localizzazione non è in scope, ma le scelte tecniche non devono precluderla.
 - Il token non deve mai poter acquisire valore monetario neanche di fatto: ogni scelta di design va vagliata anche sotto questo profilo.
 - I nodi Android devono rispettare batteria/dati: partecipazione utile senza degradare il dispositivo.
-- "Super-sicura" è un requisito di prodotto: memoria safe (Rust), sandbox forte (WASM), prove crittografiche per ogni accredito.
+- "Super-sicura" è un requisito di prodotto: memoria safe (Rust), sandbox forte (WASM), prove crittografiche per ogni accredito. **Va dichiarato in modo preciso**: la rete è robusta contro la *falsificazione* — saldi, firme, doppia spesa — ma non è resistente ai Sybil per via crittografica ([ADR-007]). La resistenza Sybil è una proprietà economica, governata dalla frazione `α` di emissione che passa dal reddito di esistenza.
 - Team di sviluppo basato su agenti coordinati via LMBrain; il Lead scrive solo in `.lmbrain/`.
 
 ## Stakeholders

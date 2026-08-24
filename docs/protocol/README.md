@@ -144,6 +144,52 @@ response_hash           = H("coblox-challenge-response-hash-v0\0"
 `response_hash` MUST equal the formulas above. Lengths are byte lengths, not
 Unicode character counts.
 
+Hash provenance is normative. Enrollment requests are retained through their
+certificate hash and served with the enrollment record. Governed documents are
+served by hash as described below. A storage `object_id` is computed at upload
+over the complete immutable bytes; providers advertise and serve those exact
+bytes by content address, and validators MUST retrieve and rehash them before
+issuing storage work. `input_hash` is recomputed from the exact `input` bytes
+embedded in `ComputeAssignment`. Finalized challenge-evidence transactions
+embed the complete request and response (except a missing response for
+`no_response`), so any verifier can recompute their hashes from ledger sync.
+Missing source bytes fail verification; a hash asserted without its normative
+source is never sufficient.
+
+### Hash conformance fixtures
+
+Fixture `HASH-0` uses 32 zero bytes for `chain_id`; byte fixtures use
+`00 01 02`. `ER-0` is the exact enrollment-request schema with all timestamps,
+nonce and recent height set to `"1"` except nonce `"0"`, network `"fixture"`,
+node `"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq"`, the Peer ID/public key fixture from
+[identity.md](identity.md#canonical-libp2p-peer-id), difficulty `"18"`,
+parameter hash `11` repeated 32 bytes, recent block hash `22` repeated 32 bytes,
+and a 64-zero-byte base64url signature. Each `PD-0` has common fields
+`schema_version:"0.1"`, `network_id:"fixture"`, zero `chain_id`,
+`sequence:"1"`, and `activation_height:"1"`; it uses its matching
+`document_kind` and required body, with every numeric value `"1"` except
+enrollment difficulty `"18"` and algorithm
+`"sha256-leading-zero-bits-v0"`. `REQ-0` is an availability request without ID
+for `cblx1fixture`, issued at 1, deadline 2, 32 zero randomness bytes, and
+`response_bytes:"1"`. `RESP-0` is its unsigned response at time 2, challenge
+hash `33` repeated 32 bytes, and one zero response byte. These definitions are
+exact after JCS; no omitted/default fields are implied.
+
+| Hash | Fixture | Expected value |
+| --- | --- | --- |
+| `enrollment_request_hash` | `ER-0` | `sha256:1a6da895e17b7c9edb7df7bceadd89de593a88e8765d4c42ef32727713a2a808` |
+| `parameter_set_hash` | enrollment `PD-0` | `sha256:11bf643aeda21def158ca6397568310ccd54736914bbce6a6c3a358ec450e398` |
+| `policy_hash` | reward `PD-0` | `sha256:1f86e0ac250172f936b94c952f89c0d798f088987f7b755408b85a7d147cbc45` |
+| `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:821614ace5ced8e6414867943ae06f601f6096f458a0b1419e3ba136328ff50e` |
+| `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
+| `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
+| `request_hash` | `REQ-0` | `sha256:dd9609b3fb1ecc0882704e6ef5557282ac7b76138b15866cc79ce5dfe1a59189` |
+| `response_hash` | `RESP-0` | `sha256:cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41` |
+
+Conformance suites MUST reconstruct every preimage from these definitions and
+compare all 32 digest bytes; checking only presentation strings is insufficient.
+
 ### Signed protocol documents
 
 The four governed hashes above commit to this common unsigned shape:

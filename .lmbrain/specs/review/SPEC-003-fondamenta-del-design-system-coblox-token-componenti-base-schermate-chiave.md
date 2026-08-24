@@ -76,6 +76,7 @@ Token con nomi semantici a due livelli (primitivi → semantici, es. `--green-50
 ## Files and areas involved
 
 - `design/tokens/**`, `design/preview/index.html`, `design/mockups/**`, `design/PRINCIPLES.md`
+- *Posizione effettiva dal 2026-08-25:* `.lmbrain/design/coblox-design-system/**` (vedi la nota del Lead sullo spostamento, più sotto).
 
 ## Acceptance criteria
 - [x] I token esistono in JSON + CSS con nomi semantici; nessun colore hard-coded nella pagina demo fuori dai token.
@@ -109,7 +110,28 @@ Token con nomi semantici a due livelli (primitivi → semantici, es. `--green-50
 - Aperto: nome del token (placeholder "token Coblox" nei mockup, da sostituire quando deciso).
 - Aperto: font monospace definitivo (candidati con licenza libera: JetBrains Mono, Fira Code, IBM Plex Mono) — la specialista propone.
 
-## Instructions for the assigned specialist
+## Nota del Lead: spostamento del pacchetto nel brain (2026-08-25)
+
+Su richiesta dell'operatore, i deliverable sono stati spostati da `design/` alla radice del repository a **`.lmbrain/design/coblox-design-system/`**, così che siano visibili nell'app LMBrain. La convenzione di `.lmbrain/design/README.md` prevede una cartella per pacchetto con `index.html` come punto d'ingresso e `manifest.json` opzionale.
+
+Lo spostamento non è una critica al lavoro consegnato: la spec indicava `design/` alla radice, e l'implementatrice ha seguito la spec. La convenzione del brain è emersa dopo.
+
+Eseguito con `git mv` (storia preservata), più due file aggiunti dal Lead per soddisfare la convenzione: `manifest.json` e un `index.html` di pacchetto che rimanda a galleria dei componenti, mockup e principi. Quell'`index.html` è scritto a mano e **non** è prodotto dai generatori: AGENT-006 può assorbirlo in `tools/` quando tocca di nuovo il pacchetto.
+
+Verifiche del Lead dopo lo spostamento:
+
+```text
+node tools/build-tokens.mjs   -> 247 custom properties, rigenerazione identica
+node tools/check-contrast.mjs -> RESULT: all 130 declared pairs meet WCAG AA
+link relativi                 -> file=11 riferimenti=31 rotti=0
+classi CSS e variabili usate dal nuovo index.html -> tutte esistenti
+```
+
+Gli script continuano a funzionare perché risolvono i percorsi rispetto alla propria posizione (`import.meta.url`), non rispetto alla radice del repository: merito di come sono stati scritti.
+
+### Finding aperto dallo spostamento
+
+- **RF-D01 | category=documentation | severity=low** — Restano circa 54 occorrenze testuali del vecchio percorso `design/...` nel pacchetto: intestazioni generate, commenti d'uso degli script, prose in `README.md` (8), `preview/index.html` (6), i quattro mockup, `PRINCIPLES.md` e `CONTRAST.md`. Non rompono nulla, ma istruiscono il lettore a eseguire per esempio `node design/tools/build-tokens.mjs`, comando che oggi fallisce. La correzione va fatta **nei generatori** e poi rigenerando, non a mano sugli output: per questo è lavoro di AGENT-006 e non del Lead. Condizione di chiusura: nessuna occorrenza del vecchio percorso, e i comandi documentati eseguibili come scritti.
 - If this spec is in `ready`, run `spec_start` as your first implementation action and `spec_submit` when the implementation is complete. If this spec is already in `review` for remediation, do not move it back to `working`; update evidence and report completion for re-review.
 - Implement only the stated scope.
 - Report changed files, tests run, and known limitations.

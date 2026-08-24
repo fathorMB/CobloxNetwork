@@ -254,7 +254,9 @@ ChallengeEvidenceBody = {
   "kind":"availability"|"storage"|"compute",
   "issuer_node_id":string,
   "subject_node_id":string,
+  "request":ChallengeRequest,
   "request_hash":sha256-string,
+  "response":ChallengeResponse,              // absent only for no_response
   "response_hash":sha256-string,             // absent only for no_response
   "outcome":"passed"|"failed"|"late"|"no_response",
   "measured_units":u64-string,
@@ -266,14 +268,16 @@ ChallengeEvidenceAuthorization = {"quorum_certificate":TransactionQuorumCertific
 
 Auditor signatures use domain `coblox-challenge-evidence-v0`, are unique and
 sorted, and meet the policy's independent-auditor threshold. The transaction
-quorum attests consensus acceptance; it does not replace raw response
-verification by validators. `measured_units` is 1 for availability, verified
+quorum attests consensus acceptance; it does not replace raw request/response
+verification by validators or light auditors. Validators recompute both hashes;
+embedding the raw objects makes them retrievable with the finalized transaction.
+`measured_units` is 1 for availability, verified
 bytes for storage, and verified fuel units for compute.
 
 Canonical serialized example:
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","kind":"availability","measured_units":"1","outcome":"passed","request_hash":"sha256:e14d4c02c41a950c9f4f4464e9f98a6652c64e6c992efc36c97f01d2f4ca2dc2","response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","kind":"availability","measured_units":"1","outcome":"passed","request":{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"request_hash":"sha256:e14d4c02c41a950c9f4f4464e9f98a6652c64e6c992efc36c97f01d2f4ca2dc2","response":{"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","result":{"kind":"availability","response":"MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","subject_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 ### Identity revocation
@@ -452,11 +456,11 @@ Canonical proof example (an absent account with all-default siblings):
 A light client can verify an account using a recent externally supplied weak-
 subjectivity checkpoint, the trusted genesis configuration, the
 validator sets/headers connecting it to a finalized header, that header's
-quorum certificate, and one `BalanceProof`:
+quorum certificate, and one `AccountProof`:
 
 1. **Validate the external checkpoint.** Load a signed checkpoint containing
    chain ID, finalized height/block ID, validator-set hash, and issued time.
-   Require its age to be at most `weak_subjectivity_max_age_ms`; genesis and the
+   Require its age to be at most `max_weak_subjectivity_age_ms`; genesis and the
    following steps alone are not sufficient after that window. Missing, stale,
    or chain-mismatched checkpoints fail closed.
 2. **Anchor the chain.** Load the configured network ID, derived chain ID,
@@ -467,7 +471,7 @@ quorum certificate, and one `BalanceProof`:
 4. **Advance trust.** For every newer header, recompute `block_id`, check chain,
    version, height, previous ID, and validator-set continuity. Verify the quorum
    certificate over the exact vote bytes using the currently trusted set and
-   the two-thirds-plus-one voting-power threshold. Fetch and hash a changed next
+   the strict quorum predicate. Fetch and hash a changed next
    set before using it. Never skip an untrusted set transition.
 5. **Corroborate freshness.** Query independently operated enrolled peers,
    reject tips older than `max_current_balance_age_ms`, and require the selected

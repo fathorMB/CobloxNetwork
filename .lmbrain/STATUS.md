@@ -21,26 +21,26 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 
 ## In progress
 
-- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. [REVIEW-001] chiusa (remediation verificata), ma [REVIEW-002] (sicurezza) è **changes-requested**: `GATE-SECREVIEW` non superato, 18 finding di cui 8 gravi. Serve una seconda remediation, subordinata alle decisioni di prodotto qui sotto.
-- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). In `working`, non consegnata: l'implementatore ha correttamente rifiutato `spec_submit` con i gate non verificati. Vedi la "Nota del Lead sul blocco dichiarato" nella spec: il blocco NDK era inesatto (il Lead ha eseguito la cross-build con successo), ma restano due difetti (script `build-android.sh` rotto, wrapper Gradle mancante) e un blocco vero su `GATE-CI-GREEN`.
-- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **Consegnata**, ora in `review`. `GATE-CONTRAST` chiuso con 130/130 coppie AA; interfaccia interamente in inglese come da correzione del Lead. Attende la review del Lead e il gate `GATE-OPERATOR-LOOK` dell'operatore.
+- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. [REVIEW-001] chiusa. Su [REVIEW-002] il **Lotto A è rimediato e verificato dal Lead** (14 finding su 18, inclusi tutti i gravi tranne RF-005 e RF-007): documenti passati da 1327 a 1709 righe, 18 esempi JSON canonici, 16 link risolti, e le fixture di identità ora derivano davvero il node ID dalla chiave. **Restano due condizioni per `done`:** (1) il Lotto B, subordinato alla decisione anti-Sybil; (2) la ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007, oggi impegnata su [SPEC-004].
+- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). In `working`. **Remediation dispacciata dal Lead il 2026-08-25 su autorizzazione dell'operatore, modello Sonnet**: chiusura dei tre difetti trovati dal Lead (script `build-android.sh` rotto per `-p` invece di `--platform`, wrapper Gradle mancante, `.gitignore` di root assente) più le verifiche locali, il cui standard si alza perché con la CI ferma `GATE-LOCAL-REPRO` è l'unica verifica reale che la spec produce. **In corso.**
+- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **Consegnata**, ora in `review`. `GATE-CONTRAST` chiuso con 130/130 coppie AA; interfaccia interamente in inglese come da correzione del Lead. Su richiesta dell'operatore il pacchetto è stato spostato in **`.lmbrain/design/coblox-design-system/`** secondo la convenzione del brain, così da essere visibile nell'app; generatori e link verificati dopo lo spostamento. Attende la review del Lead e il gate `GATE-OPERATOR-LOOK` dell'operatore.
 - [SPEC-004] Threat model → AGENT-007 (Greta Threatmodel). Dispacciata dal Lead il 2026-08-25, modello Opus, su decisione dell'operatore di stabilire la posizione anti-Sybil **dopo** il threat model. Il documento dovrà istruire quella decisione con numeri e conseguenze per ciascuna opzione, incluse le riformulazioni candidate della metrica di [[PROJECT]]. **In corso.**
 
 ## Blockers and risks
 
 - **BLOCCO 1 — conflitto tra sicurezza e metrica di prodotto.** [REVIEW-002] RF-005 dimostra numericamente (rapporto telefono/GPU ~2.750×) che nessun valore di `difficulty_bits` nell'intervallo 18–40 è insieme tollerabile su Android e costoso per un attaccante. Ne segue che la metrica di successo di [[PROJECT]] "zero accrediti a nodi emulati nei test di attacco" **non è raggiungibile per via crittografica** con il design attuale. *Decisione dell'operatore del 2026-08-25: si sceglie dopo il threat model. [SPEC-004] è stata avviata proprio per istruire questa scelta; PROJECT.md resta invariato fino ad allora.*
-- **BLOCCO 2 — `GATE-CI-GREEN` di SPEC-002, ora un cortocircuito.** La pipeline non ha mai eseguito perché nulla è stato spinto su `origin` (github.com/fathorMB/CobloxNetwork). Con la strategia di branching dichiarata il 2026-08-25 la dipendenza diventa circolare: il gate esige una run verde, la pipeline parte solo su push a `main`, il push avviene a `spec_done`, e `spec_done` esige il gate. Analisi e due vie d'uscita nella sezione dedicata di [SPEC-002]; il Lead raccomanda un push di bootstrap una tantum. Decisione dell'operatore.
+- **BLOCCO 2 — risolto per ora con una deroga.** La prima run CI (commit `4ea0db9`) è fallita in 6 secondi **senza eseguire alcun job**: `The job was not started because recent account payments have failed or your spending limit needs to be increased`. Problema dell'account GitHub, non del codice. L'operatore ha concesso il 2026-08-25 la deroga su `GATE-CI-GREEN`, registrata come **[DEBT-001]** (open, owner AGENT-008, severità high). I criteri che richiedevano la verifica *in CI* sono marcati `[~] ... | waived=DEBT-001`; la verifica locale equivalente **non** è derogata. Alla ripresa della fatturazione, DEBT-001 impone una run verde e la ri-attestazione del gate.
 - Violazione di safety BFT ([REVIEW-002] RF-002) verificata indipendentemente dal Lead: con potere di voto totale 101 la regola `2f+1` dà 67 e la regola "due terzi più uno" dà 68; due certificati di quorum in conflitto possono essere entrambi validi. Correzione a costo zero, ma va fatta prima che due implementazioni divergano.
 - Nome del token non ancora deciso (placeholder: `◇`). Lia propone JetBrains Mono come monospace: decisione dell'operatore.
 
 ## Next recommended actions
 
-1. Operatore: autorizzare la seconda remediation di SPEC-001 ad AGENT-001 sul **Lotto A** dei finding di [REVIEW-002] (triage completo nella spec). Il Lotto B attende [SPEC-004].
-2. Operatore: sciogliere BLOCCO 2 (autorizzare il primo push, o accettare una deroga documentata sul gate CI di SPEC-002); e far correggere a AGENT-008 i due difetti trovati dal Lead.
+1. Alla consegna di [SPEC-004]: decisione anti-Sybil dell'operatore, poi remediation del **Lotto B** e ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007. Sono le ultime due condizioni per chiudere SPEC-001.
+2. Operatore: sbloccare la fatturazione GitHub per chiudere [DEBT-001]; nel frattempo AGENT-008 sta correggendo i tre difetti trovati dal Lead.
 3. Lead: recensire SPEC-003 (consegnata); l'operatore attesta poi `GATE-OPERATOR-LOOK`.
 4. Operatore: decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
-5. Alla consegna di [SPEC-004]: decisione anti-Sybil, riformulazione della metrica in [[PROJECT]], e sblocco del Lotto B.
-6. Definire la strategia di branching (`branching_strategy_set`) insieme a SPEC-002.
+5. Alla decisione anti-Sybil: riformulare la metrica di successo in [[PROJECT]].
+6. **Alla prima spec che passa a `done`:** il Lead committa e pusha, includendo lo spostamento del pacchetto di design in `.lmbrain/design/` (19 rinomine oggi non ancora committate, per volontà dell'operatore).
 
 ## Strategia di branching
 

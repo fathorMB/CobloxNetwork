@@ -10,10 +10,10 @@ deterministic `.cobloxapp` container. Installing a package does not grant its
 requested capabilities: the host validates the package, shows the request to
 the operator, and records an explicit local grant bounded by the manifest.
 
-App identity is content-addressed:
+App identity is content-addressed and chain-bound:
 
 ```text
-app_id = SHA-256("coblox-app-id-v0\0" || JCS(unsigned_manifest))
+app_id = SHA-256("coblox-app-id-v0\0" || chain_id_32 || JCS(unsigned_manifest))
 ```
 
 `unsigned_manifest` is the manifest without `publisher_signature`. Changing
@@ -61,7 +61,8 @@ AppManifest = {
 Strings are UTF-8 and bounded: name 1–80 bytes, semantic version 1–64,
 description 0–1024, and entrypoint 1–128. The publisher key MUST derive the
 publisher node ID and have a finalized, unrevoked enrollment certificate.
-Publisher signature domain is `coblox-app-manifest-v0`.
+Publisher signature domain is `coblox-app-manifest-v0` and follows the global
+chain-bound procedure.
 
 The module MUST be a valid core WebAssembly module, contain no start function,
 export the declared entrypoint, and import only functions allowed by its ABI and
@@ -97,6 +98,24 @@ Capability =
 - `http_fetch` allows HTTPS only, exact normalized origins only, no raw sockets,
   DNS rebinding to loopback/private/link-local ranges, redirects outside the
   allowlist, ambient credentials, or host proxy inheritance.
+
+For every initial URL and every redirect hop, the host normalizes and checks the
+origin, resolves DNS exactly once, validates **every** returned address against
+the forbidden loopback, private, link-local, multicast, unspecified, and
+metadata-service ranges for IPv4 and IPv6, then connects to one of those pinned
+addresses while retaining the original hostname for TLS SNI and certificate
+verification. The connector MUST NOT perform another name resolution. A DNS
+answer containing any forbidden address rejects the whole request; redirects
+repeat the complete resolve/validate/pin procedure and are capped by the host
+policy. IPv4-mapped IPv6 is normalized before classification.
+
+DNS time, connection time, TLS time, redirect bodies, request bytes, and
+response bytes all consume the invocation wall-time and byte budgets; exhaustion
+aborts the host call. Conformance fixtures: (1) a name resolving to one public
+and one `127.0.0.1` address rejects; (2) a public first hop redirecting to a name
+that resolves to `169.254.169.254` rejects before connection; (3) changing DNS
+after the accepted answer cannot change the pinned destination; (4) a redirect
+loop exhausts the redirect/time budget and traps deterministically.
 
 An app with `runtime.deterministic: true` MUST NOT request `http_fetch` or
 persistent `storage_app`. Its output may depend only on module bytes, canonical
@@ -156,8 +175,10 @@ Pricing = {
 ```
 
 Zero is allowed for publisher-controlled subscription and invocation components
-and means that component is free. Hosting purchase creates an `app_hosting`
-burn; subscription creates `app_subscription`. `hosting.rate_source` MUST be the
+and means that component is free. Hosting is paid from the app escrow created by
+`fund_app` and creates an `app_hosting` burn authorized by consensus;
+subscription creates a node-funded `app_subscription` burn.
+`hosting.rate_source` MUST be the
 literal `protocol`: hosting unit prices and minimum billing periods come only
 from the signed validator-governed network rate card. The publisher declares
 replicas and per-replica resource ceilings but cannot declare a hosting price.
