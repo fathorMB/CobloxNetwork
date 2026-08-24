@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+      - run: cargo build --locked --workspace
+      - run: cargo test --locked --workspace
+      - if: runner.os == 'Linux'
+        run: cargo fmt --all -- --check
+      - if: runner.os == 'Linux'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - if: runner.os == 'Linux'
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
+  android:
+    name: Android arm64 + Kotlin bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android NDK and Gradle
+        run: |
+          sdkmanager --install "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install --yes gradle
+          cargo install cargo-ndk --version 3.5.4 --locked
+      - name: Build Android library and test generated Kotlin binding
+        run: ./scripts/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coblox-ffi-android-arm64
+          path: apps/android/core/src/main/jniLibs/arm64-v8a/libcoblox_ffi.so
+          if-no-files-found: error
+
+  desktop:
+    name: Tauri desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm run build
+      - run: npm run tauri -- build --bundles none
+      - name: Verify core version command is compiled into the desktop shell
+        run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features core_version -- --nocapture

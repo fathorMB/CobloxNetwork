@@ -1,0 +1,776 @@
+/*
+ * Coblox design system — component layer.
+ * Each component is a token contract first: it consumes semantic tokens only.
+ * Depends on ../tokens/tokens.css and ./base.css.
+ */
+
+/* ==================================================================== card */
+
+.cbx-card {
+  background: var(--cbx-color-bg-surface);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-card);
+  box-shadow: var(--cbx-elevation-card);
+  padding: var(--cbx-space-card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-stack);
+  min-width: 0;
+}
+
+.cbx-card--accent {
+  border-color: var(--cbx-color-border-accent);
+  box-shadow: var(--cbx-elevation-glow-accent);
+}
+
+.cbx-card--inset {
+  background: var(--cbx-color-bg-inset);
+}
+
+.cbx-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cbx-space-inline);
+}
+
+/* Metric block: label above, figure below. The figure is the largest thing on
+   the screen because "how much did the network use me" is the primary question. */
+.cbx-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-1);
+  min-width: 0;
+}
+
+.cbx-stat__value {
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-stat__value--accent {
+  color: var(--cbx-color-accent-primary);
+}
+
+.cbx-stat__meta {
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-muted);
+}
+
+/* ================================================================= buttons */
+
+.cbx-btn {
+  --_bg: transparent;
+  --_fg: var(--cbx-color-text-primary);
+  --_bd: var(--cbx-color-border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cbx-space-2);
+  min-height: var(--cbx-layout-hit-target-min);
+  padding: 0 var(--cbx-space-4);
+  background: var(--_bg);
+  color: var(--_fg);
+  border: var(--cbx-border-width-hairline) solid var(--_bd);
+  border-radius: var(--cbx-radius-control);
+  font-size: var(--cbx-font-size-body-sm);
+  font-weight: var(--cbx-font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--cbx-motion-control) var(--cbx-motion-easing-standard),
+    border-color var(--cbx-motion-control) var(--cbx-motion-easing-standard);
+}
+
+.cbx-btn:hover:not(:disabled) {
+  background: var(--cbx-color-bg-hover);
+}
+
+.cbx-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cbx-btn--primary {
+  --_bg: var(--cbx-color-accent-primary-solid);
+  --_fg: var(--cbx-color-text-on-accent);
+  --_bd: var(--cbx-color-accent-primary-solid);
+  font-weight: var(--cbx-font-weight-semibold);
+}
+
+.cbx-btn--primary:hover:not(:disabled) {
+  --_bg: var(--cbx-color-accent-primary);
+  --_bd: var(--cbx-color-accent-primary);
+  background: var(--cbx-color-accent-primary);
+}
+
+.cbx-btn--ghost {
+  --_bd: transparent;
+  --_fg: var(--cbx-color-text-secondary);
+}
+
+/* Destructive actions are solid so they read as a commitment, never as the
+   default. Colour alone never marks them: the label states the consequence. */
+.cbx-btn--danger {
+  --_bg: var(--cbx-color-feedback-danger-solid);
+  --_fg: var(--cbx-color-text-on-danger);
+  --_bd: var(--cbx-color-feedback-danger-solid);
+}
+
+.cbx-btn--danger:hover:not(:disabled) {
+  background: var(--cbx-color-feedback-danger-solid);
+  filter: brightness(1.12);
+}
+
+.cbx-btn--sm {
+  min-height: 26px;
+  padding: 0 var(--cbx-space-3);
+  font-size: var(--cbx-font-size-2xs);
+}
+
+.cbx-btn--mono {
+  font-family: var(--cbx-font-family-data);
+}
+
+/* ================================================================== inputs */
+
+.cbx-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+  min-width: 0;
+}
+
+.cbx-input,
+.cbx-select,
+.cbx-textarea {
+  width: 100%;
+  min-height: var(--cbx-layout-hit-target-min);
+  padding: var(--cbx-space-2) var(--cbx-space-3);
+  background: var(--cbx-color-bg-inset);
+  color: var(--cbx-color-text-primary);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  border-radius: var(--cbx-radius-control);
+  transition: border-color var(--cbx-motion-control) var(--cbx-motion-easing-standard);
+}
+
+/* Anything the user types that the machine will parse — node names, ids,
+   passphrases, amounts — is monospace, so characters cannot be confused. */
+.cbx-input--data {
+  font-family: var(--cbx-font-family-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.cbx-input::placeholder {
+  color: var(--cbx-color-text-muted);
+}
+
+.cbx-input:hover:not(:disabled) {
+  border-color: var(--cbx-color-border-accent);
+}
+
+.cbx-input[aria-invalid='true'] {
+  border-color: var(--cbx-color-feedback-danger);
+}
+
+.cbx-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cbx-field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-2);
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-feedback-danger);
+}
+
+/* =================================================================== table */
+
+.cbx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cbx-font-size-body-sm);
+}
+
+.cbx-table th {
+  text-align: left;
+  padding: var(--cbx-space-2) var(--cbx-space-3);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  font-weight: var(--cbx-font-weight-medium);
+  /* `wide`, not `widest`: column headers are the one place where the terminal
+     letter-spacing costs real horizontal room and pushes data off-screen. */
+  letter-spacing: var(--cbx-font-letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--cbx-color-text-muted);
+  white-space: nowrap;
+}
+
+.cbx-table td {
+  padding: 0 var(--cbx-space-3);
+  height: var(--cbx-layout-row-height);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  color: var(--cbx-color-text-secondary);
+  vertical-align: middle;
+}
+
+.cbx-table tbody tr:hover {
+  background: var(--cbx-color-bg-hover);
+}
+
+.cbx-table tbody tr:hover td {
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-table--dense td {
+  height: var(--cbx-layout-row-height-dense);
+}
+
+.cbx-table .cbx-cell--num {
+  text-align: right;
+  font-family: var(--cbx-font-family-data);
+  font-variant-numeric: tabular-nums;
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-table__wrap {
+  overflow-x: auto;
+}
+
+/* ================================================================== badges */
+
+.cbx-badge {
+  --_fg: var(--cbx-color-text-secondary);
+  --_bg: var(--cbx-color-bg-hover);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cbx-space-2);
+  padding: 2px var(--cbx-space-2);
+  background: var(--_bg);
+  color: var(--_fg);
+  border-radius: var(--cbx-radius-badge);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  font-weight: var(--cbx-font-weight-medium);
+  letter-spacing: var(--cbx-font-letter-spacing-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cbx-badge--online {
+  --_fg: var(--cbx-color-status-online);
+  --_bg: var(--cbx-color-status-online-quiet);
+}
+
+.cbx-badge--validating {
+  --_fg: var(--cbx-color-status-validating);
+  --_bg: var(--cbx-color-status-validating-quiet);
+}
+
+.cbx-badge--degraded {
+  --_fg: var(--cbx-color-status-degraded);
+  --_bg: var(--cbx-color-status-degraded-quiet);
+}
+
+.cbx-badge--offline {
+  --_fg: var(--cbx-color-status-offline);
+  --_bg: var(--cbx-color-status-offline-quiet);
+}
+
+.cbx-badge--error {
+  --_fg: var(--cbx-color-status-error);
+  --_bg: var(--cbx-color-status-error-quiet);
+}
+
+.cbx-badge--mint {
+  --_fg: var(--cbx-color-flow-mint);
+  --_bg: var(--cbx-color-flow-mint-quiet);
+}
+
+.cbx-badge--burn {
+  --_fg: var(--cbx-color-flow-burn);
+  --_bg: var(--cbx-color-flow-burn-quiet);
+}
+
+/* Status dot. Shape carries meaning too: filled = up, ring = transitional,
+   hollow-dim = offline. Colour is never the only channel. */
+.cbx-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--cbx-radius-pill);
+  background: currentColor;
+  flex: none;
+}
+
+.cbx-dot--ring {
+  background: transparent;
+  border: 2px solid currentColor;
+}
+
+.cbx-dot--hollow {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* The only ambient animation in the system: a slow breath on the live
+   indicator, low amplitude, never behind text. */
+.cbx-dot--live {
+  animation: cbx-breathe var(--cbx-motion-liveness) var(--cbx-motion-easing-standard) infinite;
+}
+
+@keyframes cbx-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cbx-dot--live {
+    animation: none;
+  }
+}
+
+/* ================================================================= tooltip */
+
+.cbx-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.cbx-tooltip__bubble {
+  position: absolute;
+  bottom: calc(100% + var(--cbx-space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  min-width: 180px;
+  max-width: 280px;
+  padding: var(--cbx-space-2) var(--cbx-space-3);
+  background: var(--cbx-color-bg-surface-raised);
+  color: var(--cbx-color-text-primary);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  border-radius: var(--cbx-radius-control);
+  box-shadow: var(--cbx-elevation-overlay);
+  font-size: var(--cbx-font-size-body-sm);
+  line-height: var(--cbx-font-line-height-snug);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--cbx-motion-control) var(--cbx-motion-easing-standard);
+}
+
+.cbx-tooltip:hover .cbx-tooltip__bubble,
+.cbx-tooltip:focus-within .cbx-tooltip__bubble,
+.cbx-tooltip__bubble--open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* =========================================================== toast / notice */
+
+.cbx-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cbx-space-3);
+  width: min(420px, 100%);
+  padding: var(--cbx-space-3) var(--cbx-space-4);
+  background: var(--cbx-color-bg-surface-raised);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  border-left: var(--cbx-border-width-thick) solid var(--cbx-color-accent-primary);
+  border-radius: var(--cbx-radius-control);
+  box-shadow: var(--cbx-elevation-overlay);
+}
+
+.cbx-toast--warning {
+  border-left-color: var(--cbx-color-feedback-warning);
+}
+
+.cbx-toast--danger {
+  border-left-color: var(--cbx-color-feedback-danger);
+}
+
+.cbx-toast__title {
+  font-weight: var(--cbx-font-weight-semibold);
+  font-size: var(--cbx-font-size-body-sm);
+}
+
+.cbx-toast__body {
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-secondary);
+}
+
+.cbx-notice {
+  --_fg: var(--cbx-color-feedback-info);
+  --_bg: var(--cbx-color-feedback-info-quiet);
+  display: flex;
+  gap: var(--cbx-space-3);
+  padding: var(--cbx-space-3) var(--cbx-space-4);
+  background: var(--_bg);
+  border: var(--cbx-border-width-hairline) solid var(--_fg);
+  border-radius: var(--cbx-radius-control);
+  color: var(--cbx-color-text-primary);
+  font-size: var(--cbx-font-size-body-sm);
+}
+
+.cbx-notice--success {
+  --_fg: var(--cbx-color-feedback-success);
+  --_bg: var(--cbx-color-feedback-success-quiet);
+}
+
+.cbx-notice--warning {
+  --_fg: var(--cbx-color-feedback-warning);
+  --_bg: var(--cbx-color-feedback-warning-quiet);
+}
+
+.cbx-notice--danger {
+  --_fg: var(--cbx-color-feedback-danger);
+  --_bg: var(--cbx-color-feedback-danger-quiet);
+}
+
+.cbx-notice__icon {
+  color: var(--_fg);
+  font-family: var(--cbx-font-family-data);
+  font-weight: var(--cbx-font-weight-bold);
+  flex: none;
+}
+
+/* =============================================================== sparkline */
+
+/* Deliberately not a financial chart: no axes of value, no candles, no
+   red/green performance arrows. It shows activity over time, nothing else. */
+.cbx-sparkline {
+  display: block;
+  width: 100%;
+  height: 44px;
+  overflow: visible;
+}
+
+.cbx-sparkline__grid {
+  stroke: var(--cbx-color-chart-grid);
+  stroke-width: 1;
+}
+
+.cbx-sparkline__line {
+  fill: none;
+  stroke: var(--cbx-color-chart-series-1);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.cbx-sparkline__line--series-2 {
+  stroke: var(--cbx-color-chart-series-2);
+}
+
+.cbx-sparkline__line--series-3 {
+  stroke: var(--cbx-color-chart-series-3);
+}
+
+.cbx-sparkline__area {
+  fill: var(--cbx-color-accent-primary-quiet);
+  stroke: none;
+}
+
+.cbx-sparkline__caption {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-3xs);
+  color: var(--cbx-color-text-muted);
+}
+
+/* ==================================================================== meter */
+
+/* "Token" progress bar. Used for shares of a whole (share of a session's
+   compensation, share of storage committed) — never for a price or a target. */
+.cbx-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+}
+
+.cbx-meter__track {
+  position: relative;
+  height: 8px;
+  background: var(--cbx-color-bg-inset);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  border-radius: var(--cbx-radius-pill);
+  overflow: hidden;
+}
+
+.cbx-meter__fill {
+  height: 100%;
+  background: var(--cbx-color-chart-series-1);
+  border-radius: var(--cbx-radius-pill);
+  transition: width var(--cbx-motion-surface) var(--cbx-motion-easing-standard);
+}
+
+.cbx-meter__fill--series-2 {
+  background: var(--cbx-color-chart-series-2);
+}
+
+.cbx-meter__fill--series-3 {
+  background: var(--cbx-color-chart-series-3);
+}
+
+.cbx-meter__legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-muted);
+}
+
+/* Segmented bar for "where my balance went": mint vs burn as proportions of
+   activity, with a written legend — never as a profit/loss bar. */
+.cbx-meter__track--split {
+  display: flex;
+}
+
+.cbx-meter__segment {
+  height: 100%;
+}
+
+.cbx-meter__segment--mint {
+  background: var(--cbx-color-flow-mint);
+}
+
+.cbx-meter__segment--burn {
+  background: var(--cbx-color-flow-burn);
+}
+
+/* ================================================================ skeleton */
+
+.cbx-skeleton {
+  background: var(--cbx-color-bg-hover);
+  border-radius: var(--cbx-radius-control);
+  height: 1em;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.cbx-skeleton--text {
+  height: 0.75em;
+  margin-block: 0.2em;
+}
+
+.cbx-skeleton--num {
+  height: 2.2rem;
+  width: 9ch;
+}
+
+.cbx-skeleton--block {
+  height: 44px;
+}
+
+.cbx-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--cbx-color-bg-surface-raised), transparent);
+  transform: translateX(-100%);
+  animation: cbx-sweep 1400ms var(--cbx-motion-easing-standard) infinite;
+}
+
+@keyframes cbx-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cbx-skeleton::after {
+    animation: none;
+  }
+}
+
+/* ============================================================= empty state */
+
+.cbx-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cbx-space-3);
+  padding: var(--cbx-space-8) var(--cbx-space-6);
+  border: var(--cbx-border-width-hairline) dashed var(--cbx-color-border-strong);
+  border-radius: var(--cbx-radius-card);
+  background: var(--cbx-color-bg-surface);
+}
+
+.cbx-empty__mark {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-2xl);
+  color: var(--cbx-color-text-muted);
+}
+
+.cbx-empty__title {
+  font-size: var(--cbx-font-size-section);
+  font-weight: var(--cbx-font-weight-semibold);
+}
+
+.cbx-empty__body {
+  max-width: 56ch;
+  color: var(--cbx-color-text-secondary);
+  font-size: var(--cbx-font-size-body-sm);
+  line-height: var(--cbx-font-line-height-relaxed);
+}
+
+/* ============================================================== key/values */
+
+.cbx-kv {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--cbx-space-2) var(--cbx-space-4);
+  font-size: var(--cbx-font-size-body-sm);
+}
+
+.cbx-kv dt {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  text-transform: uppercase;
+  color: var(--cbx-color-text-muted);
+  align-self: center;
+}
+
+.cbx-kv dd {
+  margin: 0;
+  color: var(--cbx-color-text-primary);
+}
+
+/* ============================================================== log stream */
+
+/* The live event feed. This is where the terminal aesthetic is literal,
+   because the content genuinely is a machine event log. */
+.cbx-log {
+  background: var(--cbx-color-bg-inset);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  border-radius: var(--cbx-radius-control);
+  padding: var(--cbx-space-2);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-data-sm);
+  line-height: var(--cbx-font-line-height-snug);
+  overflow-x: auto;
+}
+
+.cbx-log__line {
+  display: flex;
+  gap: var(--cbx-space-3);
+  padding: 3px var(--cbx-space-2);
+  white-space: nowrap;
+  color: var(--cbx-color-text-secondary);
+}
+
+.cbx-log__time {
+  color: var(--cbx-color-text-muted);
+  flex: none;
+}
+
+.cbx-log__tag {
+  flex: none;
+  width: 6ch;
+  color: var(--cbx-color-text-muted);
+}
+
+.cbx-log__tag--mint {
+  color: var(--cbx-color-flow-mint);
+}
+
+.cbx-log__tag--burn {
+  color: var(--cbx-color-flow-burn);
+}
+
+.cbx-log__tag--proof {
+  color: var(--cbx-color-status-validating);
+}
+
+/* ================================================================== stepper */
+
+/* Linear progress through a short, irreversible-feeling setup. Numbered, with
+   the current step named in words: "Passo 2 di 3" is announced, not implied. */
+.cbx-steps {
+  display: flex;
+  gap: var(--cbx-space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cbx-steps__item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+  padding-top: var(--cbx-space-2);
+  border-top: var(--cbx-border-width-thick) solid var(--cbx-color-border-default);
+  color: var(--cbx-color-text-muted);
+  font-size: var(--cbx-font-size-body-sm);
+  min-width: 0;
+}
+
+.cbx-steps__item[data-state='done'] {
+  border-top-color: var(--cbx-color-accent-primary);
+  color: var(--cbx-color-text-secondary);
+}
+
+.cbx-steps__item[data-state='current'] {
+  border-top-color: var(--cbx-color-accent-primary);
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-steps__marker {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  text-transform: uppercase;
+}
+
+.cbx-steps__item[data-state='current'] .cbx-steps__marker,
+.cbx-steps__item[data-state='done'] .cbx-steps__marker {
+  color: var(--cbx-color-accent-primary);
+}
+
+.cbx-steps__label {
+  font-weight: var(--cbx-font-weight-medium);
+}
+
+/* ============================================================== word grid */
+
+/* Recovery phrase. Numbered so the user can transcribe it onto paper without
+   losing their place; monospace so 1/l and 0/O cannot be confused. */
+.cbx-wordgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cbx-space-2);
+  padding: var(--cbx-space-4);
+  background: var(--cbx-color-bg-inset);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  border-radius: var(--cbx-radius-control);
+}
+
+@media (max-width: 720px) {
+  .cbx-wordgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cbx-wordgrid__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cbx-space-2);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-data-sm);
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-wordgrid__index {
+  color: var(--cbx-color-text-muted);
+  font-size: var(--cbx-font-size-3xs);
+  width: 2ch;
+  text-align: right;
+  flex: none;
+}

@@ -1,0 +1,95 @@
+/*
+ * Presentation chrome for the component reference page only.
+ * Product surfaces must never depend on these classes.
+ */
+
+.preview {
+  max-width: calc(var(--cbx-layout-content-max) + 2 * var(--cbx-space-6));
+  margin-inline: auto;
+  padding: var(--cbx-space-10) var(--cbx-space-6) var(--cbx-space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-10);
+}
+
+.preview__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+}
+
+.preview__h1 {
+  font-size: var(--cbx-font-size-3xl);
+}
+
+.preview__foot {
+  padding-top: var(--cbx-space-6);
+  border-top: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+}
+
+/* Each gallery re-declares the theme, so the light half genuinely renders on a
+   light canvas inside the same document — no script, no second page. */
+.gallery {
+  background: var(--cbx-color-bg-app);
+  color: var(--cbx-color-text-primary);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-card);
+  padding: var(--cbx-space-8) var(--cbx-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-10);
+}
+
+.gallery__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+  padding-bottom: var(--cbx-space-4);
+  border-bottom: var(--cbx-border-width-thick) solid var(--cbx-color-border-accent);
+}
+
+.gallery__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+}
+
+.gallery__demo {
+  padding-top: var(--cbx-space-2);
+}
+
+.gallery code {
+  font-family: var(--cbx-font-family-data);
+  font-size: 0.92em;
+  color: var(--cbx-color-text-primary);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--cbx-space-2) var(--cbx-space-4);
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-3);
+  min-width: 0;
+}
+
+.swatch__chip {
+  width: 28px;
+  height: 20px;
+  flex: none;
+  border-radius: var(--cbx-radius-xs);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+}
+
+.swatch__name {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-3xs);
+  color: var(--cbx-color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

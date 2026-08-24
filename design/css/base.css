@@ -1,0 +1,269 @@
+/*
+ * Coblox design system — base layer.
+ * Reset, document defaults, typography and data-formatting primitives.
+ * Depends on ../tokens/tokens.css. Uses semantic tokens only: no literal colours.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--cbx-color-bg-app);
+  color: var(--cbx-color-text-primary);
+  font-family: var(--cbx-font-family-prose);
+  font-size: var(--cbx-font-size-body);
+  line-height: var(--cbx-font-line-height-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--cbx-color-text-link);
+  text-underline-offset: 0.2em;
+}
+
+/* One focus treatment for the whole system. The ring is offset so its adjacent
+   colour is always the page/card background — see design/tokens/CONTRAST.md. */
+:focus-visible {
+  outline: var(--cbx-border-width-thick) solid var(--cbx-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--cbx-radius-control);
+}
+
+::selection {
+  background: var(--cbx-color-accent-primary-quiet);
+  color: var(--cbx-color-text-primary);
+}
+
+/* ---------------------------------------------------------------- headings */
+
+.cbx-title {
+  font-family: var(--cbx-font-family-prose);
+  font-size: var(--cbx-font-size-title);
+  font-weight: var(--cbx-font-weight-semibold);
+  line-height: var(--cbx-font-line-height-tight);
+  letter-spacing: var(--cbx-font-letter-spacing-tight);
+}
+
+.cbx-section-title {
+  font-size: var(--cbx-font-size-section);
+  font-weight: var(--cbx-font-weight-semibold);
+  line-height: var(--cbx-font-line-height-snug);
+}
+
+/* Terminal-flavoured section label: the "hacker" accent lives here, in
+   uppercase micro-labels — never in the body copy. */
+.cbx-label {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  font-weight: var(--cbx-font-weight-medium);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  text-transform: uppercase;
+  color: var(--cbx-color-text-muted);
+}
+
+.cbx-prose {
+  max-width: 68ch;
+  color: var(--cbx-color-text-secondary);
+  line-height: var(--cbx-font-line-height-relaxed);
+}
+
+.cbx-hint {
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-muted);
+}
+
+/* -------------------------------------------------------------- data types */
+
+/* Every machine-produced value — amounts, ids, hashes, rates, timestamps.
+   `tabular-nums` is mandatory: live figures re-render every few seconds and
+   proportional digits would make the whole row jitter while being read. */
+.cbx-num,
+.cbx-mono {
+  font-family: var(--cbx-font-family-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  letter-spacing: var(--cbx-font-letter-spacing-normal);
+}
+
+.cbx-num {
+  font-size: var(--cbx-font-size-data-sm);
+  white-space: nowrap;
+}
+
+.cbx-num--md {
+  font-size: var(--cbx-font-size-data-md);
+}
+
+.cbx-num--lg {
+  font-size: var(--cbx-font-size-data-lg);
+  font-weight: var(--cbx-font-weight-medium);
+}
+
+.cbx-num--hero {
+  font-size: var(--cbx-font-size-data-hero);
+  font-weight: var(--cbx-font-weight-medium);
+  line-height: var(--cbx-font-line-height-tight);
+  letter-spacing: var(--cbx-font-letter-spacing-tight);
+}
+
+.cbx-num--mint {
+  color: var(--cbx-color-flow-mint);
+}
+
+.cbx-num--burn {
+  color: var(--cbx-color-flow-burn);
+}
+
+/* Truncated identifier (node id, app id, tx hash). Always monospace, always
+   with the full value available to assistive tech and on hover. */
+.cbx-id {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-data-sm);
+  color: var(--cbx-color-text-secondary);
+  white-space: nowrap;
+}
+
+/* The unit of account has no agreed name yet (open question, SPEC-003).
+   The provisional marker is deliberately visible so nobody mistakes it for a
+   final brand decision. Replace this one class when the name is chosen. */
+.cbx-unit {
+  font-family: var(--cbx-font-family-data);
+  color: var(--cbx-color-text-muted);
+  margin-inline-start: 0.35em;
+  font-size: 0.8em;
+}
+
+.cbx-unit--provisional {
+  border-bottom: 1px dotted currentColor;
+  cursor: help;
+}
+
+/* ------------------------------------------------------------- layout util */
+
+.cbx-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-stack);
+}
+
+.cbx-stack--tight {
+  gap: var(--cbx-space-stack-tight);
+}
+
+.cbx-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-inline);
+}
+
+.cbx-row--between {
+  justify-content: space-between;
+}
+
+.cbx-row--wrap {
+  flex-wrap: wrap;
+}
+
+.cbx-grid {
+  display: grid;
+  gap: var(--cbx-space-gutter);
+}
+
+/* Intrinsic reflow rather than breakpoints: a card states a minimum width it
+   can be read at, and the grid drops a column when that minimum is not met.
+   The desktop shell is resizable, so column counts must not depend on guesses
+   about the window size. */
+.cbx-grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.cbx-grid--3 {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+/* The detail column holds label/value pairs that must not wrap mid-phrase, so
+   it declares a hard minimum and the layout stacks below it.
+
+   This uses a CONTAINER query, not a media query, on purpose: the content well
+   is a resizable pane inside the desktop window, and on the mockup pages it is
+   an artboard inside a document. Viewport width says nothing useful about how
+   much room this grid actually has. The media query below is the fallback for
+   any context that never establishes the container. */
+.cbx-grid--sidebar {
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+}
+
+@container cbx-main (max-width: 820px) {
+  .cbx-grid--sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1040px) {
+  .cbx-grid--sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cbx-divider {
+  height: 1px;
+  background: var(--cbx-color-border-subtle);
+  border: 0;
+}
+
+.cbx-spacer {
+  flex: 1 1 auto;
+}
+
+/* Visible only to assistive technology. Used for the text alternative of every
+   status colour, so status is never encoded by colour alone. */
+.cbx-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

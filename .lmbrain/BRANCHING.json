@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "topology": "main-only",
+  "default_branch": "main",
+  "protected_branches": [
+    "main"
+  ],
+  "development_branch": "main",
+  "branch_naming": {
+    "allowed_prefixes": [],
+    "spec_branch_pattern": "{prefix}{spec_id_lowercase}-{slug}",
+    "require_prefix": false
+  },
+  "authority": {
+    "lead_only_push_branches": [
+      "main"
+    ],
+    "allow_specialist_push": false,
+    "require_pr_for_merge": false
+  },
+  "commit_triggers": {
+    "commit_on_spec_completion": true,
+    "commit_on_doc_change": false
+  }
+}

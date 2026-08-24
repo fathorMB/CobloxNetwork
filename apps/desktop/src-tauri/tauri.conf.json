@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Coblox",
+  "version": "0.1.0",
+  "identifier": "network.coblox.desktop",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{ "title": "Coblox", "width": 800, "height": 520 }],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": false }
+}

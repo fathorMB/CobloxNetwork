@@ -1,0 +1,292 @@
+/*
+ * Coblox design system — desktop application shell.
+ * The frame every Tauri screen sits in: sidebar, topbar, content well.
+ * Depends on ../tokens/tokens.css, ./base.css.
+ */
+
+.cbx-app {
+  display: grid;
+  grid-template-columns: var(--cbx-layout-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: var(--cbx-layout-topbar-height) minmax(0, 1fr);
+  grid-template-areas:
+    'brand topbar'
+    'nav   main';
+  min-height: 620px;
+  background: var(--cbx-color-bg-app);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-card);
+  overflow: hidden;
+}
+
+.cbx-app__brand {
+  grid-area: brand;
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-2);
+  padding-inline: var(--cbx-space-4);
+  background: var(--cbx-color-bg-surface);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  border-right: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  font-family: var(--cbx-font-family-data);
+  font-weight: var(--cbx-font-weight-semibold);
+  letter-spacing: var(--cbx-font-letter-spacing-wide);
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-app__brand-mark {
+  color: var(--cbx-color-accent-primary);
+}
+
+.cbx-app__topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-4);
+  padding-inline: var(--cbx-space-5);
+  background: var(--cbx-color-bg-surface);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+}
+
+.cbx-app__nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-1);
+  padding: var(--cbx-space-3);
+  background: var(--cbx-color-bg-surface);
+  border-right: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+}
+
+.cbx-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-3);
+  min-height: var(--cbx-layout-hit-target-min);
+  padding-inline: var(--cbx-space-3);
+  border-radius: var(--cbx-radius-control);
+  color: var(--cbx-color-text-secondary);
+  font-size: var(--cbx-font-size-body-sm);
+  text-decoration: none;
+}
+
+.cbx-nav__item:hover {
+  background: var(--cbx-color-bg-hover);
+  color: var(--cbx-color-text-primary);
+}
+
+.cbx-nav__item[aria-current='page'] {
+  background: var(--cbx-color-bg-selected);
+  color: var(--cbx-color-text-primary);
+  box-shadow: inset 2px 0 0 0 var(--cbx-color-accent-primary);
+}
+
+.cbx-nav__glyph {
+  font-family: var(--cbx-font-family-data);
+  color: var(--cbx-color-text-muted);
+  width: 1.5ch;
+  text-align: center;
+}
+
+.cbx-nav__item[aria-current='page'] .cbx-nav__glyph {
+  color: var(--cbx-color-accent-primary);
+}
+
+.cbx-nav__section {
+  margin-top: var(--cbx-space-4);
+  padding-inline: var(--cbx-space-3);
+}
+
+/* Establishes the query container the content grids size themselves against. */
+.cbx-app__main {
+  grid-area: main;
+  container-type: inline-size;
+  container-name: cbx-main;
+  padding: var(--cbx-space-gutter);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-gutter);
+}
+
+.cbx-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cbx-space-4);
+  flex-wrap: wrap;
+}
+
+/* Connection banner: the app's honest statement about whether what you are
+   reading is live. It is always present, never a transient toast. */
+.cbx-conn {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-2);
+  padding: 2px var(--cbx-space-3);
+  border-radius: var(--cbx-radius-badge);
+  background: var(--cbx-color-status-online-quiet);
+  color: var(--cbx-color-status-online);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  letter-spacing: var(--cbx-font-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.cbx-conn--offline {
+  background: var(--cbx-color-status-offline-quiet);
+  color: var(--cbx-color-status-offline);
+}
+
+.cbx-conn--error {
+  background: var(--cbx-color-status-error-quiet);
+  color: var(--cbx-color-status-error);
+}
+
+.cbx-conn--validating {
+  background: var(--cbx-color-status-validating-quiet);
+  color: var(--cbx-color-status-validating);
+}
+
+/* When data is stale (offline), the whole content well is marked as such:
+   dimming alone would be a contrast violation, so we use a labelled rule. */
+.cbx-stale-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-3);
+  padding: var(--cbx-space-2) var(--cbx-space-3);
+  border: var(--cbx-border-width-hairline) dashed var(--cbx-color-status-offline);
+  border-radius: var(--cbx-radius-control);
+  background: var(--cbx-color-status-offline-quiet);
+  color: var(--cbx-color-text-secondary);
+  font-size: var(--cbx-font-size-body-sm);
+}
+
+/* ------------------------------------------------- mockup presentation only */
+
+/* Chrome used by the static mockup pages themselves. Not part of the product
+   surface: product code must not depend on these classes. */
+.mock-page {
+  padding: var(--cbx-space-8) var(--cbx-space-6);
+  max-width: calc(var(--cbx-layout-content-max) + 2 * var(--cbx-space-6));
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-10);
+}
+
+.mock-artboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+}
+
+.mock-artboard__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cbx-space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--cbx-space-2);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+}
+
+.mock-artboard__id {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  text-transform: uppercase;
+  color: var(--cbx-color-accent-primary);
+}
+
+.mock-artboard__note {
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-muted);
+  max-width: 80ch;
+}
+
+.mock-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cbx-space-2);
+}
+
+.mock-toc a {
+  padding: 2px var(--cbx-space-3);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-strong);
+  border-radius: var(--cbx-radius-badge);
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-2xs);
+  text-decoration: none;
+  color: var(--cbx-color-text-secondary);
+}
+
+.mock-toc a:hover {
+  border-color: var(--cbx-color-border-accent);
+  color: var(--cbx-color-text-primary);
+}
+
+/* ---------------------------------------------------------- onboarding frame */
+
+/* First run has no navigation on purpose: there is exactly one thing to do,
+   and no way to get lost inside a security-critical setup. */
+.cbx-onboarding {
+  display: flex;
+  flex-direction: column;
+  min-height: 620px;
+  background: var(--cbx-color-bg-app);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-card);
+  overflow: hidden;
+}
+
+.cbx-onboarding__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-3);
+  height: var(--cbx-layout-topbar-height);
+  padding-inline: var(--cbx-space-5);
+  background: var(--cbx-color-bg-surface);
+  border-bottom: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+  font-family: var(--cbx-font-family-data);
+  font-weight: var(--cbx-font-weight-semibold);
+  letter-spacing: var(--cbx-font-letter-spacing-wide);
+}
+
+.cbx-onboarding__body {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: var(--cbx-space-8) var(--cbx-space-6);
+}
+
+.cbx-onboarding__panel {
+  width: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-6);
+}
+
+.cbx-onboarding__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--cbx-space-3);
+  padding-top: var(--cbx-space-4);
+  border-top: var(--cbx-border-width-hairline) solid var(--cbx-color-border-subtle);
+}
+
+/* Explicit acknowledgement before an irreversible step. */
+.cbx-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cbx-space-3);
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-secondary);
+}
+
+.cbx-check input {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cbx-color-accent-primary-solid);
+  flex: none;
+  margin-top: 0.15em;
+}

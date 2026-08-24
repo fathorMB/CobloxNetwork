@@ -1,0 +1,20 @@
+[package]
+name = "coblox-desktop"
+version = "0.1.0"
+description = "Coblox desktop shell"
+edition = "2024"
+rust-version = "1.96"
+
+[build-dependencies]
+tauri-build = { version = "2.5.0", features = [] }
+
+[dependencies]
+coblox-core = { path = "../../../core/coblox-core" }
+tauri = { version = "2.11.5", features = [] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }

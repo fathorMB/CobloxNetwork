@@ -1,0 +1,431 @@
+{
+  "$meta": {
+    "description": "Every text/background and non-text pairing the Coblox design system declares LEGITIMATE. Checked by design/tools/check-contrast.mjs against WCAG 2.1. A pairing that is not listed here is not sanctioned: components must not invent combinations.",
+    "spec": "SPEC-003",
+    "thresholds": {
+      "text": 4.5,
+      "text-large": 3.0,
+      "non-text": 3.0
+    },
+    "note": "The system deliberately holds even 'muted' text to the 4.5 text threshold rather than the 3.0 large-text relaxation. Low-contrast body text is the classic failure mode of terminal-inspired UIs and is banned here."
+  },
+  "exempt": [
+    {
+      "tokens": [
+        "color.border.subtle",
+        "color.border.default",
+        "color.chart.grid"
+      ],
+      "reason": "Purely decorative separators and gridlines. They never carry information on their own: every row, card and chart datum is also distinguished by spacing, a label, or a token from the checked set. WCAG 1.4.11 does not apply to purely decorative boundaries.",
+      "compensating-control": "Wherever a boundary is load-bearing (focused input, selected row, table header rule), the design uses color.border.strong / color.border.accent / color.focus.ring, all of which ARE checked at the 3.0 non-text threshold."
+    },
+    {
+      "tokens": [
+        "color.bg.scrim",
+        "elevation.glow.accent",
+        "elevation.card",
+        "elevation.overlay"
+      ],
+      "reason": "Translucent overlays and shadows. Their contribution is not a fixed foreground/background pair; legibility is guaranteed by the surface tokens composited above them, which are checked."
+    },
+    {
+      "tokens": [
+        "color.focus.ring against a filled control"
+      ],
+      "reason": "The focus ring is never drawn flush against the control it belongs to: components set `outline: 2px solid var(--cbx-color-focus-ring)` together with `outline-offset: 2px`, so the ring's adjacent colour is always the page or card background, not the button fill.",
+      "compensating-control": "The ring-vs-background pairs (color.focus.ring on color.bg.app and on color.bg.surface) ARE checked at the 3.0 non-text threshold, which is the pairing WCAG 1.4.11 actually evaluates for a detached indicator."
+    }
+  ],
+  "pairs": [
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Body and headings on the app canvas"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Card and panel body text"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.surface-raised",
+      "type": "text",
+      "usage": "Popover, toast, tooltip body"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "Log/terminal well, code block"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.hover",
+      "type": "text",
+      "usage": "Hovered table row / list item"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.selected",
+      "type": "text",
+      "usage": "Selected navigation item / selected row"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Supporting prose"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Table cell secondary values"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.surface-raised",
+      "type": "text",
+      "usage": "Overlay supporting prose"
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "Log secondary columns"
+    },
+    {
+      "fg": "color.text.muted",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Labels, units, timestamps, hints"
+    },
+    {
+      "fg": "color.text.muted",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Card labels and column headers"
+    },
+    {
+      "fg": "color.text.muted",
+      "bg": "color.bg.surface-raised",
+      "type": "text",
+      "usage": "Overlay labels"
+    },
+    {
+      "fg": "color.text.muted",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "Log gutter, line numbers"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Inline links"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Links inside cards"
+    },
+    {
+      "fg": "color.accent.primary",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Headline figures, active nav label"
+    },
+    {
+      "fg": "color.accent.primary",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Emphasised data in cards"
+    },
+    {
+      "fg": "color.accent.primary",
+      "bg": "color.bg.surface-raised",
+      "type": "text",
+      "usage": "Emphasised data in overlays"
+    },
+    {
+      "fg": "color.accent.primary",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "Highlighted token in a log line"
+    },
+    {
+      "fg": "color.accent.primary",
+      "bg": "color.accent.primary-quiet",
+      "type": "text",
+      "usage": "Accent chip / ghost button label"
+    },
+    {
+      "fg": "color.text.on-accent",
+      "bg": "color.accent.primary-solid",
+      "type": "text",
+      "usage": "Primary button label (rest)"
+    },
+    {
+      "fg": "color.text.on-accent",
+      "bg": "color.accent.primary",
+      "type": "text",
+      "usage": "Primary button label (hover)"
+    },
+    {
+      "fg": "color.text.on-danger",
+      "bg": "color.feedback.danger-solid",
+      "type": "text",
+      "usage": "Destructive confirm button label"
+    },
+    {
+      "fg": "color.flow.mint",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Minted amount on canvas"
+    },
+    {
+      "fg": "color.flow.mint",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Minted amount in ledger table"
+    },
+    {
+      "fg": "color.flow.mint",
+      "bg": "color.flow.mint-quiet",
+      "type": "text",
+      "usage": "MINT chip"
+    },
+    {
+      "fg": "color.flow.burn",
+      "bg": "color.bg.app",
+      "type": "text",
+      "usage": "Burned amount on canvas"
+    },
+    {
+      "fg": "color.flow.burn",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Burned amount in ledger table"
+    },
+    {
+      "fg": "color.flow.burn",
+      "bg": "color.flow.burn-quiet",
+      "type": "text",
+      "usage": "BURN chip"
+    },
+    {
+      "fg": "color.status.online",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "ONLINE label"
+    },
+    {
+      "fg": "color.status.online",
+      "bg": "color.status.online-quiet",
+      "type": "text",
+      "usage": "ONLINE badge"
+    },
+    {
+      "fg": "color.status.validating",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "VALIDATING label"
+    },
+    {
+      "fg": "color.status.validating",
+      "bg": "color.status.validating-quiet",
+      "type": "text",
+      "usage": "VALIDATING badge"
+    },
+    {
+      "fg": "color.status.degraded",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "DEGRADED label"
+    },
+    {
+      "fg": "color.status.degraded",
+      "bg": "color.status.degraded-quiet",
+      "type": "text",
+      "usage": "DEGRADED badge"
+    },
+    {
+      "fg": "color.status.offline",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "OFFLINE label"
+    },
+    {
+      "fg": "color.status.offline",
+      "bg": "color.status.offline-quiet",
+      "type": "text",
+      "usage": "OFFLINE badge"
+    },
+    {
+      "fg": "color.status.error",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "ERROR label"
+    },
+    {
+      "fg": "color.status.error",
+      "bg": "color.status.error-quiet",
+      "type": "text",
+      "usage": "ERROR badge"
+    },
+    {
+      "fg": "color.feedback.info",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Info notice text"
+    },
+    {
+      "fg": "color.feedback.info",
+      "bg": "color.feedback.info-quiet",
+      "type": "text",
+      "usage": "Info notice on tinted surface"
+    },
+    {
+      "fg": "color.feedback.success",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Success notice text"
+    },
+    {
+      "fg": "color.feedback.success",
+      "bg": "color.feedback.success-quiet",
+      "type": "text",
+      "usage": "Success notice on tinted surface"
+    },
+    {
+      "fg": "color.feedback.warning",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Warning notice text"
+    },
+    {
+      "fg": "color.feedback.warning",
+      "bg": "color.feedback.warning-quiet",
+      "type": "text",
+      "usage": "Warning notice on tinted surface"
+    },
+    {
+      "fg": "color.feedback.danger",
+      "bg": "color.bg.surface",
+      "type": "text",
+      "usage": "Error notice text"
+    },
+    {
+      "fg": "color.feedback.danger",
+      "bg": "color.feedback.danger-quiet",
+      "type": "text",
+      "usage": "Error notice on tinted surface"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.feedback.info-quiet",
+      "type": "text",
+      "usage": "Prose inside an info notice"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.feedback.warning-quiet",
+      "type": "text",
+      "usage": "Prose inside a warning notice"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.feedback.danger-quiet",
+      "type": "text",
+      "usage": "Prose inside an error notice"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.feedback.success-quiet",
+      "type": "text",
+      "usage": "Prose inside a success notice"
+    },
+    {
+      "fg": "color.border.strong",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Input border, table header rule"
+    },
+    {
+      "fg": "color.border.strong",
+      "bg": "color.bg.app",
+      "type": "non-text",
+      "usage": "Control border on canvas"
+    },
+    {
+      "fg": "color.border.accent",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Active/selected control border"
+    },
+    {
+      "fg": "color.focus.ring",
+      "bg": "color.bg.app",
+      "type": "non-text",
+      "usage": "Keyboard focus ring on canvas"
+    },
+    {
+      "fg": "color.focus.ring",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Keyboard focus ring on cards"
+    },
+    {
+      "fg": "color.chart.series-1",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Sparkline / progress fill, series 1"
+    },
+    {
+      "fg": "color.chart.series-2",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Sparkline / progress fill, series 2"
+    },
+    {
+      "fg": "color.chart.series-3",
+      "bg": "color.bg.surface",
+      "type": "non-text",
+      "usage": "Sparkline / progress fill, series 3"
+    },
+    {
+      "fg": "color.chart.series-1",
+      "bg": "color.bg.inset",
+      "type": "non-text",
+      "usage": "Progress bar fill against its track"
+    },
+    {
+      "fg": "color.flow.mint",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "MINT tag in the event log well"
+    },
+    {
+      "fg": "color.flow.burn",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "BURN tag in the event log well"
+    },
+    {
+      "fg": "color.status.validating",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "PROOF tag in the event log well"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.inset",
+      "type": "text",
+      "usage": "Link inside an inset well"
+    }
+  ]
+}
