@@ -78,6 +78,14 @@ Restano fuori light client con prove Merkle e mint & burn: dipendono dalla forma
 
 Risolti, tutti il 2026-08-25 — **cinque su dieci**: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop; **[DEBT-005] con [SPEC-006]**, dopo quattro giri di review adversariale e tredici finding; e **[DEBT-007] con [SPEC-007]**. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
 
+## Lavoro immediato di M-02
+
+**Una spec che attui [ADR-010] e [ADR-011] insieme**, perche' si attuano insieme: `RewardBounds` deve poter esprimere un tetto che il fondo di genesi rispetta e che la crescita successiva non viola. Contiene tre regole di validita nuove — tariffa di availability a zero, `3·min_set >= 2V`, e i limiti di magnitudine della reward policy — piu il dimensionamento del fondo alla genesi e la riformulazione della dichiarazione in due regimi. Serve anche la fixture di conformita corrispondente, e a seguire la validazione di `RewardBounds` in `coblox-core` con lo stesso trattamento gia dato a `ValidatedConsensusParameters`.
+
+**Una spec dedicata al verificatore Ed25519**, con la tabella speccheck 0-11 come proprio gate, **prima di qualunque devnet**. Raccomandazione di AGENT-001 in [SPEC-008], condivisa dal Lead: senza oracolo un verificatore crittografico e indistinguibile da uno corretto fino a una divisione della catena.
+
+Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla forma delle API fissate da [SPEC-008].
+
 ## Next recommended actions
 
 **Per l'operatore, al risveglio:**
