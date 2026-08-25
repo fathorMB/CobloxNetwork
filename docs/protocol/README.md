@@ -215,6 +215,9 @@ and a 64-zero-byte base64url signature. Each `PD-0` has common fields
 `document_kind` and required body, with every numeric value `"1"` except the
 enrollment body's algorithm/difficulty/cost values listed above with
 `tag_length_bytes:"32"`, and the reward body's
+`availability_microtokens_per_unit:"0"` (a positive tariff is **rejected on
+acceptance** under [ADR-010], so `"1"` would encode a document no conformant
+network can activate),
 `publisher_reward_cap_denominator:"2"` (the cap must be strictly below one, so
 `"1"/"1"` would not be a structurally valid fixture) and
 `validator_eligibility_min_issuers:"2"` (a single-issuer score does not qualify,
@@ -225,8 +228,11 @@ document — so it uses `election_entropy_blocks:"2"`,
 `candidacy_close_blocks:"3"`, `election_epoch_blocks:"4"`,
 `validator_target_set_size:"12"`, `validator_max_set_size:"12"`,
 `validator_churn_cap_seats:"3"` and `validator_max_consecutive_terms:"4"`, with
-`validator_min_set_size`, `validator_cooldown_epochs` and
-`validator_min_capture_epochs` at `"1"`. Two facts about those numbers are worth
+`validator_cooldown_epochs` and `validator_min_capture_epochs` at `"1"`, and
+`validator_min_set_size:"8"`. The minimum set size cannot be `"1"` because the
+consensus constraint block requires `3 * validator_min_set_size >= 2 * V`
+([ADR-010]): for `V = 12`, `3 * 8 = 24 >= 2 * 12 = 24`, which is the exact
+floor. Two facts about those numbers are worth
 stating, because a fixture teaches a shape whether or not it means to.
 
 The block requires `ceil(V/T) <= c < V/3`, which is **unsatisfiable for `T <= 3`
@@ -238,11 +244,11 @@ rather than argued.
 This fixture also takes `c > 1` on purpose. With `c:"1"` a cohort is a single
 seat, so the entry cap is never exercised, and neither is the interaction between
 the cap, the term stagger and the contraction floor that the constraints exist to
-keep consistent. `V:"12"`, `T:"4"`, `c:"3"` satisfies that and is convenient; it
-is **not** claimed to be the smallest such instance, and no minimality is claimed
-for it. Smaller ones with `c > 1` exist — `V:"7"`, `T:"4"`, `c:"2"`, `m:"1"` is
-one. A superlative in a normative document has to be proved or not written, and
-this one buys nothing that would justify proving it. `CMT-0` is the issuer
+keep consistent. `V:"12"`, `T:"4"`, `c:"3"`, `min_set:"8"` satisfies that and is
+convenient; it is **not** claimed to be the smallest such instance, and no
+minimality is claimed for it. Smaller ones with `c > 1` exist. A superlative in
+a normative document has to be proved or not written, and this one buys nothing
+that would justify proving it. `CMT-0` is the issuer
 commitment for issuer `cblx1issuerfixture`, `commitment_epoch` 1, and an issuer
 secret of `44` repeated 32 bytes. `RND-0` is the challenge randomness derived
 from `CMT-0`, beacon height 1, beacon block ID `55` repeated 32 bytes, and
@@ -276,9 +282,9 @@ exact after JCS; no omitted/default fields are implied.
 | --- | --- | --- |
 | `enrollment_request_hash` | `ER-0` | `sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f` |
 | `parameter_set_hash` | enrollment `PD-0` | `sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63` |
-| `policy_hash` | reward `PD-0` | `sha256:fbc7493ae6da64e92d935f35ecb9c2703c005df960e18e7cb609606838132f0d` |
+| `policy_hash` | reward `PD-0` | `sha256:89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48` |
 | `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
-| `consensus_parameters_hash` | consensus `PD-0` | `sha256:840dd6a980a6350b4879c60f8581466165125408a62839d67468c32ca3f0c33f` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9` |
 | `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
 | `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
 | `issuer_commitment` | `CMT-0` | `sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5` |
@@ -458,6 +464,41 @@ strictness is what makes the subscription cycle of
 lossy rather than merely unprofitable at the margin; a governance document
 with `numerator >= denominator` is invalid, not merely unwise.
 
+#### The availability tariff is zero as a validity rule
+
+A `reward_policy` document is **invalid in acceptance** if
+`availability_microtokens_per_unit != 0`.
+
+The reason is structural and load-bearing: `work_compensation` for
+`availability` is the only channel that pays **per node without an aggregate
+cap**. If this tariff were positive, an adversary operating a fleet of `N`
+emulated identities would increase total network emission linearly with `N`,
+destroying criterion (a) of [ADR-007] by construction rather than by
+misconfiguration. Enforcing this tariff at zero on acceptance prevents any
+sitting validator quorum from introducing uncapped per-node issuance through
+routine governance ([ADR-010]). If availability is ever to be compensated, it
+MUST be through a capped aggregate fund divided among eligible nodes, never
+through an uncapped per-unit rate.
+
+#### Cap proportional to eligible nodes is explicitly rejected
+
+A fund cap proportional to the number of eligible nodes `E` (such as
+`F = k * E`) is **explicitly rejected**. Such a rule would allow an adversary
+running a fleet of emulated nodes to inflate `E`, raising the fund
+proportionally and restoring the per-node payout under another name, directly
+reopening criterion (a) of [ADR-007] ([ADR-011]).
+
+Boundary conformance fixtures for reward policy acceptance:
+
+| Parameter | Value | Verdict | Reason |
+| --- | --- | --- | --- |
+| `availability_microtokens_per_unit` | `"0"` | valid | availability has no per-unit rate; paid via capped fund |
+| `availability_microtokens_per_unit` | `"1"` | **invalid** | positive rate creates uncapped per-node emission |
+| `availability_microtokens_per_unit` | `"1000"` | **invalid** | positive rate rejected on acceptance |
+| `publisher_reward_cap_numerator` / `_denominator` | `"1"` / `"2"` | valid | `kn < kd` strictly lossy |
+| `publisher_reward_cap_numerator` / `_denominator` | `"2"` / `"2"` | **invalid** | `kn >= kd` not lossy |
+| `publisher_reward_cap_numerator` / `_denominator` | `"1"` / `"0"` | **invalid** | division by zero |
+
 Reward arithmetic uses checked `u128` intermediates, integer multiplication by
 the eligible units, and rejects a result above `u64::MAX`; no floating point or
 implicit rounding exists. Hosting charges use the same rule, with each partial
@@ -496,8 +537,8 @@ gossiped onward.
 ## Trust anchors
 
 A signed network distribution MUST ship the network ID, genesis block ID,
-derived chain ID, genesis validator set, initial protocol documents, the election
-bounds below, and a weak subjectivity checkpoint. A fresh client MUST refuse
+derived chain ID, genesis validator set, initial protocol documents, the
+election bounds and reward bounds below, and a weak subjectivity checkpoint. A fresh client MUST refuse
 genesis-only synchronization when the checkpoint is missing, invalid, or stale;
 it requires a newer distribution obtained through an authenticated release
 channel. These values are trust anchors, not discoverable security facts. Network
@@ -569,6 +610,188 @@ it is more permissive than the network, which will not produce the sets it would
 have wrongly accepted. Neither direction lets an attacker widen the bounds a
 given client enforces, and that is the property being claimed — not that the
 bounds are unforgeable in general.
+
+### Reward bounds
+
+The anti-Sybil economic defense of [ADR-007] is parameterized by the
+`reward_policy` document — which is signed by a sitting validator quorum.
+Constraining those parameters only by internal relations would leave the
+economic defense switchable off by the very quorum it constrains: an unbounded
+existence fund `F` or an eroded validator eligibility threshold could be
+enacted in a single valid document, turning a bounded loss into an unbounded
+drain without leaving any distinguishing on-chain trace. This is the third
+instance of the structural pattern previously resolved for the Argon2id cost
+floor and for `ElectionBounds` ([ADR-010]), and it is resolved symmetrically.
+
+`RewardBounds` is therefore **configuration, not chain state**. It ships inside
+the signed network distribution and in no other channel, cannot be changed by
+any on-chain document, and MUST NOT be learned from a peer, a header, or a
+protocol document. Changing it is a new authenticated release and a chain-level
+decision.
+
+```text
+RewardBounds = {
+  "schema_version":"0.1",
+  "network_id":string,
+  "chain_id":sha256-string,
+  "existence_fund_microtokens_per_epoch_max":u64-string,
+  "reward_epoch_ms_min":u64-string,
+  "reward_epoch_ms_max":u64-string,
+  "publisher_reward_cap_numerator_max":u64-string,
+  "publisher_reward_cap_denominator_min":u64-string,
+  "validator_eligibility_threshold_units_min":u64-string,
+  "validator_eligibility_window_epochs_max":u64-string,
+  "validator_eligibility_min_issuers_min":u64-string,
+  "storage_units_per_contribution_unit_max":u64-string,
+  "compute_units_per_contribution_unit_max":u64-string,
+  "storage_microtokens_per_byte_epoch_min":u64-string,
+  "compute_microtokens_per_million_fuel_min":u64-string,
+  "reward_parameter_change_numerator":u64-string,
+  "reward_parameter_change_denominator":u64-string,
+  "reward_parameter_min_activation_gap_blocks":u64-string
+}
+```
+
+`chain_id` MUST equal the client's configured chain ID,
+`reward_parameter_change_numerator` MUST exceed
+`reward_parameter_change_denominator`, which MUST be positive, and
+`reward_parameter_min_activation_gap_blocks` MUST be positive.
+`reward_epoch_ms_min` MUST be positive and MUST NOT exceed `reward_epoch_ms_max`.
+
+**The question each bound answers.** For every quantity in `RewardPolicyBody`
+the question is not "does this need a limit?" but **"does a declared security
+property depend on this quantity?"** — and the dependency is not only the
+obvious one. A quantity that appears in the **denominator** of a bounded
+quantity, or that **denominates the unit** a bounded quantity is expressed in,
+carries the property just as much as the quantity that is named in the ADR. An
+earlier version of this section bounded the quantities the ADR named and left
+their denominators and their units governed; the bounds below were extended
+after that was found ([ADR-010] applied to itself).
+
+The three structural components of `RewardBounds` are defined with their
+specific rationale:
+
+1. **Magnitudes (genesis ceilings and floors):**
+   - `existence_fund_microtokens_per_epoch_max`: Sets a hard genesis ceiling
+     on the per-epoch existence fund `F`. Because the absolute amount diverted
+     by an emulated fleet is `D = F · N/(N+H)` and does not contain network
+     usage, `F` is the sole determinant of total loss; bounding `F` at genesis
+     ensures that governance cannot inflate the fund beyond the declared
+     maximum risk budget.
+   - `publisher_reward_cap_numerator_max` and `publisher_reward_cap_denominator_min`:
+     Bound the creator reward cap parameters so that `kn / kd` is strictly below 1,
+     preserving the structurally lossy property of self-subscription cycles.
+   - `validator_eligibility_threshold_units_min`: Sets a floor under the
+     contribution score required to enter the validator candidate pool,
+     preventing governance from reducing the entry barrier to unproven presence.
+   - `validator_eligibility_min_issuers_min`: Sets a floor (at least 2) on the
+     number of independent challenge issuers required to qualify for validator
+     candidacy, preventing score fabrication by a single colluder.
+   - `reward_epoch_ms_min` and `reward_epoch_ms_max`: **The epoch is the
+     denominator of every cap in this object.** `existence_fund_microtokens_per_epoch_max`
+     caps `F` *per epoch*, so real issuance per unit of wall-clock time is
+     `F / reward_epoch_ms`; shortening the epoch from one day to 86 400 ms
+     multiplies real issuance by one thousand without exceeding a single
+     magnitude bound. The floor is the security-relevant direction, and the
+     ceiling is there because an epoch stretched without limit freezes issuance
+     entirely, which is no less a decision about the network than inflating it.
+     `storage_microtokens_per_byte_epoch` is denominated per epoch for the same
+     reason and inherits the same protection.
+   - `storage_units_per_contribution_unit_max` and
+     `compute_units_per_contribution_unit_max`: **The unit in which
+     `validator_eligibility_threshold_units_min` is denominated.** The
+     contribution score compared against that floor is computed by dividing
+     measured physical work by these divisors, so multiplying one of them makes
+     the floor satisfiable with proportionally less real work: the floor stays
+     signed and respected to the letter and stops meaning anything. They are two
+     **independent** factors, so changing one also reweights storage against
+     compute and moves who is eligible without touching any bounded quantity. A
+     floor denominated in a governed unit is not a floor.
+   - `validator_eligibility_window_epochs_max`: Contribution units accumulate
+     over the last `validator_eligibility_window_epochs` reward epochs, so a
+     threshold expressed in units over an unbounded window drives the required
+     **rate** of contribution toward zero. The bound needed is a **maximum**,
+     which is the opposite direction to the one intuition suggests; the block's
+     `>= 1` bounds the harmless end.
+   - `storage_microtokens_per_byte_epoch_min` and
+     `compute_microtokens_per_million_fuel_min`: **The denominator of the
+     surveilled ratio.** The fraction of emission flowing through the existence
+     channel is `F / (F + W)`, where `W` is what the work channels pay. Its
+     numerator is now capped; without floors under these two tariffs a quorum
+     may set them to zero, driving `W` to zero and the ratio to one on a mature
+     network, with no on-chain trace distinguishing that document from routine
+     downward tuning. The dangerous direction here is **downward**, which is why
+     these are floors and not ceilings.
+
+   **Assessment of remaining reward policy parameters:** For every other
+   quantity in `RewardPolicyBody`, its relation to declared security properties
+   is explicit:
+   - `availability_microtokens_per_unit`: Governed by the strict validity rule
+     `availability_microtokens_per_unit == 0` (rejected on acceptance if non-zero),
+     hence requiring no separate magnitude bound.
+   - `publisher_microtokens_per_active_subscriber`: Rate parameter governed by the
+     mandatory creator share cap (`kn < kd`), which is itself bounded above.
+
+2. **Rate of change ratio (`reward_parameter_change_numerator` / `reward_parameter_change_denominator`):**
+   Bounds the maximum relative adjustment (e.g. 5/4, or 25% per document) between
+   consecutive sequence versions of **every** `u64` quantity in
+   `RewardPolicyBody`, without exception, against the currently active document:
+
+   ```text
+   x_new * den <= x_old * num   and   x_old * den <= x_new * num
+   ```
+
+   The scope is stated once, here, and is deliberately "every quantity" rather
+   than "the bounded ones". An earlier version said "bounded reward parameters"
+   in this paragraph and "any parameter" in the closing one; a textual ambiguity
+   about which quantities the only residual defence covers is not a defence, and
+   the wider reading is both simpler to verify and the safe one. A quantity fixed
+   by a validity rule — `availability_microtokens_per_unit == 0` — is unaffected,
+   because it may not change at all. This prevents a sitting quorum from jumping
+   a parameter to its genesis ceiling, or its denominator to its floor, in a
+   single step, converting parameter changes into an observable process.
+
+3. **Minimum activation gap (`reward_parameter_min_activation_gap_blocks`):**
+   Requires a minimum spacing in chain height between activations of consecutive
+   `reward_policy` documents. This ensures the change rate limit is priced per
+   unit of chain time, giving network participants sufficient blocks to observe,
+   evaluate, and respond to governance changes.
+
+A `reward_policy` document whose bounded parameters violate these limits, or
+which adjusts any quantity of `RewardPolicyBody` faster than the permitted ratio
+or closer than the activation gap against the active document, is **rejected on
+acceptance**.
+
+Boundary conformance fixtures for `RewardBounds` acceptance. `F_max` below is
+`existence_fund_microtokens_per_epoch_max`, the ratio is 5/4, and the active
+document is the one immediately preceding:
+
+| Quantity | Situation | Verdict | Reason |
+| --- | --- | --- | --- |
+| `existence_fund_microtokens_per_epoch` | exactly `F_max` | valid | at the ceiling, not above it |
+| `existence_fund_microtokens_per_epoch` | `F_max + 1` | **invalid** | magnitude bound exceeded |
+| `existence_fund_microtokens_per_epoch` | `x_old * 5 / 4` exactly | valid | at the permitted ratio |
+| `existence_fund_microtokens_per_epoch` | `x_old * 5 / 4 + 1` | **invalid** | rate of change exceeded |
+| `reward_epoch_ms` | exactly `reward_epoch_ms_min` | valid | at the floor |
+| `reward_epoch_ms` | `reward_epoch_ms_min - 1` | **invalid** | shortening the epoch inflates real issuance |
+| `reward_epoch_ms` | `reward_epoch_ms_max + 1` | **invalid** | an unbounded epoch freezes issuance |
+| `reward_epoch_ms` | `86 400 000 -> 86 400` in one document | **invalid** | rate of change exceeded by a factor of 1000 |
+| `storage_units_per_contribution_unit` | exactly its `_max` | valid | at the ceiling |
+| `storage_units_per_contribution_unit` | `_max + 1` | **invalid** | redenominating the eligibility unit |
+| `compute_units_per_contribution_unit` | `_max + 1` | **invalid** | redenominating the eligibility unit |
+| `validator_eligibility_window_epochs` | exactly its `_max` | valid | at the ceiling |
+| `validator_eligibility_window_epochs` | `_max + 1` | **invalid** | drives the required contribution rate toward zero |
+| `storage_microtokens_per_byte_epoch` | exactly its `_min` | valid | at the floor |
+| `storage_microtokens_per_byte_epoch` | `0` | **invalid** | empties the denominator of the surveilled ratio |
+| `compute_microtokens_per_million_fuel` | `0` | **invalid** | empties the denominator of the surveilled ratio |
+| `validator_eligibility_threshold_units` | exactly its `_min` | valid | at the floor |
+| `validator_eligibility_threshold_units` | `_min - 1` | **invalid** | lowers the candidate-pool entry barrier |
+| `activation_height` | active `+ reward_parameter_min_activation_gap_blocks` | valid | at the gap |
+| `activation_height` | active `+ gap - 1` | **invalid** | spacing not respected |
+
+The table is normative in form and not in values: the magnitudes come from the
+genesis distribution, and a conformance suite substitutes its own before using
+it, exactly as it does for the consensus-parameters fixtures.
 
 ### Weak subjectivity checkpoint
 

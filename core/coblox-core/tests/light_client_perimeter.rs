@@ -29,7 +29,7 @@ use common::{
 /// registry table. Quoted rather than recomputed, so the header below commits
 /// to a value that came from the specification.
 const PD0_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:840dd6a980a6350b4879c60f8581466165125408a62839d67468c32ca3f0c33f";
+    "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9";
 
 fn parameters() -> ValidatedConsensusParameters {
     consensus_parameters_of(&consensus_parameters_pd0())

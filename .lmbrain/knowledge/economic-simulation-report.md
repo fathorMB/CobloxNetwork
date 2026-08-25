@@ -106,17 +106,36 @@ l'uso, e alla genesi `W ≈ 0` e `α ≈ 1` qualunque sia `F`.
 | 1,00 | 90 000 | 0,1500 | 15 882 |
 | 5,00 | 450 000 | 0,0341 | 79 412 |
 
-Tenere la banda dal primo blocco richiederebbe `F` vicino a zero: **nessun
-reddito di esistenza al lancio**, proprio il giorno in cui la promessa deve
-essere visibile. La banda vincola quindi **da una soglia d'uso dichiarata**, e
-sotto quella soglia la rete pubblica l'**importo assoluto** dirottato invece del
-rapporto — che lì è la grandezza onesta: il 91 % di un'emissione minuscola è
-un'emissione minuscola. È una regola di governance del fondo, non di protocollo,
-e non richiede alcun campo di schema.
+**`α ≈ 1` durante l'avviamento è strutturale e nessun valore del fondo lo cambia**
+([ADR-011]): `α` è un rapporto il cui denominatore al lancio non contiene lavoro,
+quindi vale circa 1 qualunque sia `F`. Rimpicciolire il fondo non abbassa `α`
+durante la rampa: abbassa il fondo.
+
+Ciò che il fondo governa è l'**importo assoluto a rischio** `D = F · N/(N+H)`, che
+**non contiene l'uso `W`**. Sono due grandezze separate per due problemi
+separati:
+
+**La forma corretta è una garanzia incondizionata più una proprietà
+aggiuntiva, non due fasi disgiunte** ([REVIEW-014] RF-008). La formulazione
+precedente elencava «regime di rampa» e «regime maturo» come due voci, e un
+lettore al 40 % dell'uso di riferimento — sopra la rampa, sotto il 70,6 % — non
+trovava la propria fase in nessuna delle due e ne concludeva di non avere
+garanzia. Ne ha una, ed è la stessa di tutti gli altri:
+
+1. **Garanzia incondizionata, valida a ogni livello d'uso.** L'importo massimo
+   che una flotta può dirottare in un'epoca è `D = F · N/(N+H) < F`,
+   **sempre**, qualunque sia la dimensione della flotta e qualunque sia l'uso —
+   perché `N/(N+H) < 1` per costruzione e `D` **non contiene `W`**. La copertura
+   è totale e non ha buchi.
+2. **In più, sopra la soglia d'uso reale** (dal 70,6 % dell'uso di riferimento
+   con il fondo a regime) vale anche la banda `α ∈ [0,10 – 0,20]` con
+   `X = 20 %`. **Sotto quella soglia la banda non è sospesa: è falsa**, perché
+   `α → 1` per costruzione. Non è una fase scoperta, è una proprietà che lì non
+   sussiste.
 
 ### La raccomandazione, con la sua motivazione
 
-> **`α` iniziale = 0,15 — intervallo di sorveglianza [0,10 – 0,20] — `X` = 20 %.**
+> **`α` a regime = 0,15 — intervallo di sorveglianza [0,10 – 0,20] — `X` = 20 % (regime maturo).**
 
 - **Bordo inferiore 0,10.** Sotto, un dispositivo di sola availability riceve
   meno di un decimo del reddito di un nodo medio, e il reddito di esistenza
@@ -129,37 +148,40 @@ e non richiede alcun campo di schema.
   progetto deve pubblicare smette di essere difendibile in una frase.
 - **0,15 dentro la banda.** Nulla nella simulazione la preferisce a 0,12 o a
   0,18. È il centro di un budget dichiarato, e la scelta è dell'operatore.
-- **`X` = 20 %** perché la cattura è **strettamente inferiore ad `α`** per ogni
+- **`X` = 20 %** perché a regime la cattura è **strettamente inferiore ad `α`** per ogni
   `N` e ogni `H`: il bordo superiore della banda è quindi l'unico valore di `X`
   dimostrabile per costruzione invece che per il particolare `N/H` che capita di
-  avere sul banco di prova. Un `X` più stretto — 10 %, per dire — sarebbe smentito
-  dal banco di `AT-07` stesso, che prescrive `H ≥ 100` contro `N = 10 000` e
-  quindi un rapporto `N/(N+H)` di 0,99.
+  avere sul banco di prova.
 
-> **`X` porta una condizione e non va pubblicata senza ([REVIEW-011] RF-002).**
-> `X = 20 %` vincola **al di sopra della soglia d'uso dichiarata**. Sotto quella
-> soglia `α` tende a 1 per costruzione e `X` **non è un'affermazione**: la
-> grandezza che la rete pubblica lì è l'**importo assoluto dirottato per epoca**.
-> Una `X` pubblicata senza quella condizione è violata di circa cinque volte per
-> tutto l'avviamento — vedi §4 — e una tolleranza dichiarata e smentita è la forma
-> di danno contro cui [ADR-007] ha già dovuto riformulare una metrica una volta.
+> **Il claim, nella forma da pubblicare ([ADR-011], [REVIEW-014] RF-008).**
+> *Una flotta di identità emulate non può dirottare più di `D = F · N/(N+H) < F`
+> per epoca, a ogni livello d'uso. Al di sopra del 70,6 % dell'uso di
+> riferimento vale **in più** la banda `α ∈ [0,10 – 0,20]` con `X = 20 %`; al di
+> sotto quella banda **non è vera**, perché `α → 1` per costruzione.*
+>
+> Nessuna comunicazione deve lasciare intendere che la banda o `X` valgano
+> durante l'avviamento, e nessuna deve lasciare intendere che fra le due soglie
+> non esista garanzia.
 
 **Il bordo inferiore è una scelta di prodotto travestita da misura, e va scritto
-così** ([REVIEW-011] RF-005). Nessuna grandezza simulata seleziona 0,10: è un
-giudizio sul significato, non un risultato. Vale la pena scriverlo come limite
-proprio perché protegge una grandezza che nessun numero di sicurezza vede, e
-sarebbe quindi il primo limite a sparire sotto pressione di taratura — ma non va
-pubblicato come se il modello lo avesse prodotto.
+così** ([REVIEW-011] RF-005, ripristinato dopo che [REVIEW-014] RF-006 ha
+rilevato che questa passata lo aveva cancellato fuori ambito). Nessuna grandezza
+simulata seleziona 0,10: è un giudizio sul significato, non un risultato. Vale la
+pena scriverlo come limite proprio perché protegge una grandezza che nessun numero
+di sicurezza vede, e sarebbe quindi il primo limite a sparire sotto pressione di
+taratura — ma non va pubblicato come se il modello lo avesse prodotto.
 
-**E la banda e `X` sono dichiarate in due mondi diversi**, il che è la parte che
-il progetto pubblicherà comunque e deve quindi pubblicare intera. Il bordo
-inferiore 0,10 protegge il significato del reddito **in assenza di avversario**: a
-`α = 0,15` un telefono prende 0,15 del reddito di un nodo medio. `X = 20 %`
-dichiara invece un avversario **presente e tollerato**, e in quel mondo il
-telefono non prende 0,15 del medio: al banco di `AT-07` prende **0,0157 cr per
-epoca invece di 1,588**, due ordini di grandezza in meno. Non è una contraddizione
-aritmetica — misurano cose diverse — ma è un'incoerenza fra **promesse**, e la
-banda non può essere pubblicata da sola.
+**E la banda e `X` sono dichiarate in due mondi diversi** ([REVIEW-011] RF-005,
+ripristinato per la stessa ragione; la riformulazione in due regimi tocca
+*quando* la banda vale, non *cosa* la banda e `X` misurano, quindi non rende
+obsoleta questa dichiarazione). Il bordo inferiore 0,10 protegge il significato
+del reddito **in assenza di avversario**: a `α = 0,15` un telefono prende 0,15 del
+reddito di un nodo medio. `X = 20 %` dichiara invece un avversario **presente e
+tollerato**, e in quel mondo il telefono non prende 0,15 del medio: al banco di
+`AT-07` prende **0,0157 cr per epoca invece di 1,588**, due ordini di grandezza in
+meno. Non è una contraddizione aritmetica — misurano cose diverse — ma è
+un'incoerenza fra **promesse**, entrambe ancora pubblicate, e **la banda non può
+essere pubblicata da sola**.
 
 **Sul punto dentro la banda.** Poiché `α` è osservata ed è massima quando la rete
 è più nuova, **il verso di avvicinamento conta più del punto**: la rete
@@ -169,67 +191,46 @@ alla prova per primo.
 
 ---
 
-## 2. La forma del fondo
+## 2. La forma del fondo, il dimensionamento di genesi e il costo operativo di crescita
 
 Il **criterio di ripartizione non è libero**: `ledger.md` lo fissa già come
 regola di validità, `E > 0` e `amount_microtokens = F / E` a divisione intera con
 il resto scartato e mai emesso. La ripartizione è quindi uniforme, e ogni
 variante pesata è una modifica di protocollo e fuori dallo scope di questa spec.
 
-Confermato e non solo ereditato, perché la spec chiedeva l'interazione fra
-criterio e cattura per numerosità:
-
 - una ripartizione **uniforme massimizza** la cattura per numerosità — una flotta
   di `N` prende `N/(N+H)` del fondo — ed è il costo della scelta, detto chiaro;
-- una ripartizione **pesata per contributo dimostrato** la ridurrebbe, e
-  distruggerebbe la cosa che si sta pagando. Gli unici pesi Sybil-difficili che
-  la rete possiede sono storage e compute, che il canale di lavoro paga già a
-  unità. Pesare il fondo con essi rende il reddito di esistenza una **seconda
-  copia peggio denominata** della compensazione del lavoro, e un dispositivo di
-  sola availability — il dispositivo caratteristico del progetto — riceve un peso
-  di circa zero. La cattura scenderebbe quasi a nulla, e con essa la promessa in
-  prima pagina di [[PROJECT]]. È la trappola contro cui la spec metteva in
-  guardia, raggiunta per una strada che sembra prudenza;
-- **non esiste una terza opzione**, ed è la parte onesta: un peso né uniforme né
-  misura di contributo dovrebbe essere Sybil-difficile e non già pagato, e la
-  rete non possiede una grandezza simile. Non ne è stata trovata nessuna.
+- una ripartizione **pesata per contributo dimostrato** la ridurrebbe, ma
+  distruggerebbe la promessa di reddito per sola presenza dimostrata;
+- un **tetto proporzionale al numero di eleggibili (`F = k · E`) è esplicitamente
+  rifiutato ([ADR-011])**: una flotta potrebbe alzare il tetto gonfiando `E`,
+  reintroducendo l'emissione non limitata e distruggendo il criterio (a) di [ADR-007].
 
-> **Decisione.** Ripartizione **uniforme**, come il protocollo già richiede, con
-> tetto per epoca `F` scelto per tenere `α` dentro la banda. Valore di genesi:
-> `existence_fund_microtokens_per_epoch = 15 882 352 941` per un'epoca di ricompensa
-> di un giorno (15 882 cr), cioè `α = 0,15` all'uso di riferimento.
-
-**Regola di governance di `F`**, da applicare per epoca e pubblicare:
-
-1. osservare `α` = emissione di esistenza / emissione totale dell'ultima epoca;
-2. se `α` è dentro la banda, lasciare `F` invariato;
-3. se `α` esce dalla banda, muovere `F` verso il bersaglio di **al più il 25 % per
-   documento**, la stessa disciplina 5/4 che i parametri di elezione già usano;
-4. sotto la soglia d'uso — canale di lavoro sotto il 25 % del riferimento —
-   sospendere la banda e pubblicare l'importo assoluto dirottato.
-
-> **Che cosa NON è tutto questo, dichiarato per iscritto ([REVIEW-011] RF-001,
-> parte 1).** Tre delle grandezze che questo studio fissa sono **valori e prassi,
-> non regole**. Nessun documento di protocollo le impone e nessuna traccia
-> on-chain distingue una reward policy che le abbandona da un normale atto di
-> governance:
+> **Dimensionamento di genesi e costo operativo di crescita ([ADR-011]).**
 >
-> - `availability_microtokens_per_unit = 0` è **un valore**. Nulla vieta un valore
->   positivo, e un valore positivo rompe il criterio (a) della metrica di
->   [ADR-007] — controesempio misurato in §4.
-> - il tetto `F` è **un valore senza tetto e senza pavimento**. Un solo documento
->   lecito può portarlo da 15 882 cr a `2^60` microtoken.
-> - la disciplina 5/4 su `F` del punto 3 è **una prassi**. I parametri di elezione
->   hanno un limite di variazione perché il progetto ha stabilito che serve; la
->   reward policy non ne ha nessuno, e la sua unica regola di validità è
->   `kn < kd` sul tetto della quota al creatore.
->
-> Ne segue che **i criteri (a) e (c) della metrica di [ADR-007] sono veri a
-> condizione che la reward policy attiva li rispetti**, e non come proprietà del
-> protocollo. Uno zero scritto in un commento Python non è una difesa. Chiudere la
-> superficie richiede un oggetto `RewardBounds` nel trust anchor di genesi, sul
-> modello di `ElectionBounds`: modifica di protocollo, fuori dallo scope di questa
-> spec, ADR del Lead.
+> 1. `existence_fund_microtokens_per_epoch` di genesi deve essere dimensionato
+>    sulla **popolazione onesta attesa al lancio** ($H_{\text{lancio}}$) e non sulla rete
+>    matura a regime (10 000 nodi). Per esempio, con 200 nodi al lancio a ~1,5 cr/nodo,
+>    $F_{\text{genesi}} \approx 300\text{ cr/ep} = 300\,000\,000\text{ µt}$. Questo limita
+>    l'importo assoluto a rischio nella fase più vulnerabile a un massimo di 300 cr/ep.
+> 2. Il tetto massimo $F_{\text{max}} = 15\,882\,352\,941\text{ µt}$ (15 882 cr/ep,
+>    corrispondente a $\alpha = 0,15$ sui 10 000 nodi di riferimento) è fissato
+>    in `RewardBounds` nell'ancora di fiducia di genesi ([ADR-010]).
+> 3. **Costo operativo della crescita:** la crescita di $F$ da $F_{\text{genesi}}$ verso
+>    $F_{\text{max}}$ non è automatica; richiede **governance attiva**. Una sequenza
+>    di documenti `reward_policy` firmati deve incrementare $F$ di al più il 25 % (5/4)
+>    per documento, con la spaziatura minima in altezze di catena
+>    (`reward_parameter_min_activation_gap_blocks`). Per esempio, passare da 300 cr a
+>    15 882 cr richiede circa 18 documenti consecutivi distanziati nel tempo di catena.
+>    Questo costo operativo è dichiarato e voluto: trasforma la crescita del fondo in un
+>    processo osservabile pubblicamente.
+
+**Le tre regole di validità chiuse da [ADR-010] e [ADR-011] ([SPEC-009]):**
+
+1. `RewardBounds` nell'ancora di fiducia di genesi (tetto $F_{\text{max}}$, limiti di eleggibilità,
+   rapporto di variazione 5/4 e gap di attivazione).
+2. `availability_microtokens_per_unit == 0` come regola di validità obbligatoria in accettazione.
+3. `3 · validator_min_set_size >= 2 · V` nel blocco di vincoli relazionali dei parametri di consenso.
 
 ---
 
@@ -246,7 +247,7 @@ espressi in blocchi vanno riscalati e il blocco di vincoli rieseguito.
 | `election_epoch_blocks` | 120 960 | 7 giorni |
 | `candidacy_close_blocks` | 17 280 | 1 giorno prima del confine |
 | `election_entropy_blocks` | 720 | 1 ora |
-| `validator_min_set_size` | 18 | `2V/3` **a questo `V`**: chiude il percorso per attrito sotto i due terzi (§5). Il rapporto `min_set/V` non è preservato da alcuna regola |
+| `validator_min_set_size` | 18 | `2V/3`, ora **imposto** da `3·min_set >= 2V` ([ADR-010]): chiude il **possesso** del set sotto i due terzi. Il **quorum** resta ottenibile a ~`4V/9` (§5) |
 | `validator_target_set_size` | 27 | `V` |
 | `validator_max_set_size` | 45 | margine **nominale**: `V` è limitato a 36 per sempre dal `c` congelato — vedi sotto |
 | `validator_churn_cap_seats` | 3 | `c = V/T` esatto; a `m = 3` nessun gioco. **CONGELATO** dal limite 5/4 |
@@ -460,21 +461,53 @@ mai il set. **Superata.**
 | 18 | 66,7 % | 27 → 19 → 18 | ottiene l'intero set in **2 confini** |
 | 19 | 70,4 % | 27 → 19 | ottiene l'intero set in **1 confine** |
 
-**Il risultato che merita un nome.** Con `validator_min_set_size = 18` il percorso
-per attrito è **chiuso per ogni coalizione più piccola di 18**. `ledger.md`
-attribuisce il merito al solo pavimento di contrazione e conclude che la soglia
-effettiva di cattura è «appena sopra un terzo»: è esattamente vero del pavimento
-preso da solo, e portare il minimo del set a `2V/3` la alza a **due terzi**, punto
-oltre il quale l'assunzione di safety BFT è già caduta e nessuna regola di
-composizione del set stava più promettendo niente. Il pavimento fa ciò che il
-documento dice; il **minimo fa più di quanto il documento gli attribuisca**.
+**Il risultato che merita un nome, e la sua correzione.** Con
+`validator_min_set_size = 18` il **possesso** dell'intero set è chiuso per ogni
+coalizione più piccola di 18. `ledger.md` attribuiva il merito al solo pavimento
+di contrazione e concludeva che la soglia effettiva di cattura è «appena sopra un
+terzo»: è esattamente vero del pavimento preso da solo, e il minimo del set fa
+più di quanto il documento gli attribuisse.
 
-È un'affermazione di sicurezza prodotta da una spec di taratura ed è la voce
-singola più importante per AGENT-007 a `GATE-SECREVIEW`.
+> **Ma il possesso non è il controllo, e la differenza è grande** ([REVIEW-014]
+> RF-001, terza confutazione della rivendicazione dei due terzi). La proprietà
+> che il protocollo promette ovunque altrove è il **quorum**,
+> `3 · signed > 2 · total` sul set **attivo** — e il set attivo dopo una
+> contrazione è più piccolo di quello iniziale. Sui valori raccomandati, una
+> coalizione di **13 seggi su 27, il 48,1 %**, lascia passare 6 candidature
+> oneste; il set si contrae a **19**, perché il pavimento è **stretto** e 27
+> scende a 19 e non a 18; il blocco è valido e gli onesti lo firmano; e
+> `13·3 = 39 > 19·2 = 38`, **quorum ottenuto senza possedere nulla**. Con il
+> quorum la coalizione abbassa `V` e `min_set` insieme dentro il 5/4 e arriva al
+> possesso integrale in **tre confini**.
+>
+> | `V` | `min_set` | `S_new` | `k_min` per il quorum | frazione di `V` |
+> | --- | --- | --- | --- | --- |
+> | 12 | 8 | 9 | 7 | 58,3 % |
+> | 27 | 18 | 19 | **13** | **48,1 %** |
+> | 36 | 24 | 25 | 17 | 47,2 % |
+> | 60 | 40 | 41 | 28 | 46,7 % |
+> | 600 | 400 | 401 | 268 | 44,7 % |
+>
+> `k_min = max(floor(2·S_new/3)+1, floor(V/3)+1)` con
+> `S_new = max(floor(2V/3)+1, min_set)`; decresce con `V` e tende a **`4/9` =
+> 44,4 %** dall'alto. Il guadagno del vincolo è reale — da «appena sopra un
+> terzo» a **circa quattro noni**, cioè un terzo di rete in più che l'attaccante
+> deve tenere — e va rivendicato **per quello**. L'argomento «sopra i due terzi
+> la safety BFT è comunque già caduta» vale per il possesso e **non** per il
+> quorum: a `4V/9` non è caduta affatto. Eseguito da `s12_quorum_capture_table` e
+> `s12b_quorum_capture_walk`, con sei test dedicati.
+
+È un'affermazione di sicurezza prodotta da una spec di taratura, ed è stata
+corretta due volte in revisione: è la ragione per cui va letta con la sua
+dimostrazione accanto e non citata da sola.
 
 *Il suo prezzo è liveness*, ed è pagato nella tabella di §6: il set non può
 contrarsi sotto 18, quindi tre confini consecutivi con pool di riempimento vuoto
-fermano la catena invece di cinque.
+fermano la catena invece di cinque. E il margine è **speso una volta sola**: dopo
+la contrazione massima `27 → 19` il successore lecito più piccolo è 18, cioè il
+pavimento stesso, e il confine seguente non tollera più alcuna uscita non
+rimpiazzata. Il costo è ora dichiarato accanto alla regola in `ledger.md`
+([REVIEW-014] RF-005), che è il documento normativo dove la regola vive.
 
 > **Ed è una proprietà di questa combinazione, non delle regole ([REVIEW-011]
 > RF-003).** La proprietà dipende dal **rapporto** `min_set/V`, e **nessuna regola
@@ -529,7 +562,7 @@ l'uscita volontaria avrebbe misurato **una** epoca.
 | --- | --- |
 | macinatura limitata dal tetto di rotazione e non dal seme | **PASS** |
 | censura totale → arresto, mai un set scelto dalla coalizione | **PASS** |
-| censura selettiva bloccata a `validator_min_set_size` sotto `2V/3` | **PASS alla combinazione raccomandata**; a `V = 36` la soglia scende a `V/2` |
+| **possesso** dell'intero set chiuso sotto `2V/3` (regola, [ADR-010]) | **PASS**; ma il **quorum** si ottiene a ~`4V/9`, 48,1 % a `V = 27` ([REVIEW-014] RF-001) |
 | cooldown non evadibile uscendo un'epoca prima | **PASS** |
 | deriva della composizione calcolabile da un light client a ogni confine | **PASS** (per costruzione) |
 | «non raggiunge 1/3 entro 50 epoche», tutti e tre gli `N/H` | **FAIL** a `N/H = 1` e `N/H = 10` |

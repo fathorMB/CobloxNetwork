@@ -141,7 +141,10 @@ fn reward_body_pd0() -> JsonObject {
     JsonObject::builder()
         .uint("reward_epoch_ms", 1)
         .uint("existence_fund_microtokens_per_epoch", 1)
-        .uint("availability_microtokens_per_unit", 1)
+        // [ADR-010]: a positive availability tariff is rejected on acceptance, so a
+        // fixture carrying one would teach a shape no conformant network can be in.
+        // See README.md#the-availability-tariff-is-zero-as-a-validity-rule.
+        .uint("availability_microtokens_per_unit", 0)
         .uint("storage_microtokens_per_byte_epoch", 1)
         .uint("compute_microtokens_per_million_fuel", 1)
         .uint("publisher_microtokens_per_active_subscriber", 1)
@@ -190,7 +193,7 @@ pub fn consensus_parameters_pd0() -> ConsensusParameters {
         election_epoch_blocks: 4,
         candidacy_close_blocks: 3,
         election_entropy_blocks: 2,
-        validator_min_set_size: 1,
+        validator_min_set_size: 8,
         validator_target_set_size: 12,
         validator_max_set_size: 12,
         validator_churn_cap_seats: 3,

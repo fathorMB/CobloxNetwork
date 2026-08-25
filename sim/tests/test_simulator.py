@@ -8,7 +8,15 @@ Run from ``sim/``:
 from __future__ import annotations
 
 import math
+import pathlib
+import re
+import sys
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
+
+import protocol_hashes  # noqa: E402
+import reward_rules  # noqa: E402
 from dataclasses import replace
 from fractions import Fraction
 
@@ -297,6 +305,106 @@ class TestLaunchRegime(unittest.TestCase):
         below = S.s11_at07_launch_regime(usage_fraction=0.25)
         self.assertGreater(below.observed_alpha, R.ALPHA_SURVEILLANCE_BAND[1])
 
+
+class TestQuorumIsNotPossession(unittest.TestCase):
+    """REVIEW-014 RF-001: the relational rule bounds possession, not control."""
+
+    def test_recommended_values_lose_quorum_at_forty_eight_percent(self):
+        row = S.quorum_capture_threshold(27)
+        self.assertEqual(row.min_set, 18)
+        self.assertEqual(row.smallest_lawful_successor, 19)  # strict floor: not 18
+        self.assertEqual(row.k_min_for_quorum, 13)
+        self.assertAlmostEqual(row.k_min_fraction, 13 / 27, places=6)
+        self.assertLess(row.k_min_fraction, 0.5)
+
+    def test_threshold_is_far_below_two_thirds_at_every_size(self):
+        for row in S.s12_quorum_capture_table():
+            self.assertLess(
+                row.k_min_fraction, 2 / 3,
+                f"V={row.V}: quorum control needs {row.k_min_fraction:.3f} of the set",
+            )
+
+    def test_threshold_tends_to_four_ninths_from_above(self):
+        rows = S.s12_quorum_capture_table((60, 600, 6000))
+        fractions = [r.k_min_fraction for r in rows]
+        self.assertEqual(fractions, sorted(fractions, reverse=True))
+        self.assertLess(abs(fractions[-1] - 4 / 9), 0.002)
+        for f in fractions:
+            self.assertGreater(f, 4 / 9)
+
+    def test_possession_threshold_is_the_two_thirds_one(self):
+        row = S.quorum_capture_threshold(27)
+        self.assertEqual(row.k_min_for_possession, 18)
+        self.assertGreater(row.k_min_for_possession, row.k_min_for_quorum)
+
+    def test_the_concrete_walk_reaches_quorum_then_possession(self):
+        walk = S.s12b_quorum_capture_walk(V=27, coalition=13)
+        self.assertFalse(walk[0].has_quorum)
+        self.assertEqual(walk[1].set_size, 19)
+        self.assertTrue(walk[1].has_quorum)
+        self.assertFalse(walk[1].owns_set)
+        self.assertTrue(walk[-1].owns_set)
+        self.assertLessEqual(len(walk) - 1, 3, "three boundaries to full possession")
+
+    def test_the_contraction_floor_is_strict(self):
+        # The document's own methodological note: 27 goes to 19, not to 18.
+        self.assertEqual(S.smallest_lawful_successor(27, 18), 19)
+        self.assertGreater(3 * 19, 2 * 27)
+        self.assertLessEqual(3 * 18, 2 * 27)
+
+
+class TestToolConstantsTrackTheRegistry(unittest.TestCase):
+    """The comparison constants in tools/ must not drift from the documents.
+
+    [REVIEW-014] follow-up: the reward constant went stale and the tool reported
+    a discrepancy that did not exist. A verification tool that cries wolf on a
+    correct alignment teaches people to ignore it, which is worse than having no
+    tool at all — and RF-007 existed precisely because nobody was looking.
+    """
+
+    def _registry(self) -> dict[str, str]:
+        readme = (
+            pathlib.Path(__file__).resolve().parents[2]
+            / "docs" / "protocol" / "README.md"
+        )
+        text = readme.read_text(encoding="utf-8")
+        wanted = {
+            "parameter_set_hash": "enrollment_parameters",
+            "policy_hash": "reward_policy",
+            "hosting_rate_card_hash": "hosting_rate_card",
+            "consensus_parameters_hash": "consensus_parameters",
+        }
+        found: dict[str, str] = {}
+        for line in text.splitlines():
+            m = re.match(r"\|\s*`(\w+)`\s*\|[^|]*\|\s*`(sha256:[0-9a-f]{64})`\s*\|", line)
+            if m and m.group(1) in wanted:
+                found[wanted[m.group(1)]] = m.group(2)
+        return found
+
+    def test_published_constants_match_the_protocol_registry(self):
+        registry = self._registry()
+        self.assertEqual(
+            len(registry), 4, "could not parse all four document hashes from README.md"
+        )
+        for kind, published in registry.items():
+            self.assertEqual(
+                protocol_hashes.PUBLISHED[kind], published,
+                f"tools/protocol_hashes.py is stale for {kind}",
+            )
+
+    def test_the_tool_reproduces_every_published_document_hash(self):
+        registry = self._registry()
+        bodies = {
+            "enrollment_parameters": protocol_hashes.ENROLLMENT_BODY,
+            "hosting_rate_card": protocol_hashes.HOSTING_BODY,
+            "consensus_parameters": protocol_hashes.CONSENSUS_BODY,
+            "reward_policy": protocol_hashes.reward_body("0"),
+        }
+        for kind, published in registry.items():
+            self.assertEqual(protocol_hashes.document_hash(kind, bodies[kind]), published)
+
+    def test_the_rejection_cases_all_hold(self):
+        self.assertEqual(reward_rules.main(), 0)
 
 if __name__ == "__main__":
     unittest.main()

@@ -657,7 +657,12 @@ gli effetti, non varianti minori:
   vicino a `V/3` sono **tre**. I nodi onesti firmano ognuno di quei blocchi
   perché ognuno è valido: la derivazione è deterministica e le candidature
   censurate non sono mai state finalizzate. **La soglia effettiva di cattura
-  resta quindi poco sopra `1/3`.** Ciò che il pavimento compra, e va rivendicato
+  resta quindi poco sopra `1/3`** — del pavimento **preso da solo**, che è lo stato
+  descritto qui. Il vincolo relazionale `3 · min_set >= 2 · V` di [ADR-010] la alza
+  poi a circa **`4V/9`**, e non a due terzi: la correzione, con la misura e la
+  ragione per cui la cifra dei due terzi è stata confutata tre volte, è nella nota
+  di `AT-10` ([REVIEW-014] RF-001). Questa riga resta scritta al suo tempo e non va
+  letta come lo stato corrente. Ciò che il pavimento compra, e va rivendicato
   per quello che è, è la conversione di un confine invisibile in **tre confini,
   ognuno dei quali pubblica la propria contrazione in un documento firmato che un
   light client sa confrontare** — lo stesso standard del tetto di ingressi, non
@@ -1814,12 +1819,12 @@ verifica `GATE-LEAD-MAP`.
 | `SEC-REQ-10` | Una sola forma testuale canonica del Peer ID; ogni confronto avviene sulla multihash decodificata | Fixture: la stessa chiave nelle due forme testuali, con la non canonica rifiutata | M-01 | AGENT-001 | [RF-010] |
 | `SEC-REQ-11` | Esiste un tetto alla validità di un envelope, e i limiti anti-abuso sono **globali** oltre che per peer, con comportamento definito in saturazione | `AT-13`: raffica a validità massima da molte identità distinte; la memoria resta limitata e il comportamento è quello dichiarato | M-01 (regola), M-02 (implementazione) | AGENT-001 | TM-11, [RF-012] |
 | `SEC-REQ-12` | `identity.md` dichiara esplicitamente che il protocollo non distingue `N` nodi emulati su un host da `N` dispositivi reali | Review del Lead sul testo | M-01 | AGENT-001 | TM-08, [RF-005] |
-| `SEC-REQ-13` | La regola di elezione dei validatori è scritta, deterministica a partire da casualità finalizzata su un insieme di eleggibili calcolabile da chiunque, con tetto di rotazione per epoca e con impegno nel header che ne consenta il ricalcolo a posteriori; l'equivocazione di un validatore è una transazione di evidenza sanzionabile | `AT-09`, `AT-10` | **M-02: coperto in specifica** da [SPEC-006] (`ledger.md` §"Validator election and rotation"), **in dipendenza da `SEC-REQ-14`**: la regola di elezione non è più forte dei limiti che vincolano i parametri che la definiscono, e finché quei parametri non hanno intervallo firmato alla genesi e variazione massima per epoca la copertura è condizionale. [SPEC-006] soddisfa quella dipendenza per i soli parametri di elezione, tramite l'oggetto `ElectionBounds` del trust anchor; `SEC-REQ-14` resta aperto per gli altri parametri governati. M-07 (rotazione automatica e sanzione dell'equivocazione) resta aperto | AGENT-002 | TM-09, TM-15, TM-17, TM-18 |
-| `SEC-REQ-14` | Ogni parametro governabile ha un intervallo ammissibile firmato alla genesi e una variazione massima per epoca; le modifiche hanno un ritardo di attivazione dichiarato | Fixture: un blocco che attiva un parametro fuori intervallo o oltre la variazione massima è invalido | M-02 | AGENT-002 | TM-19, TM-35 |
+| `SEC-REQ-13` | La regola di elezione dei validatori è scritta, deterministica a partire da casualità finalizzata su un insieme di eleggibili calcolabile da chiunque, con tetto di rotazione per epoca e con impegno nel header che ne consenta il ricalcolo a posteriori; l'equivocazione di un validatore è una transazione di evidenza sanzionabile | `AT-09`, `AT-10` | **M-02: coperto in specifica** da [SPEC-006] (`ledger.md` §"Validator election and rotation"), **in dipendenza da `SEC-REQ-14`**: la regola di elezione non è più forte dei limiti che vincolano i parametri che la definiscono, e finché quei parametri non hanno intervallo firmato alla genesi e variazione massima per epoca la copertura è condizionale. [SPEC-006] soddisfa quella dipendenza per i parametri di elezione tramite `ElectionBounds`, e [SPEC-009] la chiude per la reward policy tramite `RewardBounds`: `SEC-REQ-14` non è più aperto per i documenti che definiscono l'elezione e l'emissione, e la copertura di questa riga smette di essere condizionale su quel fronte. Resta condizionale sul **potere effettivo di una coalizione**: il vincolo `3 · min_set >= 2 · V` alza la soglia di cattura per attrito a circa `4V/9` e non a due terzi (`SEC-REQ-18`, `AT-10`). M-07 (rotazione automatica e sanzione dell'equivocazione) resta aperto | AGENT-002 | TM-09, TM-15, TM-17, TM-18 |
+| `SEC-REQ-14` | Ogni parametro governabile ha un intervallo ammissibile firmato alla genesi e una variazione massima per epoca; le modifiche hanno un ritardo di attivazione dichiarato | Fixture: un blocco che attiva un parametro fuori intervallo o oltre la variazione massima è invalido | **M-02: coperto in specifica per i due documenti che portano proprietà di sicurezza dichiarate**, da [SPEC-006] (`ElectionBounds`) e [SPEC-009] (`RewardBounds`): magnitudini di genesi, vincoli relazionali, rapporto 5/4 e gap di attivazione, tutti fuori dalla governance on-chain e mai apprendibili da un peer. **Il criterio di completezza è stato corretto in [REVIEW-014] e va applicato così d'ora in poi**: non basta vincolare la grandezza che l'ADR nomina, perché una grandezza che sta al **denominatore** di una vincolata, o che ne **denomina l'unità**, porta la proprietà quanto quella nominata. La prima versione di `RewardBounds` vincolava `F` lasciando governata la durata dell'epoca (RF-002), e poneva un pavimento in unità di contributo lasciando governati i fattori che definiscono l'unità (RF-003); `RewardBounds` porta ora anche `reward_epoch_ms_min`/`_max`, i tetti dei due fattori di conversione, il tetto della finestra di eleggibilità e i pavimenti delle due tariffe di lavoro, e il rapporto 5/4 si applica **a ogni** grandezza di `RewardPolicyBody` senza eccezione. Le tredici grandezze sono coperte per enumerazione verificata. **Residuo dichiarato, e non è di [SPEC-009]:** `HostingRateCardBody` è un terzo documento governato senza alcun oggetto di limiti, con un proprio `billing_epoch_ms` che è il denominatore delle sue tariffe. Non tocca l'emissione — le voci di hosting sono **burn** e non mint, quindi non c'è superficie Sybil — ma è integrità di addebito sugli escrow delle app, ed è precisamente il caso che le *review conditions* di [ADR-010] chiedono di sorvegliare: una grandezza di sicurezza in un documento governato che nessuno dei due `Bounds` copre. Va valutata quando M-06 tocca l'hosting | AGENT-002 | TM-19, TM-35 |
 | `SEC-REQ-15` | Per ogni `(app_id, reward_epoch)` vale `publisher_reward ≤ k × Σ(burn di abbonamento conteggiati nella radice)` con `k < 1` fissato nei parametri firmati, imposto dai validatori come regola di validità | `AT-11`: fixture al confine di `k` | M-02 | AGENT-002 | TM-22, [RF-007] |
-| `SEC-REQ-16` | Il simulatore economico verifica ed espone nel proprio rapporto: (a) la frazione `α` dell'emissione che passa dal canale availability/esistenza; (b) la relazione `E_p` contro `S(1−k)` di §6.3; (c) la quota di emissione catturabile da `N` identità emulate | Il rapporto del simulatore contiene le tre grandezze con i valori tarati; review del Lead | **M-02: coperto** da [SPEC-007], rapporto in `knowledge/economic-simulation-report.md` §7, simulatore in `sim/`. (a) `α = 0,15`, banda [0,10–0,20], `X = 20 %`; (b) margine di reputazione **≈ 3 finti abbonati per nodo controllato per periodo** a 30 cr di abbonamento — non i 50× stimati da cifre illustrative — e **non chiudibile per taratura**: resta aperto sulle opzioni 2 e 3 di §6.3 sotto [ADR-006]; (c) 14,851 % a `N=10⁴`, `H=100`, sotto il tetto `X` per costruzione **e al di sopra della soglia d'uso dichiarata** — sotto quella soglia `α → 1` e `X` non è un'affermazione, la grandezza pubblicata è l'importo assoluto dirottato ([REVIEW-011] RF-002); **(d) aggiunta da [REVIEW-011] RF-005: la frazione di reddito che un nodo onesto di sola availability conserva sotto il banco di `AT-07` — `H/(N+H)`, cioè lo 0,99 % a `N=10⁴`, `H=100`, e non contiene `α`.** È la grandezza rivolta all'utente e va pubblicata accanto a `X`, perché `X` da sola invita a concludere che il reddito sia protetto entro un ordine di grandezza quando non è protetto affatto | AGENT-002 | §6.2, §6.3, TM-08, TM-22 |
+| `SEC-REQ-16` | Il simulatore economico verifica ed espone nel proprio rapporto: (a) la frazione `α` dell'emissione che passa dal canale availability/esistenza; (b) la relazione `E_p` contro `S(1−k)` di §6.3; (c) la quota di emissione catturabile da `N` identità emulate | Il rapporto del simulatore contiene le tre grandezze con i valori tarati; review del Lead | **M-02: coperto** da [SPEC-007], rapporto in `knowledge/economic-simulation-report.md` §7, simulatore in `sim/`. (a) `α = 0,15`, banda [0,10–0,20], `X = 20 %`; (b) margine di reputazione **≈ 3 finti abbonati per nodo controllato per periodo** a 30 cr di abbonamento — non i 50× stimati da cifre illustrative — e **non chiudibile per taratura**: resta aperto sulle opzioni 2 e 3 di §6.3 sotto [ADR-006]; (c) 14,851 % a `N=10⁴`, `H=100`, sotto il tetto `X` per costruzione **nel regime maturo sopra la soglia d'uso reale (70,6 % del riferimento)** — sotto quella soglia `α → 1` e `X` non si applica, la garanzia valida lì è quella incondizionata `D = F · N/(N+H) < F`, vera a ogni livello d'uso ([ADR-011], [REVIEW-014] RF-008); **(d) aggiunta da [REVIEW-011] RF-005: la frazione di reddito che un nodo onesto di sola availability conserva sotto il banco di `AT-07` — `H/(N+H)`, cioè lo 0,99 % a `N=10⁴`, `H=100`, e non contiene `α`.** È la grandezza rivolta all'utente e va pubblicata accanto a `X`, **perché `X` da sola invita il lettore a concludere che il proprio reddito sia protetto entro un ordine di grandezza quando non è protetto affatto** (giustificazione ripristinata dopo [REVIEW-014] RF-006) | AGENT-002 | §6.2, §6.3, TM-08, TM-22 |
 | `SEC-REQ-17` | La `randomness` di challenge e l'assegnazione emittente→soggetto derivano da casualità finalizzata con impegno pubblicato prima della selezione, sono ricalcolabili da chiunque, e ogni soggetto è coperto da almeno due emittenti indipendenti per epoca | `AT-12`; più un test statistico sul log di una devnet che verifichi l'imprevedibilità degli istanti per il soggetto | M-03 | AGENT-002, AGENT-001 | TM-05, TM-13, TM-14, [RF-013] |
-| `SEC-REQ-18` | L'emissione del reddito di esistenza è ripartita da un fondo a tetto per epoca; la frazione `α` è un parametro pubblicato e sorvegliato; il valore atteso di un custode cresce strettamente con la frazione di dati realmente conservati | `AT-07`; per la seconda parte, `AT-12` parte B (simulazione del custode parziale con esito monotono) | **Fondo ed `α`: fissati** da [SPEC-007] ([DEBT-007] chiuso). Ripartizione **uniforme**, già regola di validità in `ledger.md` (`amount = F/E`), confermata con l'argomento sulla cattura per numerosità; tetto di genesi `F = 15.882.352.941` µt per epoca di un giorno; `α = 0,15` sorvegliata in [0,10–0,20] con regola di governance di `F` al 5/4 per documento. **Limite dichiarato:** la banda non può valere alla genesi, dove `W ≈ 0` e quindi `α ≈ 1` qualunque sia `F`; vincola da una soglia d'uso dichiarata (25 % dell'uso di riferimento), sotto la quale si pubblica l'importo assoluto dirottato. **La soglia del 25 % non e' pero' il punto in cui la banda diventa tenibile, ed e' un numero scelto e non misurato (AGENT-007, verifica di remediation di [REVIEW-011]): con l'`F` di genesi, `alpha <= 0,20` solo da **70,6 %** dell'uso di riferimento in su, e a 25 % vale 0,414, cioe' il doppio di `X`.** Fra le due soglie la banda e' dichiarata e violata, a meno che la governance non porti `F` verso il bersaglio, cosa che dal valore di genesi richiede **sette documenti** al 5/4. La radice e' unica: **l'`F` di genesi e' dimensionato sulla rete matura e non su quella che esiste al lancio**, ed e' la stessa scelta che rende disonesto anche il criterio assoluto (`D = F · N/(N+H)` non contiene `W`). Non e' coperta dal tetto su `F` di [ADR-010]: un tetto e' statico e dimensionato sulla rete matura, e il limite di variazione governa i documenti, non il valore di genesi, che viaggia nella distribuzione firmata. **Attenzione al rimedio sbagliato:** un tetto proporzionale a `E` sarebbe un tetto che una flotta puo' alzare gonfiando `E`, e riaprirebbe il criterio (a). `AT-07` **parzialmente coperto**: superato al regime d'uso di riferimento, non valutato con il criterio (c) alla lettera al regime di lancio ([REVIEW-011] RF-002). **Limite più grave, dichiarato ([REVIEW-011] RF-001): `availability_microtokens_per_unit = 0`, il tetto di `F` e la disciplina 5/4 su `F` sono valori e prassi, non regole.** Nessun documento di protocollo li impone, nessuna traccia on-chain distingue una reward policy che li abbandona da un normale atto di governance, e l'unica regola di validità sulla reward policy è `kn < kd`. I criteri (a) e (c) di [ADR-007] sono quindi veri *a condizione che la reward policy attiva li rispetti*; chiuderli richiede un `RewardBounds` di genesi, che è lavoro di protocollo e ADR del Lead. Custode parziale resta M-05 | AGENT-002 | TM-01, TM-02, TM-08 |
+| `SEC-REQ-18` | L'emissione del reddito di esistenza è ripartita da un fondo a tetto per epoca; la frazione `α` è un parametro pubblicato e sorvegliato; il valore atteso di un custode cresce strettamente con la frazione di dati realmente conservati | `AT-07`; per la seconda parte, `AT-12` parte B (simulazione del custode parziale con esito monotono) | **Fondo, regole di validità, due strumenti e claim: specificati** da [SPEC-007] e [SPEC-009] ([ADR-010], [ADR-011]), verificati in [REVIEW-014] dopo la correzione di otto rilievi. Ripartizione **uniforme** (`E > 0`, `amount = F/E`, resto mai emesso, somma per epoca `<= F`, insieme impegnato da `eligible_set_root`): nessuna via trovata per superare `F` in un'epoca né per gonfiare `E` senza che la radice lo mostri. `availability_microtokens_per_unit == 0` è **regola di validità in accettazione** con la ragione strutturale accanto — unico canale che paga per nodo senza tetto aggregato — ed è **chiusa senza residui**: cercate e non trovate vie alternative per reintrodurre una remunerazione per nodo da un altro canale, perché l'availability non ha altra tariffa, la sua evidenza alimenta solo la soglia di eleggibilità al fondo, e il fondo è `F/E`. `RewardBounds` nell'ancora di fiducia di genesi copre le tredici grandezze di `RewardPolicyBody` (vedi `SEC-REQ-14` per il criterio di completezza e il residuo dichiarato). **La forma del claim è una garanzia incondizionata più una proprietà aggiuntiva, non due fasi disgiunte** ([REVIEW-014] RF-008): l'importo massimo dirottabile per epoca è `D = F · N/(N+H) < F` **a ogni** livello d'uso, perché `D` non contiene `W`; sopra il 70,6 % dell'uso di riferimento vale **in più** la banda `α ∈ [0,10 – 0,20]` con `X = 20 %`, e sotto quella soglia la banda **non è sospesa, è falsa**, perché `α → 1` per costruzione. `F` di genesi è dimensionato sulla popolazione onesta attesa al lancio; la crescita verso `F_max` costa **18 documenti** al 5/4 con la spaziatura minima, ed è governance attiva dichiarata e non scoperta. Tetto proporzionale agli eleggibili `F = k · E` **rifiutato** con la motivazione corretta: sarebbe un tetto funzione di una grandezza che l'avversario controlla. **Ciò che resta vero solo per il valore e non per la regola:** il bordo inferiore `0,10` della banda è una scelta di prodotto e non una misura ([REVIEW-011] RF-005), e va pubblicato come tale. Custode parziale resta M-05 | AGENT-002 | TM-01, TM-02, TM-08 |
 | `SEC-REQ-19` | Un host valuta automaticamente ogni assegnazione contro una politica dichiarata (capability, tetti, origini, capacità): dentro la politica è accettazione, fuori è **rifiuto**, mai concessione; l'operatore può vedere in ogni momento quali `app_id` ospita e con quali capability | Test: un'assegnazione fuori politica su un host headless produce rifiuto e non esecuzione | M-06 | AGENT-003 | TM-23, TM-24, TM-25, [RF-015] |
 | `SEC-REQ-20` | `http_fetch` risolve il nome una sola volta, valida tutti gli indirizzi risultanti contro le classi vietate, si connette all'indirizzo validato senza ri-risolvere, applica la stessa validazione a ogni redirect, e imputa durata e byte ai limiti dichiarati | Vettore con un nome che cambia risoluzione fra validazione e connessione | M-06 | AGENT-003 | [RF-018] |
 | `SEC-REQ-21` | La lista di blocco di rete è un oggetto di protocollo firmato con quorum, con motivo tra categorie chiuse, impegno all'evidenza, **scadenza obbligatoria**, distinzione fra blocco dell'app e blocco del publisher, e visibilità per il light client; un blocco non distrugge i token già versati né è retroattivo | Review del Lead sullo schema; test che un blocco senza scadenza è rifiutato | M-06 | AGENT-002 | TM-33, TM-34, [RF-017] |
@@ -1969,29 +1974,50 @@ riportata comunque, ed è il numero che il progetto deve pubblicare.
 > | 90 000 | 0,1500 | 14,85 % | 15 725 | tenuto |
 >
 > Il criterio (c) alla lettera è violato di circa cinque volte per tutto
-> l'avviamento. **`X` = 20 % vincola al di sopra della soglia d'uso dichiarata; al di
-> sotto la rete pubblica l'importo assoluto dirottato e `X` non è un'affermazione.**
-> Una correzione a ciò che [SPEC-007] aveva detto con leggerezza: la quarta colonna
-> non si muove, perché `D = F · N/(N+H)` non contiene `W`. «Il 91 % di un'emissione
-> minuscola è un'emissione minuscola» vale solo se anche `F` è piccolo, e `F` è una
-> scelta di governance: con l'`F` di genesi dimensionato per 10 000 nodi una flotta
-> al lancio dirotta circa 15 725 cr per epoca, quasi l'intero fondo. Il criterio
-> assoluto è onesto solo se `F` al lancio è dimensionato sul numero di nodi onesti
-> effettivamente presenti — prassi di governance, non regola.
+> l'avviamento se valutato contro la banda di `α`.
 >
-> *Un valore che il test obbliga a fissare a zero.* `work_compensation` con
-> `work_kind = "availability"` è un importo **per nodo senza tetto**, e
-> `RewardPolicyBody` porta la tariffa `availability_microtokens_per_unit` senza che
-> alcuna regola vieti un valore positivo. Con una tariffa positiva la stessa prova dà
-> un'emissione totale che passa da 205.882.352.900 a 10.205.882.351.000 µt: **il
-> criterio (a) fallisce e la flotta stampa**. Non è un difetto della regola e non serve
-> un'ADR — il campo resta e il valore deve essere `0` — ma uno zero non scritto è uno
-> zero che qualcuno più tardi alza «solo un po'», e questa riga è il posto in cui è
-> scritto. Se il progetto volesse renderlo non violabile per governance, servirebbe una
-> regola di validità nuova e quindi un'ADR — che [REVIEW-011] RF-001 ha promosso a
-> voce principale: **`availability = 0`, il tetto di `F` e la disciplina 5/4 su `F`
-> sono valori e prassi, non regole**, e i criteri (a) e (c) di [ADR-007] sono quindi
-> veri *a condizione che la reward policy attiva li rispetti*.
+> **La forma corretta del claim è una garanzia incondizionata più una proprietà
+> aggiuntiva, non due fasi disgiunte** ([ADR-011], [SPEC-009], corretta da
+> [REVIEW-014] RF-008). *Una flotta non può dirottare più di
+> `D = F · N/(N+H) < F` per epoca, **a ogni** livello d'uso, perché `D` non
+> contiene `W`: la copertura è totale e non ha buchi.* Al di sopra del 70,6 %
+> dell'uso di riferimento vale **in più** la banda `α ∈ [0,10 – 0,20]` con
+> `X = 20 %`; al di sotto quella banda **non è sospesa, è falsa**, perché
+> `α → 1` per costruzione. La formulazione precedente elencava due fasi, e un
+> lettore al 40 % dell'uso non trovava la propria in nessuna delle due.
+>
+> *Una correzione a ciò che [SPEC-007] aveva detto con leggerezza, ripristinata
+> qui dopo che [REVIEW-014] RF-006 ha rilevato che era stata cancellata fuori
+> ambito.* La quarta colonna della tabella **non si muove**, perché
+> `D = F · N/(N+H)` non contiene `W`. «Il 91 % di un'emissione minuscola è
+> un'emissione minuscola» vale solo se anche `F` è piccolo, e `F` è una scelta di
+> governance: con un `F` dimensionato per 10 000 nodi una flotta al lancio
+> dirotta circa 15 725 cr per epoca, quasi l'intero fondo. È esattamente la
+> ragione per cui [ADR-011] impone di dimensionare `F` di genesi sulla
+> popolazione onesta attesa al lancio, e non è una prassi facoltativa.
+>
+> *Le tre regole di validità chiuse da [ADR-010] e [SPEC-009], con ciò che
+> ciascuna non chiude:*
+> 1. `availability_microtokens_per_unit == 0` è una **regola di validità** in
+>    accettazione: un documento con tariffa positiva è rifiutato, il che
+>    garantisce il criterio (a) di [ADR-007] per costruzione. **Chiusa senza
+>    residui**, verificata da AGENT-007 cercando vie alternative e non
+>    trovandone.
+> 2. `RewardBounds` nell'ancora di fiducia di genesi fissa il tetto di `F`, il
+>    pavimento e il tetto della durata dell'epoca, i pavimenti di eleggibilità,
+>    i tetti dei fattori di conversione, i pavimenti delle tariffe di lavoro, il
+>    rapporto 5/4 e il gap di attivazione. La prima versione vincolava solo le
+>    grandezze nominate dalle ADR e lasciava governati i loro **denominatori e
+>    le loro unità** ([REVIEW-014] RF-002, RF-003, RF-004): la durata dell'epoca
+>    è il denominatore di ogni tetto per epoca, i fattori di conversione
+>    denominano l'unità del pavimento di eleggibilità, e le tariffe di lavoro
+>    sono il denominatore di `α`.
+> 3. Il tetto proporzionale `F = k · E` è **esplicitamente rifiutato** per
+>    evitare l'inflazione del denominatore da parte della flotta stessa.
+>
+> `AT-07` resta **parzialmente coperto**: superato al regime d'uso di
+> riferimento, e coperto al regime di lancio dalla sola garanzia assoluta, che è
+> la garanzia corretta lì.
 
 **`AT-08` — Prove precomputate.** *Preparazione:* un parameter set futuro non ancora
 attivo. *Procedura:* (i) minare prove per il set futuro e presentarle all'attivazione;
@@ -2136,23 +2162,57 @@ composizione del set è osservabile a ogni epoca da un light client.
 > conclusione «la soglia effettiva di cattura resta appena sopra un terzo» è esatta del
 > pavimento preso da solo, e portare il minimo del set a `2V/3` la alza a due terzi,
 > punto oltre il quale la safety BFT è già caduta e nessuna regola di composizione
-> stava più promettendo niente. **Qualificazione obbligatoria ([REVIEW-011] RF-003):
-> è una proprietà della combinazione raccomandata e non delle regole.** Dipende dal
-> rapporto `min_set/V`, che nessuna regola preserva — il blocco di vincoli richiede
-> solo `0 < min_set <= V`. Percorso misurato, ogni passo accettato dal blocco di
-> vincoli: `V: 27 → 33 → 36` con `T: 9 → 11 → 12`, due documenti a un'epoca di
-> elezione di distanza, portano `min_set/V` da 0,667 a **0,500**; e a `V = 36` con
-> `min_set = 18` la censura selettiva dà `36 → 25 → 18`, cioè **l'intero set in due
-> confini a una coalizione del 50 %**, dove la safety BFT non è affatto caduta. La
-> conclusione di `ledger.md` **non va cambiata** finché non esiste la regola
-> `3 · validator_min_set_size >= 2 · V`: oggi «appena sopra un terzo» è la cifra
-> corretta nel caso peggiore governabile. Il prezzo è liveness ed è misurato: il set non può
-> contrarsi sotto 18, quindi **tre** confini consecutivi con pool di riempimento vuoto
-> fermano la catena invece di cinque. **È un'affermazione di sicurezza prodotta da una
-> spec di taratura e va rivista come tale.** Nota metodologica: la formula continua
-> predice meno confini della simulazione perché il pavimento è **stretto** — un set di
-> 27 scende a 19, non a 18 — e la cifra misurata, mai inferiore a quella della formula,
-> è quella da citare.
+> stava più promettendo niente.
+> **Attuazione della regola in [SPEC-009] ([ADR-010]), e la sua correzione in
+> [REVIEW-014] RF-001.** Il vincolo relazionale
+> `3 · validator_min_set_size >= 2 · V` è ora nel blocco di vincoli dei parametri
+> di consenso, quindi `min_set >= ceil(2V/3)` in ogni documento valido. **Ciò che
+> il vincolo garantisce è il possesso, non il controllo, e la differenza è
+> grande.** Una coalizione sotto i due terzi non può arrivare a **detenere ogni
+> seggio**; può però ottenere il **quorum** sul set contratto, che è la proprietà
+> che conta, e per farlo le basta molto meno.
+>
+> Misurato sui valori raccomandati `V = 27`, `min_set = 18`: una coalizione di
+> **13 seggi, il 48,1 %**, censura selettivamente lasciando passare 6 candidature
+> oneste; il set si contrae a **19** — il pavimento è **stretto**, quindi 27
+> scende a 19 e non a 18, `3·19 = 57 > 54`, e `18 ≤ 19` — e il blocco è valido,
+> firmato dagli onesti perché nulla lo distingue da uno onesto. A quel punto
+> `13·3 = 39 > 19·2 = 38`: **quorum ottenuto senza possedere il set**. Con il
+> quorum la coalizione abbassa `V` e `min_set` insieme dentro il rapporto 5/4 e
+> arriva al possesso integrale in **tre confini**.
+>
+> | `V` | `min_set` | `S_new` | `k_min` per il quorum | frazione di `V` |
+> | --- | --- | --- | --- | --- |
+> | 12 | 8 | 9 | 7 | 58,3 % |
+> | 27 | 18 | 19 | 13 | 48,1 % |
+> | 36 | 24 | 25 | 17 | 47,2 % |
+> | 60 | 40 | 41 | 28 | 46,7 % |
+> | 600 | 400 | 401 | 268 | 44,7 % |
+>
+> con `k_min = max(floor(2·S_new/3)+1, floor(V/3)+1)` e
+> `S_new = max(floor(2V/3)+1, min_set)`, decrescente in `V` e con asintoto
+> **`4/9` = 44,4 %** dall'alto. **Il guadagno del vincolo è reale e va rivendicato
+> per quello che è: da «appena sopra un terzo» a circa quattro noni. Non a due
+> terzi.** L'argomento «sopra i due terzi la safety BFT è comunque già caduta»
+> vale per il possesso e **non** per il quorum, perché a `4V/9` la safety non è
+> caduta affatto: è lo stesso passo logico che era sbagliato nelle due
+> ritrattazioni precedenti, ed è la terza volta che questa affermazione viene
+> confutata. Il numero 19 era peraltro già scritto in questa stessa nota, nella
+> nota metodologica sotto.
+>
+> Nota metodologica: la formula continua predice meno confini della simulazione
+> perché il pavimento è **stretto** — un set di 27 scende a 19, non a 18 — e la
+> cifra misurata, mai inferiore a quella della formula, è quella da citare.
+>
+> **Il prezzo in liveness, rimisurato sui parametri raccomandati** e non
+> ereditato da una passata che assumeva un minimo diverso ([REVIEW-014] RF-005):
+> con `V = 27`, `T = 9`, `c = 3`, `cooldown = 2`, `min_set = 18`, una rete con
+> pool di candidati vuoto perde 3 seggi per confine e sopravvive **tre confini**;
+> al quarto il successore sarebbe 15, sotto `min_set`, e la catena si ferma. E il
+> margine di contrazione è **speso una volta sola**: dopo la contrazione massima
+> `27 → 19` il successore lecito più piccolo è 18, cioè il pavimento stesso, e il
+> confine seguente non tollera più alcuna uscita non rimpiazzata. Il costo è
+> dichiarato accanto alla regola in `ledger.md`.
 >
 > *Configurazione 3, evasione del cooldown — superata.* Con
 > `validator_cooldown_epochs = 2`, l'assenza misurata è di **2 epoche** sia dopo la

@@ -249,6 +249,26 @@ Lead and AGENT-002 under [ADR-006], and the relation is on the economic
 simulator's mandatory checklist. What this document guarantees is only that the
 *ledger* cycle cannot be net positive.
 
+#### Availability tariff: zero as a validity rule
+
+A `reward_policy` document MUST have `availability_microtokens_per_unit == 0`,
+enforced as a validity rule on acceptance ([ADR-010]).
+
+The reason is structural: `work_compensation` for `availability` is the only
+channel that pays per node without an aggregate cap. If positive, an adversary
+controlling `N` emulated identities increases total epoch emission linearly,
+violating criterion (a) of [ADR-007] by construction. A document with
+`availability_microtokens_per_unit > 0` is **rejected on acceptance**. If
+availability is to be rewarded, it MUST flow through the capped existence fund
+`F`, never an uncapped per-unit rate.
+
+Furthermore, `existence_fund_microtokens_per_epoch` is bounded by
+`existence_fund_microtokens_per_epoch_max` in the genesis `RewardBounds` trust
+anchor ([ADR-010]), and changes in `reward_policy` parameters between
+consecutive sequences are constrained by the change ratio and activation gap
+defined in `RewardBounds`. A cap proportional to eligible nodes (`F = k * E`)
+is explicitly rejected ([ADR-011]).
+
 Canonical existence-income mint:
 
 ```json
@@ -1408,18 +1428,103 @@ V  ->  2V/3  ->  4V/9  ->  ... ->  k        boundaries = ceil(log(V/k) / log(3/2
 For `k` near `V/3` that is **three boundaries**, not one and not never. Honest
 nodes sign each of those blocks, because each is valid: the derivation is
 deterministic, and the candidacies that were censored were never finalized, so
-nothing distinguishes the block from an honest one. The effective capture
-threshold of this network therefore remains **just above one third**, and above
-two thirds a coalition satisfies the floor in a single step — which is not a
-regression, since past two thirds the BFT safety assumption has already failed
-and no set-composition rule can repair it.
+nothing distinguishes the block from an honest one.
 
-**What the floor does buy is worth having and is claimed exactly.** It converts a
-capture that took **one invisible boundary** into one that takes **three, each of
-which publishes its own contraction in a signed document any light client can
-diff**. That is the same standard the entry cap is held to — an event converted
-into a process with a public signal at every step — and it is claimed here on the
-same terms, neither more nor less.
+With the contraction floor alone, this attrition path would stop only at
+`validator_min_set_size`. If `min_set` were permitted to remain small while `V`
+grew, a coalition holding half the set could outlast the rest under the floor.
+The relational constraint `3 * validator_min_set_size >= 2 * V`, enforced on
+acceptance ([ADR-010]), closes that specific path: `validator_min_set_size` is
+at least `ceil(2V/3)` in every valid parameter document, so a coalition holding
+`k < 2/3 * V` can never **hold every seat** — the contraction stops at a set in
+which honest members still sit.
+
+#### Owning the set and controlling it are different thresholds
+
+**This is the fourth version of this paragraph, and the third time the claim of
+"two thirds" has been refuted. It is refused here in favour of the smaller,
+correct number.** The constraint above bounds **possession**: how much of the
+set a coalition can end up holding. Possession is not the property this document
+promises anywhere else. The property that matters is the **quorum predicate**,
+`3 * signed > 2 * total` over the *active* set — and a coalition obtains that
+long before it owns anything, because the set it must reach quorum over is the
+**contracted** one, not the original.
+
+The arithmetic, on the recommended values `V = 27`, `min_set = 18`. A coalition
+of **13 seats, 48.1 %** of the set:
+
+1. it holds more than one third, so it can withhold quorum and censor. During
+   the candidacy window it finalizes its own 13 candidacies and lets through
+   exactly 6 honest ones;
+2. at the boundary the derivation yields `S_new = 19`. The contraction floor is
+   **strict**, so `27` contracts to `19` and not to `18`: `3 * 19 = 57 > 54`.
+   `min_set = 18 <= 19`. The entry cap is untouched, `fills = 0`. No rule is
+   violated and honest nodes sign the block, because the block is valid;
+3. the coalition now holds 13 of 19, and `13 * 3 = 39 > 19 * 2 = 38`. **It has
+   quorum.** From here it signs blocks, mints, revocations, and governed
+   documents alone;
+4. with quorum it lowers `V` and `min_set` together inside the rate limit — the
+   relational rule constrains their *ratio*, not their magnitude — and repeats.
+   Full possession follows in three boundaries.
+
+The smallest coalition that reaches quorum this way, for a parameter set at the
+tight end of the relational rule, is
+
+```text
+S_new  = max( floor(2V/3) + 1, validator_min_set_size )
+k_min  = max( floor(2 * S_new / 3) + 1, floor(V/3) + 1 )
+```
+
+| `V` | `min_set` | `S_new` | `k_min` | fraction of `V` |
+| --- | --- | --- | --- | --- |
+| 12 | 8 | 9 | 7 | 58.3 % |
+| 27 | 18 | 19 | 13 | 48.1 % |
+| 36 | 24 | 25 | 17 | 47.2 % |
+| 60 | 40 | 41 | 28 | 46.7 % |
+| 600 | 400 | 401 | 268 | 44.7 % |
+
+The fraction decreases with set size and approaches **`4/9`, 44.4 %**, from
+above. It is never two thirds at any set size.
+
+**What the constraint therefore buys, claimed exactly and not more.** Before
+[ADR-010] the effective threshold against attrition was *just above one third*.
+After it, control of the set requires **about four ninths** of it — `k_min`
+above, bounded below by `4V/9` — and possession of every seat requires two
+thirds. The gain is real and is worth the rule: it is roughly a third more of
+the network that an attacker must hold. It is not two thirds, and the argument
+that "above two thirds BFT safety has already failed" **does not apply to the
+quorum threshold**, because at `4V/9` BFT safety has not failed at all. That
+argument was what made the previous claim look harmless, and it is exactly the
+step that was wrong in each of the three refutations.
+
+**What the floor and the constraint buy together is worth having and is claimed
+exactly.** They convert a capture that took **one invisible boundary** into a
+process that requires about four ninths of the set and publishes a signed
+contraction document any light client can diff at every step. That is the same
+standard the entry cap is held to — an event converted into an observable
+process with a public signal at every step — and it is claimed here on the same
+terms, neither more nor less.
+
+Boundary conformance for the threshold above; the first row is the attack:
+
+| `V` | `min_set` | coalition | `S_new` | successor verdict | coalition holds quorum |
+| --- | --- | --- | --- | --- | --- |
+| 27 | 18 | 13 | 19 | **valid** | **yes**, `39 > 38` |
+| 27 | 18 | 12 | 19 | **valid** | no, `36 < 38` |
+| 27 | 18 | 13 | 18 | **invalid**, `54` is not `> 54` | — |
+| 27 | 18 | 9 | 19 | **valid** | no, `27 < 38` |
+
+The last row needs its reason stated precisely, because an earlier version of it
+said "cannot censor" and that is wrong. A coalition of 9 of 27 **can already**
+deny quorum: the honest 18 need `3 * 18 > 2 * 27`, which is `54 > 54` and false, so
+blocking a boundary needs only `3k >= V` and not `3k > V`. What 9 cannot do is
+obtain quorum for **itself** on any lawful successor — `3 * 9 = 27` is not above
+`2 * 19 = 38` — so what it gets is a **halt**, which is the outcome the contraction
+floor already grants anyone at one third. The conclusion of the row is unchanged;
+only its reason was wrong. For the same reason the `floor(V/3) + 1` term of `k_min`
+above is a **conservative** statement of the censoring requirement — the true
+condition is `3k >= V` — and it never binds, because the first term of the maximum
+dominates at every set size in the table.
 
 **A stronger rule exists and is refused on its cost, which is not the same as
 there being none.** The per-boundary floor has a cumulative sibling:
@@ -1512,6 +1617,7 @@ consensus-parameters document is accepted only if:
 
 ```text
 0 < validator_min_set_size <= V <= validator_max_set_size
+3 * validator_min_set_size >= 2 * V    // min_set must be at least 2/3 of V to prevent attrition capture
 election_entropy_blocks >= 2
 candidacy_close_blocks  > election_entropy_blocks
 election_epoch_blocks   > candidacy_close_blocks
@@ -1547,6 +1653,71 @@ activation_height(new) >= activation_height(active)
 // direction, for the one parameter whose reduction desynchronizes the stamps:
 T_new >= T_active
 ```
+
+**The relational bound on `validator_min_set_size` and what it prevents.** The
+rule `3 * validator_min_set_size >= 2 * V` ([ADR-010]) ties the minimum set size
+floor directly to `V` rather than leaving it an uncoupled choice. Without this
+rule, governance could raise `V` (e.g. `27 -> 33 -> 36`) while leaving `min_set`
+at 18. At `V = 36` and `min_set = 18`, `min_set / V` drops to exactly 50%:
+selective censorship can then contract the set `36 -> 25 -> 18` across two
+boundaries, delivering 100% of the active seats to an 18-seat coalition (50% of
+`V`), where BFT safety has not failed and the network believes it has a
+security guarantee. Enforcing `3 * validator_min_set_size >= 2 * V` makes
+`min_set >= ceil(2V/3)` a validity rule for every conformant document, so no
+coalition below two thirds can come to **hold every seat**. It does not prevent
+a coalition from obtaining **quorum** over a lawfully contracted set, which
+takes about four ninths; see
+[owning the set and controlling it are different thresholds](#owning-the-set-and-controlling-it-are-different-thresholds).
+
+Boundary conformance fixtures for `3 * validator_min_set_size >= 2 * V`:
+
+| `V` | `validator_min_set_size` | `3 * min_set >= 2 * V` | Verdict | Reason |
+| --- | --- | --- | --- | --- |
+| 12 | 8 | `24 >= 24` | valid | exact floor (`PD-0` fixture) |
+| 12 | 7 | `21 < 24` | **invalid** | below 2/3 floor |
+| 27 | 18 | `54 >= 54` | valid | exact equality for recommended values |
+| 27 | 17 | `51 < 54` | **invalid** | below 2/3 floor |
+| 36 | 24 | `72 >= 72` | valid | exact floor at `V = 36` |
+| 36 | 18 | `54 < 72` | **invalid** | 50% ratio rejected on acceptance |
+
+**The relational bound on `validator_min_set_size` and what it costs.** The
+paragraph above states what the rule prevents. A rule that is only described by
+what it prevents is half-documented, and this one is paid for in liveness by
+honest networks:
+
+- **the contraction margin is spent once.** The floor permits losing up to a
+  third of the set at a boundary; `min_set >= ceil(2V/3)` permits it **once**.
+  At `V = 27, min_set = 18` the largest lawful contraction is `27 -> 19`, and
+  from 19 the smallest lawful successor is **18**, which is the floor itself.
+  After a single maximal contraction the set sits one seat above the floor and
+  the boundary after that tolerates no unreplaced departure at all: the
+  successor is invalid and the chain stalls. The same holds at every size,
+  because `min_set` is pinned to the same ratio the floor uses;
+- **cooldown compounds it.** Members that left are out of the pool for
+  `validator_cooldown_epochs` boundaries and cannot repair the shortage they
+  created. This section already calls that "the sharpest liveness edge"; the
+  relational bound sharpens it further;
+- **measured on the recommended parameters** — `V = 27`, `T = 9`, `c = 3`,
+  `cooldown = 2`, `min_set = 18` — a network whose candidate pool goes empty
+  loses three seats per boundary and survives **three boundaries**; at the
+  fourth the successor would be 15, below `min_set`, and the chain stalls. The
+  figure is measured against these values rather than inherited from an earlier
+  study that assumed a different minimum;
+- **`min_set = V` is admissible and is a trap.** `3V >= 2V` holds for every `V`,
+  so a document setting `validator_min_set_size = validator_target_set_size` is
+  accepted. Such a network stalls at the **first** unreplaced departure. Nothing
+  in this block rejects it, and an operator choosing `min_set` should treat `V`
+  as an upper bound to stay well below rather than as a permitted value;
+- **the ramp is where this binds hardest.** The phase with the smallest
+  candidate pool is the network's first, and it is now also the phase that must
+  keep `ceil(2V/3)` validators alive at every boundary.
+
+Recovery from a stall is the out-of-band path already declared in
+[degenerate cases](#degenerate-cases-and-what-the-protocol-does-instead-of-improvising):
+an authenticated release, not a mechanism a quorum can trigger. The trade is the
+same one this section takes everywhere — safety over liveness — and it is
+recorded here so that the cost is read next to the rule instead of discovered by
+the first network that pays it.
 
 Three of those bounds squeeze `c` from both sides and their joint satisfiability
 is itself a constraint, which is why they are written together rather than
@@ -1847,24 +2018,44 @@ of it was wrong twice:
 > wrongly that a replaying node can detect, two are contradictable with a short
 > message and one requires a node that keeps history; two further ways —
 > contraction indistinguishable from attrition, and exclusion by non-finalization
-> — are detectable by nobody, and are bounded rather than observed. The bound on
-> capture is a **number of published boundaries**, not a share of voting power:
-> the effective threshold remains just above one third, and what the rules buy is
-> that reaching it takes several transitions, each of which the client can see.
+> — are detectable by nobody, and are bounded rather than observed. Two distinct
+> bounds apply to attrition, and conflating them is the error this paragraph has
+> made three times. **Possession** of every seat requires **two thirds of the
+> target set size**, guaranteed by the joint enforcement of the contraction floor
+> and `3 * validator_min_set_size >= 2 * V` ([ADR-010]). **Control of the set
+> through the quorum predicate** requires only
+> `k_min = max(floor(2 * S_new / 3) + 1, floor(V/3) + 1)` with
+> `S_new = max(floor(2V/3) + 1, validator_min_set_size)` — about **four ninths**
+> of the set, 48.1 % at `V = 27` and tending to 44.4 % as `V` grows. The argument
+> that above two thirds BFT safety has already failed applies to the first bound
+> and **not** to the second. What the rules buy is that reaching any lawful
+> contraction publishes a signed document any light client can diff, and that the
+> effective threshold moves from just above one third to about four ninths across
+> all valid parameter documents.
 
 The first sentence closes [DEBT-005]; the rest is what remains. Two earlier
 versions of this paragraph promised more: one omitted "within the parameter
 limits fixed at genesis", at a time when no such limits existed and the property
 could therefore be switched off by a document the sitting quorum signs; the other
 spoke only about who **enters** the set, at a time when nothing bounded who
-**leaves**. A third claimed that closing the second gap moved the effective
-capture threshold to two thirds; selective censorship refutes that in three
-boundaries, and the claim above is the corrected one, which promises observable
-delay rather than a raised threshold. The wording keeps every qualification
-visible, because the property is exactly as strong as the bounds and the floor,
-and a reader is entitled to know where to look. The honest summary is unchanged in kind: this section moves the
-light client from checking that a transition was *authenticated* to checking that
-it was *lawful*, without promising that it was *correct*.
+**leaves**. A third version claimed that closing the second gap moved the effective capture
+threshold to two thirds. **That version was wrong, not premature**, and the
+retraction is recorded here in that form on purpose: selective censorship
+defeated it then, exactly as it defeats the fourth version, which repeated the
+claim after `3 * validator_min_set_size >= 2 * V` was enacted and differed only
+in where the contraction stops. Calling the third version premature would
+convert a retraction into a rehabilitation and remove the precedent that should
+have prevented the fourth — which is how the fourth came to be written. The
+common defect in all three is the same: a bound on **possession** was stated as
+a bound on **capture**, and the quorum predicate needs far less than possession.
+This fifth version separates the two thresholds and claims four ninths for the
+one that matters, with the arithmetic beside it. The wording keeps every
+qualification visible, because the property is exactly as strong as the bounds,
+the floor, and the relational constraints, and a reader is entitled to know
+where to look.
+The honest summary is unchanged in kind: this section moves the light client from
+checking that a transition was *authenticated* to checking that it was *lawful*,
+without promising that it was *correct*.
 
 One clause belongs beside that claim rather than inside it, because it describes
 the ground the claim stands on rather than the claim itself: **the magnitudes

@@ -951,3 +951,135 @@ def s11b_usage_ramp() -> list[LaunchRegimeResult]:
         s11_at07_launch_regime(usage_fraction=f)
         for f in (0.0, 0.05, 0.10, 0.25, 0.50, 1.00)
     ]
+
+
+# --------------------------------------------------------------------------
+# S12 — possession is not control (REVIEW-014 RF-001)
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class QuorumCaptureRow:
+    V: int
+    min_set: int
+    smallest_lawful_successor: int
+    k_min_for_quorum: int
+    k_min_fraction: float
+    k_min_for_possession: int
+    four_ninths: float
+
+
+def smallest_lawful_successor(V: int, min_set: int) -> int:
+    """The smallest `S_new` a lawful contraction may produce from `S_old = V`.
+
+    The contraction floor is **strict** — `3 * new > 2 * old` — so a set of 27
+    contracts to 19 and not to 18. `validator_min_set_size` floors it further.
+    """
+
+    return max((2 * V) // 3 + 1, min_set)
+
+
+def relational_min_set(V: int) -> int:
+    """`ceil(2V/3)`, the smallest `min_set` the [ADR-010] relational rule allows."""
+
+    return -(-2 * V // 3)
+
+
+def quorum_capture_threshold(V: int, min_set: int | None = None) -> QuorumCaptureRow:
+    """Smallest coalition that reaches **quorum** on the contracted set.
+
+    Possession of every seat needs `k >= min_set`. Control needs only a quorum
+    of the successor, `3k > 2 * S_new`, and `S_new` is smaller than `V`. The
+    coalition must additionally be able to censor at all, which needs
+    `3k > V` — it has to withhold quorum from the outgoing set.
+    """
+
+    ms = relational_min_set(V) if min_set is None else min_set
+    S = smallest_lawful_successor(V, ms)
+    k_quorum = max((2 * S) // 3 + 1, V // 3 + 1)
+    return QuorumCaptureRow(
+        V=V,
+        min_set=ms,
+        smallest_lawful_successor=S,
+        k_min_for_quorum=k_quorum,
+        k_min_fraction=k_quorum / V,
+        k_min_for_possession=ms,
+        four_ninths=4 * V / 9,
+    )
+
+
+def s12_quorum_capture_table(
+    sizes: tuple[int, ...] = (12, 27, 36, 60, 120, 600, 6000),
+) -> list[QuorumCaptureRow]:
+    return [quorum_capture_threshold(V) for V in sizes]
+
+
+@dataclass(frozen=True)
+class QuorumWalkStep:
+    boundary: int
+    V_target: int
+    min_set: int
+    set_size: int
+    coalition_seats: int
+    has_quorum: bool
+    owns_set: bool
+    note: str
+
+
+def s12b_quorum_capture_walk(V: int = 27, coalition: int = 13) -> list[QuorumWalkStep]:
+    """The concrete walk of RF-001 on the recommended values.
+
+    Step 0 is the honest set. At each boundary the coalition lets exactly enough
+    honest candidacies through to land on the smallest lawful successor, then —
+    once it holds quorum — lowers `V` and `min_set` together within the 5/4 rate
+    limit, which the relational rule permits because it constrains the ratio and
+    not the magnitude.
+    """
+
+    steps: list[QuorumWalkStep] = []
+    Vt = V
+    ms = relational_min_set(Vt)
+    size = V
+    steps.append(
+        QuorumWalkStep(
+            boundary=0,
+            V_target=Vt,
+            min_set=ms,
+            set_size=size,
+            coalition_seats=coalition,
+            has_quorum=3 * coalition > 2 * size,
+            owns_set=coalition >= size,
+            note="honest set at genesis size",
+        )
+    )
+    for b in range(1, 6):
+        target = smallest_lawful_successor(size, ms)
+        new_size = max(target, coalition)
+        if new_size >= size:
+            steps.append(
+                QuorumWalkStep(
+                    b, Vt, ms, size, coalition,
+                    3 * coalition > 2 * size, coalition >= size,
+                    "pinned: no smaller lawful successor",
+                )
+            )
+            break
+        # the contraction itself
+        size = new_size
+        has_q = 3 * coalition > 2 * size
+        note = "contraction under the floor and min_set"
+        if has_q and coalition < size:
+            note += "; QUORUM REACHED without owning the set"
+        steps.append(
+            QuorumWalkStep(b, Vt, ms, size, coalition, has_q, coalition >= size, note)
+        )
+        if coalition >= size:
+            break
+        if has_q:
+            # With quorum it may sign parameter documents: lower V within 5/4,
+            # and min_set with it, keeping 3 * min_set >= 2 * V satisfied.
+            new_V = max(coalition, -(-Vt * 4 // 5))
+            if new_V < Vt:
+                Vt = new_V
+                ms = relational_min_set(Vt)
+    return steps
