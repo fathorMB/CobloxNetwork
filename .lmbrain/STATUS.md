@@ -125,6 +125,10 @@ Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Qu
 
 **Tutte le voci rilevate al passaggio a pubblico sono chiuse.** Restano solo due limiti dichiarati: `secret_scanning_non_provider_patterns` non disponibile sul piano attuale, e i percorsi di macchina nelle trascrizioni di [SPEC-002], severità bassa.
 
+## Difetti ricorrenti
+
+`.lmbrain/knowledge/recurring-defects.md` raccoglie le **tre famiglie** che si sono ripetute, con le occorrenze contate e le domande che le intercettano. Il tratto comune: **in ogni caso il difetto era gia scritto da qualche parte nel repository e nessuno lo stava guardando** — non errori di ragionamento, errori di dove si guardava. La prima famiglia e chiusa da [ADR-012] con una gate; le altre due no, e vivono nelle domande da porsi.
+
 ## Igiene del brain
 
 - 2026-08-25 — **Tre review erano ferme in `changes-requested` su una spec già `done`** ([SPEC-001]): rilievo dell'operatore dalla board. Nessuna era sbagliata nel merito; mancava solo il verdetto finale, perché a ogni giro di remediation veniva creata una review nuova invece di ri-esprimere il verdetto su quella esistente. Disposizione caso per caso e non in blocco: [REVIEW-001] **accettata**, perché i suoi tre finding risultano chiusi e verificati; [REVIEW-002] e [REVIEW-006] **superate**, perché rimpiazzate da review successive sullo stesso gate senza mai arrivare all'accettazione — registrarle come accettate avrebbe cancellato proprio l'informazione che rende leggibile la catena. **Il difetto era invisibile agli strumenti**: `spec_done` verifica i gate e non lo stato delle review, e `lmbrain_validate` non lo segnala. La regola e il controllo da fare prima di `spec_done` sono in `.lmbrain/knowledge/review-lifecycle-discipline.md`.

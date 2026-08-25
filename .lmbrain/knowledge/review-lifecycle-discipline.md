@@ -57,3 +57,7 @@ Aggiunta il 2026-08-25, da un difetto di scrittura del Lead in [SPEC-008].
 **La conseguenza sullo stato.** Quella casella resta **non spuntata** e `lmbrain_validate` segnala un `verification-unresolved` su una spec `done`. È lasciata così deliberatamente: spuntarla attribuirebbe all'agente un'azione che non ha compiuto e che non poteva compiere. La gate è stata chiusa dal Lead sulla pipeline reale — run 32856348095 sul commit `27187e7`, verde su tutti e cinque i job — e il fatto è registrato in [REVIEW-012], finding RF-002.
 
 Chi ritrovi quella segnalazione non la corregga spuntando la casella: la segnalazione **dice il vero**, ed è il residuo di un difetto del Lead, non dell'implementatore.
+
+## Vedi anche
+
+`recurring-defects.md` raccoglie le tre famiglie di difetti che si sono ripetute in questo progetto, con il conteggio delle occorrenze e le domande che le intercettano. La lezione sulle gate registrata qui sopra e una delle tre occorrenze di errore del Lead elencate la.
