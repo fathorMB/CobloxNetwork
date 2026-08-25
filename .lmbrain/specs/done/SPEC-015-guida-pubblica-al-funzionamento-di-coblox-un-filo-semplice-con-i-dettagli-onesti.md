@@ -2,7 +2,7 @@
 id: SPEC-015
 # Note: Quote the title if it contains a colon
 title: "Guida pubblica al funzionamento di Coblox: un filo semplice con i dettagli onesti"
-status: review
+status: done
 kind: feature
 priority: medium
 area: design
@@ -33,6 +33,8 @@ activity:
     action: "attested verification GATE-OPERATOR-LOOK by operator"
   - date: 2026-08-26
     action: "attested verification GATE-OPERATOR-LOOK by operator (out-of-band, recorded by AGENT-LEAD via conversation)"
+  - date: 2026-08-26
+    action: "transitioned review -> done"
 verification_attestations:
   - actor: "operator"
     actor_role: "operator"
@@ -57,6 +59,15 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-26T00:25:29.998809600+02:00"
+mutation_overrides:
+  - schema_version: "1"
+    id: "SPEC-015-OVERRIDE-001"
+    actor_role: "project-lead"
+    timestamp: "2026-08-26T00:47:08.385720900+02:00"
+    from: "review"
+    to: "done"
+    reason: "Chiusa su richiesta dell'operatore con GATE-SECREVIEW derogata, non soddisfatta. Tutto il resto e' completo: nove criteri di accettazione su nove, le tre gate before-submit spuntate, REVIEW-024 accettata senza alcun finding a carico dell'implementazione, GATE-OPERATOR-LOOK attestata dall'operatore il 2026-08-26.\n\nLa deroga non e' una rinuncia. L'operatore ha rinviato la review di sicurezza il 2026-08-25 con una condizione dichiarata: si fa prima della pubblicazione, con la versione definitiva del protocollo sotto mano. Rivedere adesso una descrizione di un protocollo ancora in movimento significherebbe rivedere una versione che non sara' quella pubblicata.\n\nL'obbligo e' trasferito su DEBT-023, che porta il nome della gate derogata come DEBT-001 portava GATE-CI-GREEN, ha AGENT-007 come proprietaria, e ha per innesco la pubblicazione e non una data: finche' la guida resta in .lmbrain/design/ il debito resta aperto senza urgenza, e se qualcuno propone di pubblicarla il debito e' il blocco."
+    unmet_invariant: "before-done verification blocked: GATE-SECREVIEW (owner=lead): checklist item is unchecked"
 ---
 # Guida pubblica al funzionamento di Coblox: un filo semplice con i dettagli onesti
 
