@@ -1,0 +1,30 @@
+# Dependabot version updates.
+#
+# Security updates work without this file; version updates do not. The two
+# are not interchangeable here: the workflow pins every third-party action to
+# a commit SHA, and a pin never goes stale in a way GitHub reports as
+# vulnerable -- it simply stops receiving the maintainer's fixes in silence.
+# Pinning without a refresh mechanism trades a supply-chain risk for a
+# staleness one, so the refresh is part of the pin, not an extra.
+#
+# Only the `github-actions` ecosystem is declared. Cargo and npm version
+# updates are deliberately left out for now: the lockfiles are the CI's
+# reproducibility guarantee (`cargo build --locked`, `npm ci`), and opening
+# that churn is a decision to take on its own terms rather than as a side
+# effect of hardening the actions.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # One pull request per week for all actions rather than one per action.
+      # These updates are reviewed as a batch against a green pipeline; the
+      # batch is what gets verified, so the batch is what should be proposed.
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+    open-pull-requests-limit: 5
