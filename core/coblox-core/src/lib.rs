@@ -27,6 +27,7 @@
 //! | [`validator_set`] | validator-set continuity, revocation transitions |
 //! | [`election`] | validator election and rotation |
 //! | [`light_client`] | light-client balance verification, set composition |
+//! | [`verifier`] | consensus-critical Ed25519 verification |
 //!
 //! # Three conventions the rest of the project inherits
 //!
@@ -69,23 +70,15 @@
 //! degenerate ratio in [`params::RewardPolicy::validate`] itself, so the rule
 //! cannot become vacuous on any path.
 //!
-//! # Declared limit: no signature verifier ships here
+//! # Consensus-critical Ed25519 verification
 //!
-//! `README.md#consensus-critical-ed25519-verification` requires one identical
-//! ZIP-215-derived rule with a fifth condition of its own — `[8]A != identity`
-//! — and states that an implementation "MUST NOT substitute
-//! `ed25519-dalek::verify_strict`, legacy-compatibility modes, or a library
-//! default whose edge-case acceptance has not been shown equivalent to these
-//! four rules", with conformance measured against vectors 0–11 of
-//! `novifinancial/ed25519-speccheck`.
+//! `docs/protocol/README.md#consensus-critical-ed25519-verification` requires one
+//! identical ZIP-215-derived rule with a fifth condition of its own —
+//! `[8]A != identity` — and forbids unproven substitutions.
 //!
-//! This crate therefore ships the **signature preimages** — which are
-//! deterministic and are tested — and the [`SignatureVerifier`] seam, and does
-//! **not** ship a verifier. Shipping one without the speccheck vectors as its
-//! oracle would be precisely the unvalidated edge-case behaviour the
-//! specification forbids, and it would be indistinguishable from a correct one
-//! until a chain split. The verifier, its vectors and its conformance table
-//! belong together in their own change.
+//! This crate ships the [`verifier::ConsensusVerifier`] implementation of
+//! [`SignatureVerifier`], verified vector-by-vector against vectors 0–11 of
+//! `novifinancial/ed25519-speccheck` as its oracle.
 
 #![forbid(unsafe_code)]
 // Justified deviations from `clippy::pedantic`, which is `-D warnings` in CI.
@@ -121,8 +114,10 @@ pub mod params;
 pub mod quorum;
 pub mod registry;
 pub mod validator_set;
+pub mod verifier;
 
 pub use error::{Error, Result};
+pub use verifier::{ConsensusVerifier, verify_consensus_ed25519};
 
 /// Returns the semantic version exposed by every native shell.
 #[must_use]
@@ -136,8 +131,7 @@ pub const fn core_version() -> &'static str {
 /// `README.md#consensus-critical-ed25519-verification` plus the small-order
 /// public-key rejection, and MUST reproduce the published outcome table for
 /// vectors 0–11 of `novifinancial/ed25519-speccheck` before it is used on a
-/// Coblox network. Nothing in this crate implements it; see the crate
-/// documentation for why.
+/// Coblox network. [`ConsensusVerifier`] provides the canonical implementation.
 pub trait SignatureVerifier {
     /// Verifies `signature` over `message` under `public_key`.
     ///

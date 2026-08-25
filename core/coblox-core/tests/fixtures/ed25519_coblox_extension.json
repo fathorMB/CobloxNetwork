@@ -1,0 +1,65 @@
+[
+  {
+    "index": 0,
+    "comment": "R_enc = LE(p+1), sign 0: y >= p reduces to y = 1, the identity. Forged with S = k*a, accepted by rule 4 because [8]R = O. An implementation that rejects y >= p rejects this signature.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "331f80dfd57c6a6efaeb69314c30cdb3e1a78b35489e1620f4d3ed8c6870abbc",
+    "signature": "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f788a547b3abc56af7186bfbff890e30c1c7506c852535ecd0edde3832a245d02",
+    "expected_coblox": "accept",
+    "oracle_reason": "all five conditions hold"
+  },
+  {
+    "index": 1,
+    "comment": "R_enc = LE(p+1), sign 1: y >= p reduces to y = 1 and the sign bit is then applied to x = 0, so both departures from RFC 8032 are present at once. Forged with S = k*a; accepted.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "e3b1fb859dda73da9cc77abee855802fb11583ae02468968f2b6f8e98809d6c8",
+    "signature": "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe96551f99a35a2c8282710eabc1d36283f179fff98eebff40e74727f3d7f0804",
+    "expected_coblox": "accept",
+    "oracle_reason": "all five conditions hold"
+  },
+  {
+    "index": 2,
+    "comment": "R_enc = LE(p), sign 0: y >= p reduces to y = 0, a point of order 4. Forged with S = k*a, accepted because [8]R = O. An implementation that rejects y >= p rejects this signature.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "f642d10426114b6f1c4aa9221d4eb4ef75c4805a9bd80199595e23bbc40cb192",
+    "signature": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fb1a85efc14d4480f8ba65eec2c45e8944718c21361d1b8d9ea63d563ebf0f605",
+    "expected_coblox": "accept",
+    "oracle_reason": "all five conditions hold"
+  },
+  {
+    "index": 3,
+    "comment": "R_enc = LE(p), sign 1: the other order-4 point with y = 0. Forged with S = k*a; accepted. Present so the sign bit is exercised on a reduced y that is not the identity.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "87a17200c52e4895b32e863c38645369184c3be978fbf88d663c1eefeb6923d3",
+    "signature": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff570b8a6683599e7a53106b69f1aa307ae2def89efbf55b6e22963926c4eec60d",
+    "expected_coblox": "accept",
+    "oracle_reason": "all five conditions hold"
+  },
+  {
+    "index": 4,
+    "comment": "A_enc = LE(p), sign 0: y >= p reduces to y = 0, a point of order 4, so rule 3 ([8]A != identity) rejects. Rejected by a y >= p-rejecting implementation too, at decoding: this vector shows decoding coverage, not divergence.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+    "signature": "a91d7220470cacd2845a3e28b5e7247b77dcee5afd60bbd3b41e69872ed07215f3baf35a2bd4e0b3d5afa1546863b3b2c1502db47f0dedf0dfab6f00a579670b",
+    "expected_coblox": "reject",
+    "oracle_reason": "[8]A == identity, small-order key (rule 3)"
+  },
+  {
+    "index": 5,
+    "comment": "A_enc = LE(p+3), sign 0: y >= p reduces to y = 3, a point of large order, so decoding succeeds and rule 3 does not fire; rule 4 rejects because no signature can be produced without the discrete logarithm of that point. Rejected under both rules.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "f0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+    "signature": "2d41900eadb2c6f08d3a145d463a950600dae7614cf10e9612e7f558ab3a8a0653a443a9940f573cb1ebed885360db7a3be07fda15b0337ee9def564fccea306",
+    "expected_coblox": "reject",
+    "oracle_reason": "[8][S]B != [8]R + [8][k]A (rule 4)"
+  },
+  {
+    "index": 6,
+    "comment": "R_enc = LE(p+3), sign 0: y >= p reduces to a point of large order, so [8]R != O and the cofactored equation cannot be satisfied without its discrete logarithm. Rejected under both rules.",
+    "message": "636f626c6f782d626c6f636b2d766f74652d7630004242424242424242424242424242424242424242424242424242424242424242000000000040428900000000000000027a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+    "pub_key": "fddb0f851156f997e10be2c6aa2ed19acf57a86370c47d91fe4981fa9c8dd59a",
+    "signature": "f0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f9b1f4841e84f364dff476ac04c72dc99fee5b0dd99147834749a21a8f7e00e03",
+    "expected_coblox": "reject",
+    "oracle_reason": "[8][S]B != [8]R + [8][k]A (rule 4)"
+  }
+]

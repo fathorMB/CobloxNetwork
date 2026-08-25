@@ -61,6 +61,18 @@ jobs:
         run: python3 sim/tools/protocol_hashes.py
       - name: Reward and election rule checks
         run: python3 sim/tools/reward_rules.py
+      # An independent re-derivation of the published Ed25519 outcome table,
+      # sharing no code with core/coblox-core. The conformance suite compares
+      # the document with the implementation; this compares the document with a
+      # second, unrelated reading of the same rule, which is the check that
+      # would have caught the vector-8 defect of [REVIEW-018].
+      - name: Ed25519 speccheck table, independent oracle
+        run: python3 sim/tools/ed25519_speccheck_oracle.py --explain
+      # The Coblox extension vectors are constructed, not collected, so the
+      # construction has to be reproducible by anyone: this fails if the
+      # committed fixture and the generator disagree by a single byte.
+      - name: Ed25519 Coblox extension vectors reproduce
+        run: python3 sim/tools/ed25519_coblox_extension_vectors.py
 
   android:
     name: Android arm64 + Kotlin bindings

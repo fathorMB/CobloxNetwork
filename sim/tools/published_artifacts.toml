@@ -1387,3 +1387,24 @@ site = "README.md"
 pattern = "\\*\\*The fixture table above is the only oracle in these documents\\.\\*\\*"
 count = 1
 why = "Sixteen of the thirty-seven published digests are placeholders; without this statement a reader cannot tell which."
+
+[[probe]]
+id = "ed25519-rule1-clause-a"
+site = "README.md"
+pattern = "a `y` whose masked value is `>= 2\\^255-19` is \\*\\*not\\*\\* rejected"
+count = 1
+why = "REVIEW-019 RF-002: rule 1 named one decoding departure from RFC 8032 and left the other implicit. Half a normative rule is the shape of defect ADR-012 exists for, and this half is the one no upstream vector exercises."
+
+[[probe]]
+id = "ed25519-rule1-clause-b"
+site = "README.md"
+pattern = "`x = 0` with the sign bit set to 1 is \\*\\*not\\*\\* rejected"
+count = 1
+why = "REVIEW-019 RF-002: this is the clause upstream vectors 8-11 actually exercise, and the one the rule used to be silent about while its prose mislabelled it as a non-canonical y."
+
+[[probe]]
+id = "ed25519-extension-table-required"
+site = "README.md"
+pattern = "MUST pass \\*\\*both\\*\\* tables before it can participate in a Coblox network"
+count = 1
+why = "REVIEW-019 RF-001: an implementation that passes only the upstream twelve has demonstrated nothing about clause 1a, so conformance has to name both tables or the second one is decoration."

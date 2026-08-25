@@ -8,11 +8,39 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
-# SHA-256 is the only cryptographic primitive this crate needs: the protocol
-# uses it for every identifier, commitment and Merkle tree. RustCrypto's `sha2`
-# is used rather than a hand-rolled compression function because a consensus
-# hash must be exactly right and this implementation is widely reviewed.
+# Curve25519 / Edwards25519 curve arithmetic primitive for consensus-critical
+# Ed25519 verification conforming to ZIP-215 and Coblox v0 rules.
+#
+# Provenance, at the granularity that actually reaches the binary. The public
+# security audits of curve25519-dalek cover the 2.x, 3.x and 4.x lines; the
+# version pinned here is **5.0.0**, a new major with a reworked API surface, and
+# **no audit of the 5.x line is cited or known to us**. The same holds for
+# sha2 0.11.0. [REVIEW-019] RF-005 required this to be said instead of the
+# earlier "vetted primitive crate", which was true of the crate and not of the
+# artifact. The choice itself is not retracted — hand-rolled field arithmetic in
+# a consensus-critical verifier is the worse risk by a wide margin — but the
+# residual is real and is reviewed before the first devnet: either an audit of
+# the 5.x line becomes citable, or the pin moves to a covered line, or cargo-vet
+# is adopted, which is the structural answer to this class.
+#
+# What does cover it: Cargo.lock is versioned with checksums, CI builds and tests
+# with --locked, the cargo-deny action is pinned by commit SHA, [advisories]
+# ignore is empty, and every edge-case behaviour this crate depends on is
+# exercised against two published vector tables and an independent oracle.
+#
+# default-features = false drops `precomputed-tables` (size/speed, not
+# correctness) and, deliberately, `legacy_compatibility`: that feature exposes
+# `Scalar::from_bits`, which is the "legacy-compatibility mode" the protocol
+# document forbids. Nothing here calls it, but cargo feature unification could
+# enable it from elsewhere in the graph, so it is named rather than assumed.
+curve25519-dalek = { version = "5.0.0", default-features = false, features = ["digest"] }
+# SHA-256 for protocol preimages, Merkle trees, and identifiers; SHA-512 for
+# Ed25519 signature verification hashing (k = SHA-512(R || A || M) mod L).
+# See the audit-coverage note above: 0.11.0 is a new major as well.
 sha2 = { version = "0.11.0", default-features = false }
+
+[dev-dependencies]
+serde_json = { version = "1.0.140", default-features = false, features = ["alloc"] }
 
 [lints]
 workspace = true
