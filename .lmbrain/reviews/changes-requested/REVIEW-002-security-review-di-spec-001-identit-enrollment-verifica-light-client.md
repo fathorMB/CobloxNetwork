@@ -66,6 +66,28 @@ review_events:
     evidence_refs: ["docs/protocol/README.md", "docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "docs/protocol/wire.md", "REVIEW-002"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-006"
+    timestamp: "2026-08-25T02:08:42.462951400+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Terza remediation, limitata al Lotto B sbloccato da ADR-007 accettata: chiusi RF-005, RF-007, RF-004(c), RF-013 e RF-015. RF-005: Argon2id (RFC 9106, versione 0x13) sostituisce SHA-256 nell'enrollment, con salt deterministico di 16 byte derivato da chain_id/chiave/blocco recente, nonce nella password, difficolta ricalibrata da 18-40 a 2-6 espressa contro un dispositivo di riferimento dichiarato, profilo di costo (memory_kib, iterations, lanes, tag_length_bytes) nel parameter set firmato e riecheggiato nella richiesta, e ordine di validazione normativo in 8 passi che mette il passo memory-hard per ultimo; aggiunti limiti di concorrenza per chiave e globali con coda limitata, perche l'ordine da solo non chiude il DoS. Chiuso SEC-REQ-12: identity.md dichiara che v0 non distingue N nodi emulati su un host da N dispositivi reali, insieme al limite costo-una-tantum contro flusso-perpetuo e alla dichiarazione che il contenimento e economico e non crittografico. RF-007 (SEC-REQ-15): il tetto alla quota al creatore e ora regola di validita, amount * kd <= kn * counted_subscription_burn_microtokens con kn < kd imposto all'accettazione del documento di reward policy, nuovo campo counted_subscription_burn_microtokens nel mint per renderla verificabile dalla transazione, e residuo dichiarato sulla reputazione che il tetto non chiude. RF-004(c) (SEC-REQ-05): una revoca finalizzata di un membro del set attivo invalida ogni set e ogni blocco che lo contenga da effective_height, con nuovo parametro di consenso min_revocation_effective_delay_blocks e stallo safety-over-liveness dichiarato; nessun campo aggiunto all'header perche forzare la transizione ri-committa il set sul percorso che il light client gia verifica. RF-013 (SEC-REQ-17): nuova transazione challenge_commitment, campi randomness_source/issuer_commitment/issuer_signature sulla richiesta, issuer_reveal sull'evidenza, e preimmagini registrate per issuer_commitment e challenge_randomness, cosi che chiunque ricalcoli la casualita; impegno finalizzato strettamente sotto beacon_height, assegnazione derivata con almeno due emittenti indipendenti per soggetto, residuo di grinding del proposer dichiarato. RF-015 (SEC-REQ-19): nuovo HostAcceptancePolicy valutabile automaticamente e passo 7 diviso in due percorsi disgiunti, grant dell'operatore per l'installazione volontaria e valutazione automatica per l'assegnazione da protocollo, dove fuori politica e rifiuto e mai concessione silenziosa. Riflesse le due conseguenze di ADR-007 che toccano il formato: reddito di esistenza come quota di un fondo a tetto per epoca (existence_fund_microtokens_per_epoch, divisione intera per eligible_node_count committato, resto non coniato) invece di importo fisso per nodo, ed eleggibilita a validatore ancorata a lavoro storage/compute finalizzato e mai al solo uptime. Algoritmo di elezione non toccato, resta M-02 sotto DEBT-005. Verifica meccanica: 11 vettori di hash ricalcolati dalle preimmagini e tutti coincidenti con la tabella, di cui 4 non toccati che riproducono i digest gia pubblicati e validano il canonicalizzatore; 20 esempi JSON tutti canonici; 22 link e ancore interne tutti risolti; node_id della fixture ancora derivato dalla chiave pubblica; predicato di quorum intero e divieto cofactorless intatti; 13/13 marcatori di chiusura Lotto B. Tre scostamenti deliberati segnalati al Lead nella spec."
+    evidence_refs: [".lmbrain/specs/review/SPEC-001-specifica-del-protocollo-coblox-v0-identit-messaggi-p2p-ledger-manifest-app.md#implementation-evidence", "docs/protocol/identity.md#one-time-anti-sybil-proof-of-work", "docs/protocol/identity.md#validation-order-and-its-reason", "docs/protocol/identity.md#declared-limits-of-this-mechanism", "docs/protocol/ledger.md#existence-income-is-a-share-of-a-capped-fund", "docs/protocol/ledger.md#creator-share-cap-a-validity-rule-not-a-policy-note", "docs/protocol/ledger.md#revocation-forces-a-validator-set-transition", "docs/protocol/ledger.md#challenge-issuer-commitment", "docs/protocol/ledger.md#challenge-evidence", "docs/protocol/wire.md#challenge_request", "docs/protocol/app-manifest.md#host-acceptance-policy", "docs/protocol/README.md#hash-preimage-registry", "docs/protocol/README.md#hash-conformance-fixtures"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-007"
+    timestamp: "2026-08-25T02:12:12.200186300+02:00"
+    action: "remediation-verification"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Verifica indipendente del Lead sul Lotto B. RF-005 chiuso: Argon2id RFC 9106 versione 0x13 sostituisce SHA-256, difficolta ricalibrata da 18-40 a 2-6 contro un dispositivo di riferimento dichiarato, ordine di validazione normativo in 8 passi con il passo memory-hard per ultimo, e identity.md dichiara ora esplicitamente che v0 non distingue N nodi emulati da N dispositivi reali (SEC-REQ-12). RF-007 chiuso: il tetto e una regola di validita aritmetica sul mint, con nuovo campo counted_subscription_burn_microtokens perche il vincolo sia verificabile dalla transazione stessa. RF-004(c) chiuso: sezione dedicata \"Revocation forces a validator set transition\". RF-013 chiuso: nuova transazione challenge_commitment con impegno dell'emittente pubblicato prima della selezione e reveal nell'evidenza, due nuove preimmagini registrate. RF-015 chiuso: HostAcceptancePolicy valutabile automaticamente, con percorsi disgiunti fra installazione volontaria e assegnazione da protocollo, dove fuori politica e rifiuto. Riflesse anche le due conseguenze di ADR-007 sul formato: fondo a tetto per il reddito di esistenza con divisione intera e resto non coniato, ed eleggibilita a validatore ancorata a lavoro finalizzato. Controlli strutturali rieseguiti dal Lead: 19 esempi JSON tutti canonici, 22 link interni risolti, fixture node_id ancora derivate dalle chiavi pubbliche, documenti a 2141 righe. Le tre scelte di giudizio indipendente dichiarate dall'implementatore (limiti di concorrenza sull'enrollment, parametri Argon2id governabili, stallo dichiarato al posto di campi nell'header) sono state passate ad AGENT-007 per valutazione, non accettate d'ufficio dal Lead."
+    evidence_refs: ["docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "docs/protocol/README.md", "ADR-007"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
 links: []
 created: 2026-08-25
 updated: 2026-08-25
@@ -77,6 +99,10 @@ activity:
     action: "transitioned pending -> changes-requested"
   - date: 2026-08-25
     action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "recorded review remediation-verification"
   - date: 2026-08-25
     action: "recorded review remediation"
   - date: 2026-08-25

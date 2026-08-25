@@ -22,11 +22,11 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 ## In progress
 
 - [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. Lotto A rimediato e verificato. **Lotto B dispacciato dal Lead nella notte** (modello Opus), ora sbloccato da [ADR-007]: Argon2id al posto di SHA-256 con controlli riordinati contro il DoS, vincolo `k < 1` sulla quota al creatore, revoca che forza la transizione del validator set, casualità delle challenge verificabile, consenso dell'host valutabile automaticamente. Poi resta la sola ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007, ora libera. **In corso.**
-- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). In `working`. **Remediation dispacciata dal Lead il 2026-08-25 su autorizzazione dell'operatore, modello Sonnet**: chiusura dei tre difetti trovati dal Lead (script `build-android.sh` rotto per `-p` invece di `--platform`, wrapper Gradle mancante, `.gitignore` di root assente) più le verifiche locali, il cui standard si alza perché con la CI ferma `GATE-LOCAL-REPRO` è l'unica verifica reale che la spec produce. **In corso.**
 - [SPEC-003] Design system → AGENT-006 (Lia Wireframe). In `review`, **accettata tecnicamente** dal Lead con [REVIEW-004]: sette criteri su sette verificati meccanicamente, un solo finding di severità bassa che non blocca. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`. **Bloccata dal solo `GATE-OPERATOR-LOOK`:** il sistema rifiuta `spec_done` finché l'operatore non attesta di aver visto e approvato la direzione estetica, e il Lead non può farlo al suo posto.
 
 ## Done
 
+- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` derogato e coperto da [DEBT-001]. Commit `81cca93`.
 - [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
 
 ## Blockers and risks
@@ -54,10 +54,11 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 3. **Sbloccare la fatturazione GitHub** per chiudere [DEBT-001] e far girare finalmente la pipeline.
 4. Decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
 
+5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. Vanno aggiunti al `.gitignore` oppure resi portabili.
+
 **Per il Lead, in autonomia:**
 
-5. Alla consegna del Lotto B: verificare, poi chiedere ad AGENT-007 la ri-attestazione di `GATE-SECREVIEW` e chiudere SPEC-001.
-6. Alla consegna di SPEC-002: recensire; `GATE-CI-GREEN` è derogato, quindi la chiusura dipende solo da `GATE-LOCAL-REPRO` e dai tre difetti.
+6. Alla consegna del Lotto B: verificare, poi chiedere ad AGENT-007 la ri-attestazione di `GATE-SECREVIEW` e chiudere SPEC-001. È l'ultima spec aperta di M-01.
 7. A ogni spec che passa a `done`: commit e push su `main`.
 
 ## Strategia di branching

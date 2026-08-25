@@ -10,7 +10,7 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 ## Now
 
 - [SPEC-001] Specifica del protocollo v0 (identità, P2P, ledger, manifest) — AGENT-001, M-01, high
-- [SPEC-002] Scheletro workspace Rust + CI multipiattaforma — AGENT-008, M-01, high
+- ~~[SPEC-002] Scheletro workspace Rust + CI multipiattaforma — AGENT-008, M-01, high~~ → **done** il 2026-08-25
 - [SPEC-003] Fondamenta del design system — AGENT-006, M-01, medium
 - ~~[SPEC-004] Threat model iniziale — AGENT-007, M-01, high~~ → **done** il 2026-08-25
 
@@ -25,7 +25,7 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 
 - Decisione sul nome del token/unità (branding, coinvolge AGENT-006).
 - Spec M-02: elezione/rotazione dei validatori (i vincoli emergeranno da SPEC-001 e SPEC-004).
-- Strategia di branching (`branching_strategy_set`) al primo codice (con SPEC-002).
+- Configurazioni locali degli harness (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): decidere se ignorarle o renderle portabili — contengono percorsi assoluti.
 - Da [ADR-006]: entità "saldo dell'app" nel ledger con consumo per epoche (M-02, dominio AGENT-002).
 - Da [ADR-006]: parametro economico della quota al creatore, da tarare nel simulatore (M-02).
 

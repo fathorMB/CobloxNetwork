@@ -129,6 +129,59 @@ but compute results cannot generate `work_kind: "compute"` rewards in v0.
 WASI access. Raw network and host filesystem access are excluded because they
 break sandbox isolation and deterministic verification.
 
+## Host acceptance policy
+
+`deployment.desired_replicas` means the protocol, not the publisher, picks the
+hosts. Those hosts are headless daemons and backgrounded Android nodes: there is
+no operator in front of a screen to approve anything. An interactive grant is
+therefore not merely inconvenient in that case, it is unimplementable, and the
+only thing an implementation could do with the rule "ask the operator" is grant
+whatever the manifest asks. That would hand a publisher N third-party machines
+making HTTPS requests to origins it controls, inside a sandbox that is
+technically intact while the legal and reputational exposure sits with whoever
+lent the machine.
+
+Every host that accepts protocol assignments MUST therefore declare a policy
+that a machine can evaluate without a human:
+
+```text
+HostAcceptancePolicy = {
+  "schema_version":"0.1",
+  "accept_protocol_assignments":boolean,
+  "allowed_capabilities":[string],
+  "http_fetch_allowed_origins":[string],
+  "require_deterministic":boolean,
+  "max_resources":ResourceLimits,
+  "max_persistent_storage_bytes":u64-string,
+  "max_assigned_apps":u64-string
+}
+```
+
+Evaluation is total, deterministic, and closed: absence denies. An assignment is
+inside the policy only when `accept_protocol_assignments` is true, every
+requested capability name appears in `allowed_capabilities`, every `http_fetch`
+origin appears in `http_fetch_allowed_origins` after the same normalization the
+runtime uses, `require_deterministic` is satisfied, every field of the manifest's
+`ResourceLimits` is at most the corresponding field of `max_resources`, declared
+storage fits the storage ceiling, and the host is below `max_assigned_apps`.
+
+Inside the policy the assignment is accepted. Outside it — in any single
+respect — the assignment is **refused**, and the refusal is the outcome the
+protocol reassignment path and the per-node refusal list of [ADR-006] consume.
+There is no third outcome: a host MUST NOT grant a capability, raise a ceiling,
+partially accept, or defer to an operator prompt that nobody will answer. A
+missing or unparseable policy means `accept_protocol_assignments` is false.
+
+The interactive grant of the installation steps below applies only to a
+**voluntary installation by a user on their own device**, never to a protocol
+assignment. The two paths are disjoint and an implementation MUST NOT
+substitute one for the other.
+
+Independently of which path granted it, an operator MUST be able to see at any
+time which `app_id`s the node currently hosts, with which capabilities and
+ceilings, and to withdraw consent — which produces a refusal and a
+reassignment, never a silent continuation.
+
 ## Resource limits
 
 ```text
@@ -253,7 +306,12 @@ An implementation performs these steps in order:
 5. hash the module, validate WASM structure, imports, export, and ABI;
 6. reject conflicting/duplicate capabilities and resource values beyond host or
    protocol limits;
-7. present the exact capability, resource, and pricing request for local grant;
+7. decide consent by path: for a **voluntary user installation**, present the
+   exact capability, resource, and pricing request and record an explicit
+   operator grant bounded by the manifest; for a **protocol assignment**,
+   evaluate the request against the declared
+   [host acceptance policy](#host-acceptance-policy) and either accept it
+   because it falls inside, or refuse it. Never grant by absence of an answer;
 8. compile in a fresh sandbox configuration keyed by app ID and runtime version;
 9. at each invocation enforce fuel, memory, time, output, storage, concurrency,
    and capability boundaries independently of guest behavior.

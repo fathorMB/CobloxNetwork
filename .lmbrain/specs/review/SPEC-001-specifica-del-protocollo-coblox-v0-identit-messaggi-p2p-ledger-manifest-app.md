@@ -179,6 +179,46 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
   fresh balance responses; rejected redundant sparse-Merkle siblings; added
   ADR-006 app escrow/funding/suspension state; and specified DNS pinning against
   rebinding across redirects.
+- Remediated the authorized Lotto B of REVIEW-002 under accepted ADR-007.
+  RF-005: replaced SHA-256 with Argon2id (RFC 9106, version `0x13`) as the
+  enrollment floor, with a deterministically derived 16-byte salt, the nonce in
+  the password, the difficulty range recalibrated from 18–40 to 2–6, the cost
+  profile carried in the signed parameter set and echoed in the request, a
+  mandatory validation order that evaluates the memory-hard step **last**, and
+  explicit per-key/global concurrency and queue bounds because ordering alone is
+  necessary but not sufficient. Closed SEC-REQ-12 by stating that v0 does not
+  distinguish `N` emulated nodes on one host from `N` real devices, together
+  with the one-time-cost-versus-perpetual-flow limit and the statement that
+  containment is economic rather than cryptographic.
+  RF-007: made the creator share a validity rule —
+  `amount * kd <= kn * counted_subscription_burn_microtokens` with `kn < kd`
+  enforced when the reward policy document is accepted — added
+  `counted_subscription_burn_microtokens` to the mint so the constraint is
+  checkable from the transaction, and declared the residual reputation-buying
+  channel the cap does not close.
+  RF-004(c): a finalized revocation of a sitting validator now invalidates any
+  set or block that still contains it at or after `effective_height`, gated by a
+  new `min_revocation_effective_delay_blocks` consensus parameter, with the
+  safety-over-liveness stall declared. No header field was added: forcing the
+  set transition makes the revocation visible through the continuity path the
+  light client already verifies.
+  RF-013: added the `challenge_commitment` transaction kind, `randomness_source`
+  / `issuer_commitment` / `issuer_signature` on the request, `issuer_reveal` on
+  the evidence, and the registry preimages for `issuer_commitment` and
+  `challenge_randomness`, so any observer recomputes the randomness; the
+  commitment must be finalized strictly below the beacon height, and the
+  proposer-side grinding residual is declared.
+  RF-015: added `HostAcceptancePolicy` and split installation step 7 into two
+  disjoint consent paths — operator grant for voluntary installation, automatic
+  policy evaluation for protocol assignment, where outside the policy is a
+  refusal and never a silent grant.
+- Reflected the two ADR-007 consequences the formats touch: existence income is
+  a share of a per-epoch capped fund (`existence_fund_microtokens_per_epoch`,
+  integer division by a committed `eligible_node_count`, remainder not minted)
+  rather than a fixed per-node amount, so a Sybil fleet can dilute but not
+  increase emission; and validator eligibility is required to be anchored to
+  finalized storage/compute work and never to uptime alone. The election
+  algorithm itself was left untouched as M-02 work under DEBT-005.
 - Expanded beyond the compact context pack only for direct requirements:
   ADR-005 was read in full for economic-flow reconciliation, and current
   official libp2p specifications were consulted for Identify, Kademlia,
@@ -186,7 +226,14 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
 - For REVIEW-002 direct verification, read the complete security review and all
   five protocol documents and reconciled the assigned findings against RFC 8032,
   ZIP-215, the official libp2p Peer ID specification, and the CometBFT light-
-  client trust model. No Lotto B protocol decision was implemented.
+  client trust model.
+- For Lotto B, read ADR-007 in full and threat-model sections 6.2, 6.3, 7.4 and
+  the section 9 SEC-REQ table, and consulted the current official RFC 9106 text
+  for the Argon2id parameter profiles rather than relying on recall. The RFC's
+  first recommended option (2 GiB, `t=1`, `p=4`) is confirmed unusable on
+  Android and the second (64 MiB, `t=3`, `p=4`) is adopted as the starting
+  profile, with the RFC's own bounds (`m >= 8p`, 128-bit salt, 256-bit tag)
+  written into the governed document as validity constraints.
 
 ### Files changed
 
@@ -218,6 +265,24 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
   canonical JSON, local links/anchors, nonce-aware ordering requirements, chain
   binding, bounded replay behavior, sparse-proof minimality, app escrow state,
   DNS pinning, and absence of the reserved Lotto B mechanisms.
+- For Lotto B, recomputed **all eleven** hash-registry vectors from their
+  preimage definitions — the eight pre-existing ones plus the two new challenge
+  derivations and the wire-form randomness — and compared all 32 digest bytes
+  against the README table. The four vectors whose preimages Lotto B did not
+  touch (`hosting_rate_card_hash`, `object_id`, `input_hash`, `response_hash`)
+  reproduce their previously published values exactly, which validates the
+  canonicalizer used to regenerate the four that did change.
+- Re-verified the Lotto A properties that Lotto B could have regressed: the
+  single integer quorum formula and its `V=101` boundary row are intact, the
+  ZIP-215 cofactored equation and the ban on the cofactorless one are intact,
+  and the `node_id` of the identity fixture still derives from its public key by
+  the documented rule.
+- Re-parsed every canonical JSON example after the edits, including the four
+  regenerated lines (enrollment request, existence mint, publisher mint,
+  challenge evidence), the rewritten wire challenge request, and the new
+  challenge-commitment example: 20 examples, all byte-identical to the JCS of
+  their own parse. Re-checked all internal Markdown targets and anchors,
+  including the two new ones.
 - `GATE-SECREVIEW` is not an implementer claim. Owner: AGENT-LEAD; scheduled
   for re-review of this remediation and before `spec_done`; requested reviewer:
   AGENT-007.
@@ -241,6 +306,45 @@ $ python -  # local Markdown target and anchor verifier
 PASS local_links_and_anchors=ok
 $ lmbrain_validate
 PASS unique_ids=true; lifecycle/contract errors=0; one unrelated SPEC-002 verification-policy warning and informational tag diagnostics only
+$ python lottob_verify.py   # REVIEW-002 Lotto B conformance verifier
+hash_vectors: 11 recomputed, 11 match, 0 mismatch
+randomness_wire_b64url: jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc in_doc
+canonical_json_examples: 20 checked, 0 non-canonical
+internal_links: 22 checked, 0 broken
+node_id_derivation: ok cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq
+quorum_predicate_intact: ok
+cofactorless_ban_intact: ok
+RF-005 argon2id primitive          pass
+RF-005 pow checked last            pass
+RF-005 difficulty 2-6              pass
+SEC-REQ-12 declaration             pass
+RF-007 k cap validity rule         pass
+RF-004c revocation transition      pass
+RF-013 commitment tx               pass
+RF-013 reveal + recompute          pass
+RF-013 two issuers per epoch       pass
+RF-015 host policy                 pass
+RF-015 refuse not grant            pass
+ADR-007 capped existence fund      pass
+ADR-007 eligibility not uptime     pass
+lotto_b_markers: 13/13 pass
+$ lmbrain_validate
+PASS unique_ids=true; lifecycle/contract errors=0; 11 informational unknown-spec-tag diagnostics only (SPEC-001/002/003/004 vocabulary, unrelated to this change)
+```
+
+Recomputed hash-registry values after the Lotto B schema changes, all confirmed
+against the README table by the run above:
+
+```text
+enrollment_request_hash   ER-0  sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f
+parameter_set_hash        PD-0  sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63
+policy_hash               PD-0  sha256:1a4139ed0204a94efd654d324a859af913a351dea191a6c6839f8fddeee17075
+consensus_parameters_hash PD-0  sha256:1a947f60bada6a4974ae55411f404216ffd4093ebf5add0ed34cb95ba20c6a92
+issuer_commitment         CMT-0 sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5
+challenge_randomness      RND-0 sha256:8cebe4ad890bd41e8c37b87ad976ad92b8ef35aa3284c441d86691cfdaad88d7
+request_hash              REQ-0 sha256:8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360
+unchanged (canonicalizer control): hosting_rate_card_hash, object_id,
+input_hash, response_hash all reproduce their previously published digests
 ```
 
 ### Deviations from the specification
@@ -250,9 +354,31 @@ election remain explicitly `DRAFT` as required by the scope exclusions; every
 draft lists bounded alternatives and its decision owner. No quality-policy
 exception was used. ADR-006 was accepted after initial implementation and has
 now been incorporated through REVIEW-001 remediation. REVIEW-002 Lotto B
-(RF-005, RF-007, RF-004(c), RF-013, RF-015) remains intentionally untouched
-pending the threat-model/product decisions recorded above. The acceptance
-criteria and spec lifecycle state were not changed.
+(RF-005, RF-007, RF-004(c), RF-013, RF-015) is now remediated under accepted
+ADR-007. The acceptance criteria and spec lifecycle state were not changed.
+
+Three deliberate departures from the literal remediation text, each an addition
+rather than a contradiction, flagged for the Lead:
+
+1. **Ordering the proof of work last is not sufficient on its own**, so the
+   specification also requires bounded concurrency for the memory-hard step. An
+   attacker holding a key can build a request that passes every cheap check and
+   fails only the Argon2id evaluation, so ordering alone still lets one anonymous
+   peer spend 64 MiB and hundreds of milliseconds of a validator per request.
+   ADR-007 and RF-005 both stop at the ordering; implementing only that would
+   have left the denial-of-service vector open.
+2. **Argon2id cost parameters are governed alongside `difficulty_bits`.** With a
+   memory-hard primitive, the per-evaluation cost and the expected number of
+   evaluations are independent, and a 2–6 bit range gives governance only five
+   settings spanning a factor of sixteen. Carrying `memory_kib`, `iterations`,
+   `lanes`, and `tag_length_bytes` in the signed parameter set makes the real
+   knob governable and bounded rather than frozen at one profile.
+3. **RF-004(c) was closed without adding a header field.** The finding offered a
+   `BlockHeader` revocation commitment or set re-commitment; forcing the set
+   transition already re-commits the set, so the light client sees the change
+   through the continuity and key-binding checks it already performs. This costs
+   nothing on the wire, at the price of a declared safety-over-liveness stall if
+   no compliant successor set is committed within the delay window.
 
 ### Handoff status
 - [x] Ready for Project Lead review
