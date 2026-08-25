@@ -239,5 +239,64 @@ class TestAttackTests(unittest.TestCase):
             self.assertLessEqual(share, R.X_DECLARED)
 
 
+class TestGovernanceReach(unittest.TestCase):
+    """REVIEW-011 RF-003 and RF-006, executed rather than accepted."""
+
+    def test_three_parameters_are_frozen_by_the_rate_limit(self):
+        frozen = {i.name for i in S.s9_legal_intervals() if i.frozen}
+        self.assertEqual(
+            frozen,
+            {
+                "validator_churn_cap_seats",
+                "validator_cooldown_epochs",
+                "validator_min_capture_epochs",
+            },
+        )
+
+    def test_target_set_size_is_permanently_capped(self):
+        self.assertEqual(S.s9b_max_reachable_v(), 36)
+        self.assertGreater(R.CONSENSUS.validator_max_set_size, S.s9b_max_reachable_v())
+
+    def test_term_limit_interval_never_goes_below_the_active_value(self):
+        t = next(
+            i for i in S.s9_legal_intervals()
+            if i.name == "validator_max_consecutive_terms"
+        )
+        self.assertGreaterEqual(t.low, R.CONSENSUS.validator_max_consecutive_terms)
+        self.assertLessEqual(t.high, R.BOUNDS.validator_max_consecutive_terms_max)
+
+    def test_min_set_over_v_is_not_preserved_by_any_rule(self):
+        steps = S.s10_min_set_ratio_erosion()
+        self.assertTrue(all(e.constraint_block_passes for e in steps))
+        self.assertAlmostEqual(steps[0].min_set_over_V, 2 / 3, places=3)
+        self.assertAlmostEqual(steps[-1].min_set_over_V, 0.5, places=3)
+        self.assertEqual(len(steps), 3, "reachable in two documents after genesis")
+
+    def test_attrition_capture_completes_at_half_the_set_once_v_has_grown(self):
+        results = {c.coalition_seats: c for c in S.s10b_censorship_at_eroded_ratio()}
+        self.assertIn("whole set", results[18].outcome)  # 18/36 = exactly one half
+        self.assertIn("pinned", results[13].outcome)
+
+
+class TestLaunchRegime(unittest.TestCase):
+    """REVIEW-011 RF-002."""
+
+    def test_x_as_written_is_violated_below_the_usage_floor(self):
+        ramp = {round(r.work_channel_microtokens / 1e6): r for r in S.s11b_usage_ramp()}
+        launch = S.s11_at07_launch_regime(usage_fraction=0.0)
+        self.assertTrue(launch.violates_x_as_written)
+        self.assertGreater(launch.fleet_share_pct, 4 * launch.x_declared_pct)
+        reference = S.s11_at07_launch_regime(usage_fraction=1.0)
+        self.assertFalse(reference.violates_x_as_written)
+
+    def test_the_absolute_diverted_amount_does_not_depend_on_usage(self):
+        amounts = {r.absolute_diverted_microtokens for r in S.s11b_usage_ramp()}
+        self.assertEqual(len(amounts), 1, "D = F * N/(N+H) contains no W")
+
+    def test_usage_floor_is_where_the_band_becomes_holdable(self):
+        below = S.s11_at07_launch_regime(usage_fraction=0.25)
+        self.assertGreater(below.observed_alpha, R.ALPHA_SURVEILLANCE_BAND[1])
+
+
 if __name__ == "__main__":
     unittest.main()

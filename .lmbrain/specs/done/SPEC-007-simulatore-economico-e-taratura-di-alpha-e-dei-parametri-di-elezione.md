@@ -2,7 +2,7 @@
 id: SPEC-007
 # Note: Quote the title if it contains a colon
 title: "Simulatore economico e taratura di alpha e dei parametri di elezione"
-status: review
+status: done
 kind: feature
 priority: high
 area: token-economy
@@ -38,6 +38,21 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-25
     action: "transitioned working -> review"
+  - date: 2026-08-25
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-25
+    action: "transitioned review -> done"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "f5662825f25c965ff075d158bdcec94ccd11c21577fa58a831655e6f6059df0d"
+    evidence_ref: "REVIEW-011, accettata da AGENT-007 dopo un giro di remediation su sette finding, di cui uno critico. Le cinque voci in scope sono chiuse e verificate una per una, senza che alcun valore raccomandato sia cambiato: la remediation ha toccato solo cio che il progetto afferma dei valori, che era esattamente il verdetto. Le due voci fuori scope sono confluite in ADR-010, accettata dall'operatore. Il Lead ha verificato in modo indipendente le tre affermazioni decisive: il rapporto 5/4 collassa gli interi piccoli in un punto, quindi c, m e cooldown sono congelati per sempre; V puo crescere 27-33-36 in due documenti leciti mentre min_set resta 18, e la contrazione 36-25-18 consegna il set a una coalizione del 50 per cento; e l'importo assoluto dirottato da una flotta e identico a uso nullo e al regime di riferimento, 15725 crediti, perche non dipende dall'uso."
+    id: "SPEC-007-ATTEST-001"
+    requirement_digest: "95438463baaf16cf1253fe882f3d76986a9aee3521a381ff6e43462efe598ca8"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-25T16:31:52.269828600+02:00"
 ---
 # Simulatore economico e taratura di alpha e dei parametri di elezione
 
@@ -126,7 +141,7 @@ Il modello deve produrre la **curva** prima del punto. Per ogni `α` nell'interv
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
 - [x] GATE-MODEL-VALIDATED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il modello riproduce l'aritmetica di [ADR-007] già verificata in modo indipendente dal Lead — 90,9% a `α=1` e 9,1% a `α=0,1` sullo scenario 10.000 contro 1.000 — prima di essere usato per decidere qualunque cosa. Incollare l'esecuzione e l'output reale. Un simulatore che non riproduce il caso noto non è evidenza per i casi ignoti.
 - [x] GATE-CONSTRAINTS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La combinazione di parametri proposta è verificata contro il blocco di vincoli del documento dei parametri di consenso, riga per riga, con l'esito di ciascuna. Incollare la verifica eseguita, non l'asserzione che passi.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha rivisto i valori scelti come superficie di sicurezza e il Lead ha accettato la review. `α` è il parametro che governa la resistenza ai Sybil dichiarata da [ADR-007]: sceglierlo senza revisione di sicurezza sarebbe incoerente con il modo in cui la regola che lo consuma è stata accettata.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha rivisto i valori scelti come superficie di sicurezza e il Lead ha accettato la review. `α` è il parametro che governa la resistenza ai Sybil dichiarata da [ADR-007]: sceglierlo senza revisione di sicurezza sarebbe incoerente con il modo in cui la regola che lo consuma è stata accettata.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
@@ -350,9 +365,9 @@ GATE-MODEL-VALIDATED : PASS
 GATE-CONSTRAINTS     : PASS
 
 $ cd sim && python -m unittest discover -s tests
-...........................
+...................................
 ----------------------------------------------------------------------
-Ran 27 tests in 0.166s
+Ran 35 tests in 0.078s
 
 OK
 
@@ -364,14 +379,101 @@ $ git status --short -- docs/
 ```
 
 Il rapporto completo — curva, deriva di `α`, forma del fondo, `AT-07`, `AT-10`, i
-tre accoppiamenti, `SEC-REQ-16`, i valori, la formulazione di prodotto — si ottiene
-con `python -m coblox_sim` (650 righe) ed è trascritto in forma discorsiva in
+tre accoppiamenti, la portata della governance sui valori, `SEC-REQ-16`, i valori e
+la formulazione di prodotto — si ottiene con `python -m coblox_sim` (895 righe dopo
+la remediation di [REVIEW-011]) ed è trascritto in forma discorsiva in
 `.lmbrain/knowledge/economic-simulation-report.md`.
+
+
+### Remediation di [REVIEW-011] (2026-08-25)
+
+`GATE-SECREVIEW` non superato: sette finding, **nessuno dei quali contesta un numero
+o un valore raccomandato**. Il verdetto di AGENT-007 sui valori è che sono
+difendibili; ciò che è stato contestato sono le **affermazioni** che li
+accompagnavano. Quattro dei sette erano voci che questa spec aveva auto-segnalato in
+*Deviations*. Nessun valore raccomandato è cambiato in questa passata.
+
+**Cinque voci in-scope, tutte applicate. Nessuna tocca `docs/protocol/`.**
+
+1. **RF-002 — `X` condizionata alla soglia d'uso ovunque compaia, e `AT-07`
+   parzialmente coperto.** `AT-07` è schedulato su devnet, cioè nel regime in cui
+   `W ≈ 0` e quindi `α ≈ 1`: il criterio (c) alla lettera è violato di circa cinque
+   volte per tutto l'avviamento. Nuovo scenario `s11` che misura la rampa d'uso
+   (99,01 % → 14,85 %), verdetto `AT-07` riformulato come **parzialmente coperto**,
+   condizione scritta in rapporto §1, §4 e §7, nelle righe `SEC-REQ-16` e
+   `SEC-REQ-18`, nella nota `AT-07` del threat model e nella nota di prodotto
+   inglese. **Correzione a un'affermazione mia:** l'importo assoluto dirottato
+   `D = F·N/(N+H)` **non contiene `W`** e quindi non cala col poco uso — «il 91 % di
+   un'emissione minuscola è un'emissione minuscola» valeva solo se anche `F` è
+   piccolo, e `F` è una scelta di governance. Con l'`F` di genesi una flotta al
+   lancio dirotta ~15 725 cr per epoca. Il criterio assoluto è onesto solo se `F` al
+   lancio è dimensionato sui nodi onesti presenti.
+2. **RF-003 — la proprietà di `validator_min_set_size` qualificata.** Riprodotto con
+   il simulatore il percorso che la review indica: `V: 27 → 33 → 36` con
+   `T: 9 → 11 → 12`, **due documenti leciti** a un'epoca di elezione di distanza,
+   ognuno accettato dal blocco di vincoli, portano `min_set/V` da 0,667 a **0,500**;
+   e a `V = 36` la censura selettiva dà `36 → 25 → 18`, cioè l'intero set in due
+   confini a una coalizione del **50 %**. L'affermazione è ora enunciata come
+   proprietà della combinazione raccomandata, e la conclusione «appena sopra un
+   terzo» di `ledger.md` è dichiarata da **non** cambiare finché la regola non
+   esiste. Nuovi scenari `s10` / `s10b`.
+3. **RF-001 parte 1 — valori e prassi, non regole.** Dichiarato per iscritto in
+   rapporto §2 e §3 e nella riga `SEC-REQ-18` che
+   `availability_microtokens_per_unit = 0`, il tetto di `F` e la disciplina 5/4 su
+   `F` **non sono imposti da alcuna regola**, e che i criteri (a) e (c) di [ADR-007]
+   sono veri *a condizione che la reward policy attiva li rispetti*.
+4. **RF-006 — intervalli leciti e parametri congelati.** Nuovo `legal_next_intervals`
+   in `params.py` e nuova sezione del rapporto. Il limite 5/4 su interi piccoli è un
+   **congelamento**: `c = 3`, `m = 3` e `cooldown = 2` hanno intervallo lecito
+   `[3,3]`, `[3,3]` e `[2,2]`. Ne discende **`V ≤ 36` per sempre**, quindi
+   `validator_max_set_size = 45` e `max_set_max = 81` sono margini irraggiungibili e
+   le loro motivazioni («margine di crescita», «3V») erano sbagliate e sono corrette.
+   Registrato anche che l'argomento con cui questa spec motivava `T_max = 12` — «una
+   rete col pool sottile non avrebbe più mosse» — vale per `T` ma **per `c` e per il
+   cooldown la mossa non esiste comunque**.
+5. **RF-005 parti 2 e 3.** Aggiunta alla nota onesta inglese la frase mancante: la
+   fetta il nodo finto la prende **al posto dell'utente**, e la rete non può
+   impedirlo; più la condizione d'uso sul «under 20 %» e la voce «protected» fra le
+   parole da evitare. Aggiunta la grandezza **(d)** a `SEC-REQ-16` — la frazione di
+   reddito che un nodo onesto di sola availability conserva sotto il banco di
+   `AT-07`, lo 0,99 %, che non contiene `α`. Aggiunto in rapporto §1 che i due bordi
+   della banda sono dichiarati in mondi diversi, e che il bordo inferiore è una
+   **scelta di prodotto travestita da misura**, detto esplicitamente e non quasi.
+
+**RF-004 adottato** nella sua diagnosi più generale: il difetto non è nei singoli
+criteri ma nel **modo in cui il test è scritto** — entrambe le occorrenze sono
+affermazioni assolute su una grandezza emergente, scritte prima della regola che la
+produce, e nessuna nomina una regola. Rapporto §5 allineato alla convenzione che
+AGENT-007 ha aggiunto al proprio documento. **RF-007** è lavoro suo ed è già
+applicato.
+
+**Incorporata l'osservazione di sicurezza di AGENT-007 sul verso di avvicinamento:**
+poiché `α` è osservata ed è massima quando la rete è più nuova, il punto conta meno
+del verso, e un eventuale margine va preso sul **bordo superiore**, duale a `X` e
+messo alla prova per primo. Il cooldown `= 2` è ora dichiarato **irreversibile**
+accanto alla sua motivazione.
+
+**Fuori scope, non toccato:** `RewardBounds` di genesi (RF-001 parte 2) e
+`3 · min_set ≥ 2V` (RF-003 parte 2) sono regole di validità nuove, cioè modifiche di
+protocollo che [SPEC-007] esclude dal proprio scope. `docs/protocol/` non è stato
+toccato; l'ADR è del Lead. Segnalo che `ADR-010` risulta già in preparazione
+nell'albero.
+
+**Verifica dopo la remediation:** entrambe le gate `before-submit` rieseguite e
+verdi; suite passata da 27 a **35 test**, con i nuovi che eseguono i due finding
+della review invece di accettarli — `test_three_parameters_are_frozen_by_the_rate_limit`,
+`test_target_set_size_is_permanently_capped`,
+`test_min_set_over_v_is_not_preserved_by_any_rule`,
+`test_attrition_capture_completes_at_half_the_set_once_v_has_grown`,
+`test_x_as_written_is_violated_below_the_usage_floor`,
+`test_the_absolute_diverted_amount_does_not_depend_on_usage`.
 
 ### Deviations from the specification
 
 Nessuna deviazione dallo scope. Sette cose che il Lead deve vedere, tutte
-registrate anche nel rapporto §8 e nessuna delle quali modifica una regola:
+registrate anche nel rapporto §8 e nessuna delle quali modifica una regola.
+[REVIEW-011] ne ha promosse quattro a finding — le voci 1, 2, 3 e 4 — e ne ha
+aggiunte due nuove, entrambe riprodotte con il simulatore e recepite sopra:
 
 1. **Il criterio di superamento di `AT-10` non è soddisfacibile da alcuna rete
    operabile.** «Non raggiunge 1/3 entro 50 epoche» equivale alla richiesta

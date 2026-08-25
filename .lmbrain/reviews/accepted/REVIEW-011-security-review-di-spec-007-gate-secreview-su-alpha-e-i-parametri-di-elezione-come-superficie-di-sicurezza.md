@@ -2,7 +2,7 @@
 id: REVIEW-011
 # Note: Quote the title if it contains a colon
 title: "Security review di SPEC-007 — GATE-SECREVIEW su alpha e i parametri di elezione come superficie di sicurezza"
-status: changes-requested
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-007
 reviewer: AGENT-007
@@ -33,6 +33,38 @@ review_events:
     evidence_refs: ["SPEC-007", "ADR-007", ".lmbrain/knowledge/economic-simulation-report.md", ".lmbrain/knowledge/threat-model.md", "docs/protocol/ledger.md", "sim/coblox_sim/params.py", "sim/coblox_sim/scenarios.py", "REVIEW-010"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-011-EVENT-003"
+    timestamp: "2026-08-25T16:25:31.545616800+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Applicate le cinque voci in-scope di REVIEW-011, nessun valore raccomandato cambiato. RF-002: X dichiarata condizionata alla soglia d'uso in rapporto §1/§4/§7, righe SEC-REQ-16 e SEC-REQ-18, nota AT-07 del threat model e nota di prodotto inglese; AT-07 riformulato come parzialmente coperto, con nuovo scenario s11 che misura la rampa d'uso (99,01% a W=0 contro X=20%) e la correzione che D=F·N/(N+H) non contiene W, quindi ~15.725 cr per epoca dirottati al lancio con l'F di genesi. RF-003: percorso di erosione riprodotto col simulatore (V 27→33→36, T 9→11→12, due documenti leciti, min_set/V da 0,667 a 0,500; a V=36 censura selettiva 36→25→18, intero set in due confini a una coalizione del 50%); affermazione su validator_min_set_size qualificata come proprietà della combinazione raccomandata in rapporto §5 e nella nota AT-10; conclusione «appena sopra un terzo» di ledger.md dichiarata da non cambiare. RF-001 parte 1: dichiarato per iscritto in rapporto §2/§3 e riga SEC-REQ-18 che availability=0, il tetto di F e la disciplina 5/4 su F sono valori e prassi, non regole, e che i criteri (a) e (c) di ADR-007 sono condizionati alla reward policy attiva. RF-006: nuovo legal_next_intervals in params.py e nuova sezione del rapporto — c, m e cooldown congelati a [3,3], [3,3], [2,2], V ≤ 36 per sempre, validator_max_set_size 45 e max_set_max 81 dichiarati margini irraggiungibili con le loro motivazioni corrette, e registrato che l'argomento su T_max non vale per c e cooldown perché lì la mossa non esiste comunque. RF-005 parti 2 e 3: frase mancante nella nota onesta inglese (la fetta la prende al posto dell'utente), «under 20 %» condizionato, «protected» fra le parole da evitare, grandezza (d) aggiunta a SEC-REQ-16, e bordo inferiore della banda scritto esplicitamente come scelta di prodotto travestita da misura con l'incoerenza fra i due mondi. RF-004 adottato nella diagnosi generale sul modo di scrivere i criteri. Incorporata l'osservazione sul verso di avvicinamento (margine sul bordo superiore) e il cooldown 2 dichiarato irreversibile. Fuori scope e non toccati: RewardBounds di genesi e 3·min_set≥2V, che sono regole di validità nuove; docs/protocol/ invariato. Verifica: GATE-MODEL-VALIDATED e GATE-CONSTRAINTS rieseguite verdi, suite da 27 a 35 test con i due finding nuovi eseguiti invece che accettati."
+    evidence_refs: ["sim/_gates_transcript.txt", "sim/coblox_sim/params.py", "sim/coblox_sim/scenarios.py", "sim/coblox_sim/__main__.py", "sim/tests/test_simulator.py", ".lmbrain/knowledge/economic-simulation-report.md", ".lmbrain/knowledge/threat-model.md", ".lmbrain/specs/review/SPEC-007-simulatore-economico-e-taratura-di-alpha-e-dei-parametri-di-elezione.md"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-011-EVENT-004"
+    timestamp: "2026-08-25T16:30:20.161432900+02:00"
+    action: "remediation-verification"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Verifica indipendente della remediation da AGENT-007. Tutte e cinque le voci in-scope sono chiuse. RF-002: la condizione d'uso ha raggiunto tutti e quattro i punti indicati (rapporto §1 riquadro su X, §4 verdetto e rampa, §7 voci (a) e (c), nota di prodotto §9) piu le righe SEC-REQ-16, SEC-REQ-18 e la nota AT-07 del threat model; parzialmente coperto e la formula giusta perche AT-07 ha ora due regimi e uno dei due non e ancora valutato, e la matrice non deve poter essere letta come coperto senza riaprire il rapporto. RF-003: qualificazione presente in rapporto §5, riassunto §5 e nota AT-10, con la tabella del percorso di erosione e la clausola corretta che ledger.md non va cambiato. RF-001 parte 1: la distinzione valori-contro-regole e scritta in rapporto §2 e §3 e nella riga SEC-REQ-18. RF-006: tabella degli intervalli leciti con i tre parametri congelati, V<=36 per sempre, e i due margini nominali corretti nelle motivazioni. RF-005: la nota inglese ha ora la frase che le mancava e la formulazione e difendibile senza altre dichiarazioni accanto (dice che la fetta la prende al posto dell'utente, che la rete non puo impedirlo, e che e un costo pagato direttamente); grandezza (d) aggiunta a SEC-REQ-16 con H/(N+H) e lo 0,99 percento; protected aggiunto alle parole da evitare con la ragione corretta. RF-004: la diagnosi generale e applicata al rapporto §5 nella stessa forma in cui l'ho applicata al threat model, cioe la firma comune alle due occorrenze invece della sola correzione del sesto criterio. Test: suite eseguita, 35 test verdi, e i sei nuovi eseguono i finding invece di asserirli: s9_legal_intervals produce l'insieme dei congelati, s9b_max_reachable_v da 36, s10_min_set_ratio_erosion verifica che ogni passo passi il blocco di vincoli e che il rapporto vada da 0,667 a 0,500 in due documenti, s10b riproduce la cattura al 50 percento, s11 e s11b misurano la rampa d'uso e l'invarianza dell'importo assoluto. Riprodotta la sua autocorrezione: D = F*N/(N+H) non contiene W, importo dirottato identico lungo tutta la rampa. Residuo nuovo, non bloccante e non richiesto da REVIEW-011, emerso dalla sua stessa misura e registrato in SEC-REQ-18 di threat-model.md: la soglia d'uso del 25 percento non e il punto in cui la banda diventa tenibile, perche con l'F di genesi alpha<=0,20 solo dal 70,6 percento dell'uso di riferimento e a 25 percento vale 0,414, cioe il doppio di X; fra le due soglie la banda e dichiarata e violata a meno che la governance non porti F verso il bersaglio, che dal valore di genesi richiede sette documenti al 5/4. Radice unica con la sua autocorrezione: l'F di genesi e dimensionato sulla rete matura e non su quella che esiste al lancio."
+    evidence_refs: ["sim/tests/test_simulator.py", "sim/coblox_sim/scenarios.py", "sim/coblox_sim/params.py", ".lmbrain/knowledge/economic-simulation-report.md", ".lmbrain/knowledge/threat-model.md", "ADR-010"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-011-EVENT-005"
+    timestamp: "2026-08-25T16:30:46.700626300+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "GATE-SECREVIEW superato. Le cinque voci in-scope sono chiuse e verificate in modo indipendente, nessun valore raccomandato e cambiato, e le tre voci fuori scope sono correttamente instradate su ADR-010, che adotta l'argomento portante della review. La remediation e migliore di quanto la review chiedeva su due punti: AGENT-002 ha riprodotto i due finding nuovi con il simulatore invece di accettarli, e i sei test aggiunti eseguono i finding invece di asserirli, quindi da qui in avanti una deriva dei parametri che riaprisse RF-003 o RF-006 rompe una suite invece di passare inosservata; e ha corretto spontaneamente un errore proprio che nessuno le aveva contestato, che D = F*N/(N+H) non contiene W, quindi l'importo assoluto dirottato e identico a uso nullo e al regime di riferimento e la frase il 91 percento di un'emissione minuscola e un'emissione minuscola era vera solo se anche F e piccolo. Quella correzione e il contributo piu utile della remediation, perche sposta la questione dal rapporto al valore di genesi di F. Verdetto sulle formule: parzialmente coperto e la formula giusta per AT-07, perche il test ha ora due regimi e uno non e ancora valutato; la nota di prodotto inglese e difendibile senza altre dichiarazioni accanto. Due residui non bloccanti, entrambi consegnati al Lead e nessuno dei due richiesto da REVIEW-011. Primo, e principale: la soglia d'uso del 25 percento non e il punto in cui la banda diventa tenibile, perche con l'F di genesi alpha scende a 0,20 solo dal 70,6 percento dell'uso di riferimento mentre a 25 percento vale 0,414, il doppio di X; fra le due soglie la banda e dichiarata e violata, salvo portare F verso il bersaglio con sette documenti al 5/4. Ha la stessa radice della sua autocorrezione, cioe un F di genesi dimensionato sulla rete matura invece che su quella che esiste al lancio, ed e registrato in SEC-REQ-18 di threat-model.md. Non e coperto dal tetto su F di ADR-010: un tetto e statico e dimensionato sulla rete matura, e il limite di variazione governa i documenti e non il valore di genesi, che viaggia nella distribuzione firmata e non e prodotto da alcun atto di governance. E quindi una disposizione ulteriore e di tipo diverso dalle altre tre, perche vincola cio che la genesi deve contenere invece di cio che la governance puo fare, e va segnalata all'operatore; il rimedio apparente di un tetto proporzionale a E va nominato come sbagliato, perche sarebbe un tetto che una flotta alza gonfiando E e riaprirebbe il criterio (a). Secondo, cosmetico: il test test_usage_floor_is_where_the_band_becomes_holdable asserisce che a uso 0,25 alpha supera il bordo della banda, cioe dimostra il contrario di cio che il suo nome afferma; e la stessa firma di RF-004 in miniatura ed e un rinominare, non un difetto di cio che il test prova. Su validator_max_set_size = 45: non e un difetto di sicurezza. Il valore e inerte perche V<=36 per sempre e max_set non vincola nient'altro, e cio che era sbagliato erano le parole che lo motivavano, ora corrette. Va all'operatore come scelta di valore cosmetica, e la mia raccomandazione e lasciarlo dove sta."
+    evidence_refs: ["SPEC-007", "ADR-010", "sim/tests/test_simulator.py", ".lmbrain/knowledge/economic-simulation-report.md", ".lmbrain/knowledge/threat-model.md"]
+    implementation_agent: "AGENT-002"
 links: [SPEC-007, ADR-007, ADR-005, REVIEW-010, DEBT-010]
 created: 2026-08-25
 updated: 2026-08-25
@@ -42,6 +74,12 @@ activity:
     action: "created"
   - date: 2026-08-25
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-25
+    action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "recorded review remediation-verification"
+  - date: 2026-08-25
+    action: "transitioned changes-requested -> accepted"
 ---
 # Review
 

@@ -3,6 +3,15 @@
 Autrice: AGENT-002 (Sofia Consenso) · Spec di origine: [SPEC-007] · Data: 2026-08-25
 Debito chiuso: [DEBT-007] · Decisioni collegate: [ADR-005], [ADR-006], [ADR-007], [ADR-008], [ADR-009]
 
+**Revisione v1.1 (2026-08-25), remediation di [REVIEW-011].** Nessun valore
+raccomandato è cambiato: AGENT-007 ha giudicato i valori difendibili e ha contestato
+le **affermazioni** che li accompagnavano. Le correzioni di questa revisione sono
+qualificazioni — la condizione d'uso su `X`, il limite di durata della proprietà di
+`validator_min_set_size`, la distinzione fra valori e regole, gli intervalli leciti
+sotto il limite 5/4, e la grandezza rivolta all'utente. Le voci fuori scope
+(`RewardBounds` di genesi e il vincolo `3·min_set ≥ 2V`) sono modifiche di protocollo
+e appartengono a un'ADR del Lead.
+
 Il simulatore vive in `sim/`, è in Python 3.11 senza dipendenze, è deterministico
 a seme fissato e si riesegue con `python -m coblox_sim` da `sim/`. Ogni cifra di
 questo documento è un'uscita di quel comando: chi non è d'accordo con un numero
@@ -127,6 +136,37 @@ e non richiede alcun campo di schema.
   dal banco di `AT-07` stesso, che prescrive `H ≥ 100` contro `N = 10 000` e
   quindi un rapporto `N/(N+H)` di 0,99.
 
+> **`X` porta una condizione e non va pubblicata senza ([REVIEW-011] RF-002).**
+> `X = 20 %` vincola **al di sopra della soglia d'uso dichiarata**. Sotto quella
+> soglia `α` tende a 1 per costruzione e `X` **non è un'affermazione**: la
+> grandezza che la rete pubblica lì è l'**importo assoluto dirottato per epoca**.
+> Una `X` pubblicata senza quella condizione è violata di circa cinque volte per
+> tutto l'avviamento — vedi §4 — e una tolleranza dichiarata e smentita è la forma
+> di danno contro cui [ADR-007] ha già dovuto riformulare una metrica una volta.
+
+**Il bordo inferiore è una scelta di prodotto travestita da misura, e va scritto
+così** ([REVIEW-011] RF-005). Nessuna grandezza simulata seleziona 0,10: è un
+giudizio sul significato, non un risultato. Vale la pena scriverlo come limite
+proprio perché protegge una grandezza che nessun numero di sicurezza vede, e
+sarebbe quindi il primo limite a sparire sotto pressione di taratura — ma non va
+pubblicato come se il modello lo avesse prodotto.
+
+**E la banda e `X` sono dichiarate in due mondi diversi**, il che è la parte che
+il progetto pubblicherà comunque e deve quindi pubblicare intera. Il bordo
+inferiore 0,10 protegge il significato del reddito **in assenza di avversario**: a
+`α = 0,15` un telefono prende 0,15 del reddito di un nodo medio. `X = 20 %`
+dichiara invece un avversario **presente e tollerato**, e in quel mondo il
+telefono non prende 0,15 del medio: al banco di `AT-07` prende **0,0157 cr per
+epoca invece di 1,588**, due ordini di grandezza in meno. Non è una contraddizione
+aritmetica — misurano cose diverse — ma è un'incoerenza fra **promesse**, e la
+banda non può essere pubblicata da sola.
+
+**Sul punto dentro la banda.** Poiché `α` è osservata ed è massima quando la rete
+è più nuova, **il verso di avvicinamento conta più del punto**: la rete
+attraverserà comunque tutta la banda dall'alto durante l'avviamento. Un eventuale
+margine va preso sul **bordo superiore**, che è quello duale a `X` e quello messo
+alla prova per primo.
+
 ---
 
 ## 2. La forma del fondo
@@ -168,6 +208,29 @@ criterio e cattura per numerosità:
 4. sotto la soglia d'uso — canale di lavoro sotto il 25 % del riferimento —
    sospendere la banda e pubblicare l'importo assoluto dirottato.
 
+> **Che cosa NON è tutto questo, dichiarato per iscritto ([REVIEW-011] RF-001,
+> parte 1).** Tre delle grandezze che questo studio fissa sono **valori e prassi,
+> non regole**. Nessun documento di protocollo le impone e nessuna traccia
+> on-chain distingue una reward policy che le abbandona da un normale atto di
+> governance:
+>
+> - `availability_microtokens_per_unit = 0` è **un valore**. Nulla vieta un valore
+>   positivo, e un valore positivo rompe il criterio (a) della metrica di
+>   [ADR-007] — controesempio misurato in §4.
+> - il tetto `F` è **un valore senza tetto e senza pavimento**. Un solo documento
+>   lecito può portarlo da 15 882 cr a `2^60` microtoken.
+> - la disciplina 5/4 su `F` del punto 3 è **una prassi**. I parametri di elezione
+>   hanno un limite di variazione perché il progetto ha stabilito che serve; la
+>   reward policy non ne ha nessuno, e la sua unica regola di validità è
+>   `kn < kd` sul tetto della quota al creatore.
+>
+> Ne segue che **i criteri (a) e (c) della metrica di [ADR-007] sono veri a
+> condizione che la reward policy attiva li rispetti**, e non come proprietà del
+> protocollo. Uno zero scritto in un commento Python non è una difesa. Chiudere la
+> superficie richiede un oggetto `RewardBounds` nel trust anchor di genesi, sul
+> modello di `ElectionBounds`: modifica di protocollo, fuori dallo scope di questa
+> spec, ADR del Lead.
+
 ---
 
 ## 3. I valori
@@ -183,21 +246,21 @@ espressi in blocchi vanno riscalati e il blocco di vincoli rieseguito.
 | `election_epoch_blocks` | 120 960 | 7 giorni |
 | `candidacy_close_blocks` | 17 280 | 1 giorno prima del confine |
 | `election_entropy_blocks` | 720 | 1 ora |
-| `validator_min_set_size` | 18 | `2V/3`: chiude il percorso per attrito sotto i due terzi (§5) |
+| `validator_min_set_size` | 18 | `2V/3` **a questo `V`**: chiude il percorso per attrito sotto i due terzi (§5). Il rapporto `min_set/V` non è preservato da alcuna regola |
 | `validator_target_set_size` | 27 | `V` |
-| `validator_max_set_size` | 45 | margine di crescita |
-| `validator_churn_cap_seats` | 3 | `c = V/T` esatto; a `m = 3` il blocco di vincoli non lascia gioco |
+| `validator_max_set_size` | 45 | margine **nominale**: `V` è limitato a 36 per sempre dal `c` congelato — vedi sotto |
+| `validator_churn_cap_seats` | 3 | `c = V/T` esatto; a `m = 3` nessun gioco. **CONGELATO** dal limite 5/4 |
 | `validator_max_consecutive_terms` | 9 | `T = 3m`, il minimo che l'orizzonte ammette |
-| `validator_cooldown_epochs` | 2 | corto: il cooldown moltiplica la leva del censore e prosciuga il pool |
-| `validator_min_capture_epochs` | 3 | `m` = orizzonte per attrito; di più sarebbe autoinganno |
+| `validator_cooldown_epochs` | 2 | corto: moltiplica la leva del censore e prosciuga il pool. **CONGELATO**: nessun documento lecito potrà cambiarlo |
+| `validator_min_capture_epochs` | 3 | `m` = orizzonte per attrito; di più sarebbe autoinganno. **CONGELATO** |
 
 ### `reward_policy` — sottoinsieme di eleggibilità ed emissione
 
 | Parametro | Valore | Perché |
 | --- | --- | --- |
 | `reward_epoch_ms` | 86 400 000 | 1 giorno |
-| `existence_fund_microtokens_per_epoch` | 15 882 352 941 | `α = 0,15` all'uso di riferimento; governato |
-| `availability_microtokens_per_unit` | **0** | un valore positivo rompe il criterio (a) di [ADR-007]; vedi §4 |
+| `existence_fund_microtokens_per_epoch` | 15 882 352 941 | `α = 0,15` all'uso di riferimento; governato **senza tetto e senza limite di variazione** (§2) |
+| `availability_microtokens_per_unit` | **0** | un valore positivo rompe il criterio (a) di [ADR-007] (§4). È **un valore, non una regola** (§2) |
 | `storage_units_per_contribution_unit` | 1 073 741 824 | 1 unità per GiB-epoca provato |
 | `compute_units_per_contribution_unit` | 1 000 000 | 1 unità per milione di fuel rieseguito |
 | `validator_eligibility_threshold_units` | 512 | circa 18 GiB sostenuti sulla finestra |
@@ -211,7 +274,7 @@ espressi in blocchi vanno riscalati e il blocco di vincoli rieseguito.
 | --- | --- | --- |
 | `election_epoch_blocks_max` | 241 920 | al più un raddoppio del periodo di confine |
 | `validator_max_consecutive_terms_max` | **12** | il presidio residuo di [DEBT-010]; vedi §5 |
-| `validator_max_set_size_max` | 81 | `3V` |
+| `validator_max_set_size_max` | 81 | nominalmente `3V`, **irraggiungibile** — vedi sotto |
 | `validator_min_set_size_min` | 18 | fissato al minimo scelto: non può mai essere abbassato |
 | `validator_min_capture_epochs_min` | 3 | fissato all'orizzonte per attrito |
 | `election_parameter_change_numerator` / `_denominator` | 5 / 4 | 25 % per documento |
@@ -220,9 +283,53 @@ espressi in blocchi vanno riscalati e il blocco di vincoli rieseguito.
 Ventidue valori, più `α`, la sua banda, `X` e il tetto del fondo. Tutti verificati
 contro il blocco di vincoli, riga per riga, in `GATE-CONSTRAINTS`.
 
+### Che cosa la governance può ancora muovere, e che cosa non potrà mai disfare
+
+Un limite di variazione di 5/4 applicato a interi piccoli **non è un limite: è un
+congelamento** ([REVIEW-011] RF-006). L'intervallo raggiungibile da un documento
+lecito è `[ceil(x·4/5), floor(x·5/4)]`, che per `x` piccolo collassa in un punto.
+
+| Parametro | Valore | Il prossimo documento può portarlo a | |
+| --- | --- | --- | --- |
+| `election_epoch_blocks` | 120 960 | [96 768, 151 200] | |
+| `candidacy_close_blocks` | 17 280 | [13 824, 21 600] | |
+| `election_entropy_blocks` | 720 | [576, 900] | |
+| `validator_min_set_size` | 18 | [18, 22] | pavimentato da `min_set_min` |
+| `validator_target_set_size` | 27 | [22, 33] | |
+| `validator_max_set_size` | 45 | [36, 56] | |
+| `validator_churn_cap_seats` | 3 | **[3, 3]** | **CONGELATO** |
+| `validator_max_consecutive_terms` | 9 | [9, 11] | monotono, e sotto il tetto di genesi |
+| `validator_cooldown_epochs` | 2 | **[2, 2]** | **CONGELATO** |
+| `validator_min_capture_epochs` | 3 | **[3, 3]** | **CONGELATO** |
+
+Conseguenze che ne discendono e che nessun altro punto del rapporto rendeva
+visibili:
+
+- **`V ≤ 36` per sempre.** `ceil(V/T) ≤ c` con `c` congelato a 3 e `T` limitato a
+  12 dai bound di genesi dà `V ≤ c · T_max = 36`. Quindi
+  `validator_max_set_size = 45` e `validator_max_set_size_max = 81` sono **margini
+  che non si possono occupare**: i valori sono innocui ma le parole che li
+  motivavano erano sbagliate — 45 come «margine di crescita» e 81 come `3V` — e
+  sono corrette qui. Se il Lead volesse portare `validator_max_set_size` a 36 è un
+  cambio di valore che non spetta a questa spec.
+- **Il cooldown non ha un secondo tentativo.** §6 misura che a pool 33 un cooldown
+  di 1 conserva tutti e 27 i seggi dove 2 si assesta a 24. Se la rete scoprisse
+  quel pool in produzione, **la mossa correttiva non esiste**. 2 resta la scelta
+  giusta — è il compromesso fra la leva del censore e il mordente del limite di
+  mandato — ma è scelta **sapendo che è definitiva**.
+- **Lo stesso vale per `c` e per `m`, e il ragionamento di questo studio non se
+  n'era accorto.** L'argomento per `T_max = 12` è che un tetto di 9 non
+  lascerebbe a una rete dal pool sottile alcuna mossa lecita. È giusto per `T`.
+  Per `c` e per il cooldown **la mossa non esiste comunque**: alzare `c` o
+  abbassare il cooldown sono entrambi rifiutati in accettazione. Restano solo
+  alzare `T` — cricchetto irreversibile, due passi residui — o fermarsi.
+- **`min_set/V` non è preservato da alcuna regola.** Vedi §5.
+
+Chi tara `c`, `m` e il cooldown **li sceglie una volta sola**.
+
 ---
 
-## 4. `AT-07` — verdetto numerico: **superato**
+## 4. `AT-07` — verdetto numerico: **parzialmente coperto**
 
 `H = 100` nodi onesti, `N = 10 000` identità emulate su un singolo host,
 `α = 0,15`, `X = 20 %`.
@@ -241,6 +348,44 @@ soglia positiva.
 
 Il nodo onesto conserva lo **0,99 %** del proprio reddito sotto quell'attacco.
 È la grandezza da leggere, ed è indipendente da `α` (§1).
+
+### Il regime in cui il test verrà davvero eseguito
+
+`AT-07` è schedulato in M-03 su devnet, e una devnet non ha uso: `W ≈ 0`, quindi
+`α ≈ 1` qualunque sia `F` ([REVIEW-011] RF-002). Lo stesso banco lungo la rampa
+d'uso:
+
+| `W` (cr/ep) | `α` | quota della flotta | dirottato (cr/ep) | criterio (c) alla lettera |
+| --- | --- | --- | --- | --- |
+| 0 | 1,0000 | 99,01 % | 15 725 | **violato** |
+| 4 500 | 0,7792 | 77,15 % | 15 725 | **violato** |
+| 9 000 | 0,6383 | 63,20 % | 15 725 | **violato** |
+| 22 500 | 0,4138 | 40,97 % | 15 725 | **violato** |
+| 45 000 | 0,2609 | 25,83 % | 15 725 | **violato** |
+| 90 000 | 0,1500 | 14,85 % | 15 725 | tenuto |
+
+Il criterio (c) alla lettera è **violato di circa cinque volte per tutto
+l'avviamento**, che è precisamente quando una flotta costa meno e la rete è più
+esposta. Il danno non è il valore catturato: è la **smentita pubblica e
+verificabile da chiunque di una tolleranza dichiarata**.
+
+**Una correzione a ciò che questo studio aveva detto con leggerezza.** La quarta
+colonna non si muove: `D = F · N/(N+H)` non contiene `W`. «Il 91 % di
+un'emissione minuscola è un'emissione minuscola» era vero solo se anche `F` è
+piccolo, e `F` è **una scelta di governance**, non una conseguenza del poco uso.
+Con l'`F` di genesi dimensionato per 10 000 nodi, una flotta al lancio dirotta
+circa **15 725 cr per epoca** — quasi l'intero fondo — mentre i cento onesti si
+dividono il resto. Il criterio assoluto è quindi onesto **solo se `F` al lancio è
+dimensionato sul numero di nodi onesti effettivamente presenti**. È prassi di
+governance e non regola (§2), ed è la seconda cosa che `RewardBounds` chiuderebbe.
+
+> **Verdetto `AT-07`: parzialmente coperto.**
+> *Regime d'uso di riferimento:* **superato** su tutti e quattro i criteri.
+> *Regime di lancio:* il criterio (c) alla lettera **fallisce**; il criterio
+> applicabile lì è quello **assoluto**, perché `X` non è un'affermazione sotto la
+> soglia d'uso. La matrice riporta `AT-07` come **parzialmente coperto** finché
+> `X` non porta la sua condizione d'uso e il verdetto di regime di lancio non è
+> emesso contro il criterio assoluto.
 
 ### Il controesempio che fissa un valore a zero
 
@@ -282,8 +427,23 @@ scelta, e 128 ricampionamenti muovono il conteggio dei riempimenti di meno del
 tetto di rotazione di un singolo confine su 50 confini.
 
 **Fallita sul criterio di superamento che `AT-10` oggi enuncia** — «l'attaccante
-non raggiunge 1/3 entro 50 epoche» — a `N/H = 1` e `N/H = 10`. Vedi §7: non è un
-fallimento di taratura e nessuna combinazione di parametri lo ripara.
+non raggiunge 1/3 entro 50 epoche» — a `N/H = 1` e `N/H = 10`. Non è un
+fallimento di taratura e nessuna combinazione di parametri lo ripara: il criterio
+letterale equivale a `m ≥ 50`, che per `T ≥ 3m` forza `T ≥ 150` e `c ≤ V/150`.
+
+**Che cosa hanno in comune le due occorrenze**, che è più utile di entrambe le
+correzioni ([REVIEW-011] RF-004, adottato). «La coalizione non arriva mai al 100 %
+sotto i due terzi» e «l'attaccante non raggiunge 1/3 entro 50 epoche» sono
+entrambe **affermazioni assolute su una grandezza emergente**, formulate prima che
+esistesse la regola che quella grandezza produce, e **nessuna delle due nomina una
+regola**. Un criterio di quella forma non è verificabile quando lo si scrive: lo è
+solo quando una simulazione lo smentisce, e a quel punto lo smentisce addosso a chi
+ha implementato. **Il difetto è nel modo in cui il test è scritto, non nei singoli
+criteri.** La formulazione sostitutiva proposta non ha quella forma — ogni clausola
+è una disuguaglianza contro un parametro pubblicato e nomina la regola che la
+impone. AGENT-007 ha adottato la correzione e ha aggiunto la convenzione di
+scrittura corrispondente al proprio documento. La sostituzione **riduce
+un'affermazione pubblica** e va quindi all'operatore: registrata, non applicata.
 
 ### Configurazione 2a — censura totale
 
@@ -316,6 +476,41 @@ singola più importante per AGENT-007 a `GATE-SECREVIEW`.
 contrarsi sotto 18, quindi tre confini consecutivi con pool di riempimento vuoto
 fermano la catena invece di cinque.
 
+> **Ed è una proprietà di questa combinazione, non delle regole ([REVIEW-011]
+> RF-003).** La proprietà dipende dal **rapporto** `min_set/V`, e **nessuna regola
+> lo preserva**: il blocco di vincoli richiede soltanto `0 < min_set <= V`.
+> `validator_min_set_size_min` impedisce di abbassare il minimo; nulla impedisce
+> di alzare `V`. Percorso misurato, ogni passo dentro il 5/4 e dentro la
+> monotonia di `T`, ognuno **accettato dal blocco di vincoli**:
+>
+> | documento | `V` | `T` | `min_set` | `min_set/V` | blocco di vincoli |
+> | --- | --- | --- | --- | --- | --- |
+> | genesi | 27 | 9 | 18 | 0,667 | accettato |
+> | 1 | 33 | 11 | 18 | 0,545 | accettato |
+> | 2 | 36 | 12 | 18 | **0,500** | accettato |
+>
+> Due documenti distanziati da un'epoca di elezione, cioè circa **quattordici
+> giorni**. E a `V = 36` con `min_set = 18`, la censura selettiva dà:
+>
+> | `k` | % di `V` | dimensioni | esito |
+> | --- | --- | --- | --- |
+> | 13 | 36,1 % | 36 → 25 → 18 | bloccata |
+> | **18** | **50,0 %** | 36 → 25 → 18 | **intero set in 2 confini** |
+> | 23 | 63,9 % | 36 → 25 → 23 | intero set in 2 confini |
+>
+> **La soglia di cattura per attrito scende da due terzi a esattamente una metà**,
+> dove la safety BFT **non** è caduta e la rete crede ancora di avere una
+> garanzia. La proprietà non si degrada gradualmente: si sposta sotto il confine
+> che la rendeva innocua. L'affermazione va quindi enunciata così: *chiusa sotto
+> `2V/3` **alla combinazione raccomandata**; in generale chiusa solo sotto
+> `validator_min_set_size`, grandezza che la governance può lasciare indietro
+> mentre `V` cresce.* La conclusione di `ledger.md` — «soglia effettiva appena
+> sopra un terzo» — **non va cambiata**: è la cifra corretta nel caso peggiore
+> governabile, e alzarla a due terzi sarebbe scrivere una garanzia più forte di
+> quella che le regole impongono. La regola che la renderebbe vera —
+> `3 · min_set ≥ 2V`, soddisfatta con uguaglianza alla combinazione raccomandata —
+> è modifica di protocollo, fuori scope, ADR del Lead.
+
 *Correzione discreta.* La formula continua predice meno confini della simulazione
 perché il pavimento è **stretto**: un set di 27 può scendere a 19, non a 18. La
 cifra misurata è quella da citare e non è mai inferiore a quella della formula.
@@ -334,7 +529,7 @@ l'uscita volontaria avrebbe misurato **una** epoca.
 | --- | --- |
 | macinatura limitata dal tetto di rotazione e non dal seme | **PASS** |
 | censura totale → arresto, mai un set scelto dalla coalizione | **PASS** |
-| censura selettiva bloccata a `validator_min_set_size` sotto `2V/3` | **PASS** |
+| censura selettiva bloccata a `validator_min_set_size` sotto `2V/3` | **PASS alla combinazione raccomandata**; a `V = 36` la soglia scende a `V/2` |
 | cooldown non evadibile uscendo un'epoca prima | **PASS** |
 | deriva della composizione calcolabile da un light client a ogni confine | **PASS** (per costruzione) |
 | «non raggiunge 1/3 entro 50 epoche», tutti e tre gli `N/H` | **FAIL** a `N/H = 1` e `N/H = 10` |
@@ -442,11 +637,14 @@ esistenza l'unico reddito che la maggior parte dei dispositivi vedrà mai.
 
 ---
 
-## 7. `SEC-REQ-16` — le tre grandezze obbligatorie
+## 7. `SEC-REQ-16` — le grandezze obbligatorie (tre, più una)
 
 **(a) `α`.** Bersaglio 0,15; banda di sorveglianza [0,10 – 0,20]; tolleranza
 dichiarata `X` = 20 %, pari al bordo superiore della banda, che è un tetto duro
-sull'intero canale e quindi dimostrabile per ogni `N` e `H`.
+sull'intero canale e quindi dimostrabile per ogni `N` e `H` — **al di sopra della
+soglia d'uso dichiarata**. Sotto quella soglia `α` tende a 1 per costruzione e `X`
+non è un'affermazione: la grandezza pubblicata è l'importo assoluto dirottato per
+epoca. E `α` è tenuta sotto 0,20 **per prassi, non per regola** (§2).
 
 **(b) `E_p` contro `S(1−k)`** — il margine di acquisto di reputazione di
 `threat-model.md` §6.3, con `k = 1/2` e `E_p = 47,6 cr` per periodo di 30 giorni:
@@ -485,11 +683,45 @@ e di catalogo sotto [ADR-006] ed entrambe **escluse** da questa spec.
 | 100 000 | 10 000 | 13,636 % | 20 % |
 
 Ogni voce è strettamente sotto `α`, e `α` è tenuta sotto il bordo superiore della
-banda, quindi `X` limita la colonna per costruzione e non per fortuna.
+banda, quindi `X` limita la colonna per costruzione e non per fortuna — sopra la
+soglia d'uso, e per prassi anziché per regola.
+
+**(d) La grandezza rivolta all'utente**, aggiunta perché (a), (b) e (c) guardano
+tutte all'attaccante o al sistema e nessuna guarda alla persona per cui la rete
+esiste ([REVIEW-011] RF-005): **la frazione del proprio reddito che un nodo onesto
+di sola availability conserva sotto il banco di `AT-07`**.
+
+| `N` | `H` | l'onesto conserva |
+| --- | --- | --- |
+| 10 000 | 100 | **0,99 %** |
+| 10 000 | 1 000 | 9,09 % |
+| 10 000 | 10 000 | 50,00 % |
+| 10 000 | 100 000 | 90,91 % |
+
+Al banco che il progetto dichiara di tollerare è lo **0,99 %**. Il fattore è
+`H/(N+H)` e non contiene `α`, quindi nessuna scelta di `α` lo migliora. È il numero
+da pubblicare **accanto** a `X`, perché `X` da sola invita il lettore a concludere
+che il proprio reddito sia protetto entro un ordine di grandezza, quando non è
+protetto affatto.
 
 ---
 
 ## 8. Assunzioni contestate e questioni aperte
+
+Stato dopo [REVIEW-011]: le voci 1–7 sotto sono le auto-segnalazioni della prima
+stesura, quattro delle quali la review ha promosso a finding. Le qualificazioni
+richieste sono ora **applicate** nelle sezioni sopra; quel che resta aperto sono
+le tre voci che richiedono una regola nuova e quindi un'ADR del Lead:
+
+- **`RewardBounds` di genesi** — tetto e limite di variazione su `F`, e
+  `availability_microtokens_per_unit == 0` come regola di validità (voce 4 sotto,
+  [REVIEW-011] RF-001). È la sola voce che **chiuda** una superficie invece di
+  descriverla.
+- **`3 · validator_min_set_size ≥ 2 · V`** nel blocco di vincoli, soddisfatta con
+  uguaglianza alla combinazione raccomandata ([REVIEW-011] RF-003).
+- **Annotazione di [ADR-007]** con la grandezza rivolta all'utente e conferma
+  esplicita dell'operatore (voce 2 sotto, [REVIEW-011] RF-005).
+
 
 1. **Il criterio di superamento di `AT-10` non è soddisfacibile da alcuna rete
    operabile.** Vedi la nota di valutazione in `threat-model.md`. Va deciso dal
@@ -541,9 +773,22 @@ lingua di prodotto è l'inglese ([[PROJECT]]).
 > Some of the nodes sharing the fund are not real people. The protocol cannot
 > tell a phone from a program pretending to be one, and it does not claim to.
 > What it does guarantee is that no amount of pretending creates new credits: a
-> fake node can only take a slice, never bake a bigger cake. The share of all
-> issuance that flows through this fund is published every epoch, and the network
-> commits to keeping it under 20 %.
+> fake node can only take a slice, never bake a bigger cake.
+>
+> But it takes that slice instead of you. Fake nodes do not reduce the fund —
+> they share it — so every one of them makes your share smaller, and the network
+> cannot stop that. It is the cost of letting anyone join with a device they
+> already own, and it is a cost you pay directly.
+>
+> Once the network is carrying real work, we publish the share of all issuance
+> that flows through this fund every epoch, and we commit to keeping it under
+> 20 %. Before then that share is close to everything, because there is almost
+> nothing else being issued yet, so we publish the amount instead of the share —
+> it is the honest number while the network is starting up.
+
+Le due aggiunte sono le condizioni di chiusura di [REVIEW-011] RF-005 parte 2 e
+RF-002 punto 3: la prima dice senza attenuazioni che la fetta la prende **al posto
+dell'utente**, la seconda toglie il «under 20 %» incondizionato.
 
 **Parole da evitare, con la ragione.** *"guaranteed"*: non lo è, la quota si muove
 ogni epoca. *"basic income"*: importa l'aspettativa di un pavimento fisso
@@ -551,4 +796,7 @@ denominato in denaro, che è l'unica cosa che un credit non è. *"reward"*: ques
 fondo paga la presenza, non il lavoro, e i canali di lavoro sono nominati a parte
 e pagati a unità. *`$` o qualunque glifo prima del numero*: [ADR-009], l'unità si
 scrive dopo il numero (`1 240 cr`), perché quella è la grammatica di una misura e
-non di una valuta.
+non di una valuta. ***"protected"***: l'impegno del 20 % limita ciò che una flotta
+prende dell'**emissione**, non ciò che il singolo utente perde, che dipende da
+quanti nodi sono presenti; le due cose non vanno mai lasciate leggere come la
+stessa promessa.

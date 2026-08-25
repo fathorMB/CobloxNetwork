@@ -339,3 +339,87 @@ def term_limit_satisfiable(T: int, m: int, v_max: int) -> tuple[bool, int | None
         if any(True for _ in feasible_c_values(V, T, m)):
             return True, V
     return False, None
+
+
+# --------------------------------------------------------------------------
+# What the rate-of-change limit actually permits
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class LegalInterval:
+    """The values one lawful next document may set for a parameter.
+
+    The rate rule is symmetric — ``x_new * den <= x_old * num`` and
+    ``x_old * den <= x_new * num`` — so the reachable set is
+    ``[ceil(x*den/num), floor(x*num/den)]``, intersected with the genesis
+    bounds and, for the term limit, with the monotonicity rule.
+
+    On small integers a ratio is not a limit, it is a freeze. That is a
+    property of the arithmetic and not of the values chosen, and it is worth
+    computing rather than assuming: a parameter whose interval is a single
+    point is chosen **once**.
+    """
+
+    name: str
+    value: int
+    low: int
+    high: int
+    note: str = ""
+
+    @property
+    def frozen(self) -> bool:
+        return self.low == self.high
+
+    def line(self) -> str:
+        span = f"[{self.low}, {self.high}]"
+        mark = "FROZEN" if self.frozen else ""
+        return f"{self.name:<34} {self.value:>8,}  next document may set {span:<14} {mark:<6} {self.note}"
+
+
+def legal_next_intervals(ps: ParameterSet) -> list[LegalInterval]:
+    """Compute the reachable interval of every election parameter."""
+
+    p, b = ps.consensus, ps.bounds
+    num, den = (
+        b.election_parameter_change_numerator,
+        b.election_parameter_change_denominator,
+    )
+    out: list[LegalInterval] = []
+    for name in _ELECTION_PARAMETER_FIELDS:
+        v = getattr(p, name)
+        low = -(-v * den // num)  # ceil(v*den/num)
+        high = v * num // den  # floor(v*num/den)
+        note = ""
+        if name == "validator_max_consecutive_terms":
+            low = max(low, v)  # monotonic term limit: it may never decrease
+            high = min(high, b.validator_max_consecutive_terms_max)
+            note = "monotonic, and capped by the genesis ceiling"
+        elif name == "validator_min_set_size":
+            low = max(low, b.validator_min_set_size_min)
+            note = "floored by validator_min_set_size_min"
+        elif name == "validator_min_capture_epochs":
+            low = max(low, b.validator_min_capture_epochs_min)
+            note = "floored by validator_min_capture_epochs_min"
+        elif name == "validator_max_set_size":
+            high = min(high, b.validator_max_set_size_max)
+        elif name == "election_epoch_blocks":
+            high = min(high, b.election_epoch_blocks_max)
+        out.append(LegalInterval(name, v, low, max(low, high), note))
+    return out
+
+
+def max_reachable_target_set_size(ps: ParameterSet) -> int:
+    """Largest ``V`` any sequence of lawful documents can ever reach.
+
+    ``ceil(V/T) <= c`` bounds ``V`` by ``c * T``, and both ``c`` and the
+    ceiling on ``T`` are fixed — ``c`` by the rate limit, ``T`` by the genesis
+    bounds. The product is therefore a permanent ceiling on the set size,
+    whatever ``validator_max_set_size`` says.
+    """
+
+    c_interval = next(
+        i for i in legal_next_intervals(ps) if i.name == "validator_churn_cap_seats"
+    )
+    c_max = c_interval.high if not c_interval.frozen else c_interval.value
+    return c_max * ps.bounds.validator_max_consecutive_terms_max

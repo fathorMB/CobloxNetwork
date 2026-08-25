@@ -156,6 +156,27 @@ def section_curve() -> None:
     print(f"  X = {100 * R.X_DECLARED:.0f} % because capture is strictly below alpha for every N and H, so")
     print("    the band's upper edge is the only value of X provable by construction")
     print("    rather than by the particular N/H that happened to be on the test bench.")
+    print()
+    print("  X CARRIES A CONDITION AND MAY NOT BE PUBLISHED WITHOUT IT (REVIEW-011 RF-002):")
+    print("    X = 20 % binds ABOVE the declared usage floor. Below it, alpha tends to 1")
+    print("    by construction — see the drift section — and X is not an assertion at")
+    print("    all; the quantity the network publishes there is the ABSOLUTE amount")
+    print("    diverted per epoch. An X published without that condition is violated by")
+    print("    about five times for the whole of the network's start-up, which is a")
+    print("    public and checkable contradiction of a declared tolerance.")
+    print()
+    print("  ON THE POINT INSIDE THE BAND (REVIEW-011): because alpha is observed and is")
+    print("    highest when the network is newest, the approach direction matters more")
+    print("    than the point. The network crosses the whole band from ABOVE during")
+    print("    start-up, so any margin the operator wants should be taken on the UPPER")
+    print("    edge — the one dual to X, and the one tested first.")
+    print()
+    print("  AND THE LOWER EDGE IS A PRODUCT CHOICE DRESSED AS A MEASUREMENT, said")
+    print("    plainly rather than nearly (REVIEW-011 RF-005): no simulated quantity")
+    print("    selects 0.10. It is a judgement about meaning, not a result. It is worth")
+    print("    writing down precisely because it protects something no security number")
+    print("    can see, and it would be the first bound to disappear under tuning")
+    print("    pressure — but it must not be published as though the model produced it.")
 
 
 def section_dilution() -> None:
@@ -180,7 +201,22 @@ def section_dilution() -> None:
     print("separates a phone from a fleet member — the Argon2id entry floor, the")
     print("availability threshold, and address-diversity limits aggregated by routed")
     print("prefix (threat-model.md 6.1, lever 3) — than on shaving alpha. Contested")
-    print("assumption, raised here rather than buried, and flagged for GATE-SECREVIEW.")
+    print("assumption, raised here rather than buried, and confirmed at GATE-SECREVIEW.")
+    print()
+    print("THE BAND AND X ARE DECLARED IN TWO DIFFERENT WORLDS (REVIEW-011 RF-005), and")
+    print("the project will publish both, so the incoherence has to be published too.")
+    print()
+    print("  The band's lower edge of 0.10 protects the meaning of existence income and")
+    print("  is computed WITH NO ADVERSARY PRESENT: a phone earns 0.15 of an average")
+    print("  node's income at the recommended value. X = 20 % declares an adversary")
+    print("  present and tolerated. In the world where X is declared, the phone does not")
+    print("  earn 0.15 of an average node's income — at the AT-07 bench it earns 0.0157")
+    print("  cr per epoch instead of 1.588, two orders of magnitude less.")
+    print()
+    print("  The two are not in arithmetic contradiction; they measure different things.")
+    print("  They are incoherent as PROMISES. The lower edge protects a quantity that")
+    print("  the tolerated attack destroys by two orders of magnitude, so the band")
+    print("  cannot be published on its own — it goes out with this paragraph attached.")
 
 
 def section_drift() -> None:
@@ -209,6 +245,16 @@ def section_drift() -> None:
     print("of the ratio, which is the honest quantity there: 91 % of a very small")
     print("emission is a very small emission. This is a governance rule for the fund,")
     print("not a protocol rule, and it needs no schema field.")
+    print()
+    print("What that means for the declared tolerance, spelled out because leaving it")
+    print("implicit is what REVIEW-011 RF-002 found: X = 20 % is an assertion only above")
+    print("the usage floor. Below it the assertion is replaced, not weakened, by the")
+    print("absolute diverted amount D = F * N/(N+H) per epoch. D does not depend on the")
+    print("work channel at all, so the only lever on it is F itself — and F is a governed")
+    print("value with no ceiling and no rate limit that any rule imposes (see the fund-")
+    print("shape section). At launch, F should be sized to the honest node count actually")
+    print("present rather than to the reference network, so that D scales with the")
+    print("network instead of with a population that has not arrived yet.")
 
 
 # --------------------------------------------------------------------------
@@ -258,6 +304,29 @@ def section_fund_shape() -> None:
     print("     document, the same 5/4 discipline the election parameters already use;")
     print("  4. below the usage floor — work channel under 25 % of reference — suspend")
     print("     the band and publish the absolute diverted amount instead.")
+    print()
+    print("WHAT THIS RULE IS NOT, DECLARED IN WRITING (REVIEW-011 RF-001, part 1):")
+    print()
+    print("  Three of the things this study fixes are VALUES AND PRACTICE, not rules.")
+    print("  Nothing in any protocol document enforces them, and no on-chain trace")
+    print("  distinguishes a reward policy that abandons them from ordinary governance:")
+    print()
+    print("    * availability_microtokens_per_unit = 0 — a value. Nothing forbids a")
+    print("      positive one, and a positive one breaks criterion (a) of the [ADR-007]")
+    print("      metric outright; the counter-example is measured in the AT-07 section.")
+    print("    * the per-epoch cap F — a value with no ceiling and no floor. One lawful")
+    print("      document can take F from 15 882 cr to 2^60 microtokens.")
+    print("    * the 5/4 discipline on F above — a PRACTICE. The election parameters")
+    print("      have a rate limit because the project decided a rate limit was needed;")
+    print("      the reward policy has none. Its only validity rule is kn < kd on the")
+    print("      creator-share cap.")
+    print()
+    print("  It follows that criteria (a) and (c) of the [ADR-007] metric are true")
+    print("  CONDITIONALLY ON THE ACTIVE REWARD POLICY RESPECTING THEM, and not as")
+    print("  properties of the protocol. A zero written in a Python comment is not a")
+    print("  defence. Closing this needs a RewardBounds object in the genesis trust")
+    print("  anchor on the model of ElectionBounds — a protocol change, out of this")
+    print("  spec's scope, and the Lead's ADR to open.")
 
 
 # --------------------------------------------------------------------------
@@ -294,7 +363,45 @@ def section_at07() -> None:
           f"{100.0 * res.honest_income_with_fleet / res.honest_income_without_fleet:.2f} % "
           f"of its income")
     print()
-    print(f"AT-07 VERDICT: {'PASS' if res.passed else 'FAIL'}")
+    print(f"AT-07 at the reference usage regime: {'PASS' if res.passed else 'FAIL'}")
+    print()
+    print("AT-07 IN THE REGIME IT WILL ACTUALLY BE RUN IN (REVIEW-011 RF-002)")
+    print("The test is scheduled on a devnet, and a devnet has no usage: W is near zero,")
+    print("so alpha is near one whatever F is. The same bench, along the usage ramp:")
+    print()
+    print(f"{'W (cr/ep)':>12} {'alpha':>8} {'fleet share':>12} {'diverted (cr/ep)':>18} "
+          f"{'(c) as written':>16}")
+    for r in S.s11b_usage_ramp():
+        print(f"{r.work_channel_microtokens / MICROTOKENS_PER_CREDIT:>12,.0f} "
+              f"{r.observed_alpha:>8.4f} {r.fleet_share_pct:>11.2f}% "
+              f"{r.absolute_diverted_microtokens / MICROTOKENS_PER_CREDIT:>18,.0f} "
+              f"{'VIOLATED' if r.violates_x_as_written else 'held':>16}")
+    print()
+    print("  Criterion (c) as literally written is violated by about five times for the")
+    print("  whole start-up period — which is precisely when a fleet is cheapest and the")
+    print("  network is most exposed. The damage is the public, checkable contradiction")
+    print("  of a tolerance the project declared, in a project whose front page says")
+    print("  'super-secure' and which has already had to withdraw one metric.")
+    print()
+    print("  And note the fourth column, because it corrects something this study said")
+    print("  loosely in its first pass. The absolute diverted amount does NOT move along")
+    print("  the ramp: D = F * N/(N+H) contains no W. Saying '99 % of a tiny emission is")
+    print("  a tiny emission' was only true if F is also small, and F is a governance")
+    print("  choice, not a consequence of low usage. With the genesis F sized for 10 000")
+    print("  nodes, a launch fleet diverts about 15 725 cr per epoch — nearly the whole")
+    print("  fund — while the honest hundred share the remainder. The absolute criterion")
+    print("  is therefore only honest if F at launch is sized to the honest node count")
+    print("  actually present. That is a governance practice, not a rule (see the")
+    print("  fund-shape section), and it is the second thing RewardBounds would fix.")
+    print()
+    print(f"AT-07 VERDICT: PARTIALLY COVERED.")
+    print("  * reference usage regime ... PASS on all four criteria (above)")
+    print("  * launch regime ............ criterion (c) as written FAILS; the applicable")
+    print("    criterion there is the absolute one, and X is not an assertion below the")
+    print("    usage floor")
+    print("  The matrix therefore reports AT-07 as partially covered, not as passed,")
+    print("  until X carries its usage condition and the launch-regime verdict is run")
+    print("  against the absolute criterion.")
     print()
     print("Counter-example, and the reason availability_microtokens_per_unit must be 0:")
     bad = S.s4b_availability_channel_breaks_criterion_a()
@@ -368,11 +475,23 @@ def section_at10() -> None:
     print("  the [DEBT-010] instruction to keep the term limit as tight as tolerated.")
     print()
     print("  The threat model has already corrected one AT-10 criterion for being wrong")
-    print("  rather than merely unmet. This is the second. It is recorded in")
-    print("  threat-model.md as an evaluation note for the Lead and AGENT-007 and is")
-    print("  NOT applied unilaterally. No protocol rule changes either way: the rule")
-    print("  guarantees that the time to one third is at least m boundaries and that")
-    print("  every one of them publishes its drift, and it delivers exactly that here.")
+    print("  rather than merely unmet. This is the second, and the security review has")
+    print("  since named what the two have in common, which is more useful than either")
+    print("  correction: BOTH ARE ABSOLUTE STATEMENTS ABOUT AN EMERGENT QUANTITY,")
+    print("  written before the rule that produces that quantity existed, and NEITHER")
+    print("  NAMES A RULE. A criterion of that shape cannot be checked when it is")
+    print("  written — only when a simulation contradicts it, and by then it")
+    print("  contradicts it against whoever implemented the thing. The defect is in how")
+    print("  the test was written, not in the individual criteria.")
+    print()
+    print("  The replacement proposed below does not have that shape: every clause is an")
+    print("  inequality against a published parameter, and every clause names the rule")
+    print("  that imposes it. AGENT-007 has adopted the correction and added the")
+    print("  corresponding writing convention to threat-model.md. The substitution")
+    print("  itself REDUCES A PUBLIC CLAIM and therefore goes to the operator; it is")
+    print("  recorded, not applied unilaterally. No protocol rule changes either way:")
+    print("  the rule guarantees that the time to one third is at least m boundaries and")
+    print("  that every one of them publishes its drift, and it delivers exactly that.")
 
     print()
     print("Configuration 2a — total censorship, refused by the contraction floor")
@@ -411,6 +530,34 @@ def section_at10() -> None:
     print("  Its price is liveness, and it is paid in the drought table below: the set")
     print("  may not lawfully shrink below 18, so three consecutive boundaries with an")
     print("  empty fill pool stall the chain instead of five.")
+    print()
+    print("  AND IT IS A PROPERTY OF THIS COMBINATION, NOT OF THE RULES (REVIEW-011")
+    print("  RF-003). The property depends on the RATIO min_set/V, and no rule preserves")
+    print("  that ratio: the constraint block requires only 0 < min_set <= V.")
+    print("  validator_min_set_size_min stops the minimum being lowered; nothing stops V")
+    print("  being raised. The governance-reach section below measures the path — two")
+    print("  lawful documents, about fourteen days — and what it costs:")
+    for e in S.s10_min_set_ratio_erosion():
+        print(f"    document {e.document}: V={e.V:>2} T={e.T:>2} min_set={e.min_set} "
+              f"-> min_set/V = {e.min_set_over_V:.3f}   constraint block: "
+              f"{'PASS' if e.constraint_block_passes else 'FAIL'}")
+    print()
+    print(f"{'  coalition':>12} {'sizes':>18}  outcome at V = 36, min_set = 18")
+    for c in S.s10b_censorship_at_eroded_ratio():
+        short = "WHOLE SET" if "whole set" in c.outcome else "pinned"
+        print(f"{c.coalition_seats:>12} {str(c.boundaries):>18}  {short} "
+              f"({100.0 * c.coalition_seats / 36:.1f} % of V)")
+    print()
+    print("  At V = 36 the attrition threshold is exactly HALF the set, where BFT safety")
+    print("  has NOT failed and the network still believes it has a guarantee. The")
+    print("  property does not degrade gradually — it moves below the line that made it")
+    print("  harmless. The claim must therefore be stated as: closed below 2V/3 AT THE")
+    print("  RECOMMENDED COMBINATION; in general closed only below validator_min_set_size,")
+    print("  a quantity governance may leave behind while V grows. `ledger.md`'s")
+    print("  conclusion — effective threshold just above one third — is the correct")
+    print("  figure for the worst governable case and must NOT be raised to two thirds")
+    print("  until a rule preserves the ratio. That rule (3 * min_set >= 2 * V) is a")
+    print("  protocol change, out of scope here, and the Lead's ADR to open.")
     print()
     print("  Note on the discrete correction: the continuous formula predicts fewer")
     print("  boundaries than the simulation because the contraction floor is strict —")
@@ -557,6 +704,59 @@ def section_couplings() -> None:
 # --------------------------------------------------------------------------
 
 
+def section_governance_reach() -> None:
+    rule("What governance may still do to these values — and what it may never undo")
+    print("A rate limit of 5/4 applied to small integers is not a limit, it is a freeze:")
+    print("the reachable interval of a lawful next document is")
+    print("[ceil(x*4/5), floor(x*5/4)], and for small x that collapses to a single")
+    print("point. Three of the recommended values are therefore chosen ONCE, for ever,")
+    print("and the report has to say so (REVIEW-011 RF-006).")
+    print()
+    for i in S.s9_legal_intervals():
+        print("  " + i.line())
+    print()
+    print("Consequences that follow and are not otherwise visible:")
+    print()
+    v_max = S.s9b_max_reachable_v()
+    print(f"  * V <= {v_max} FOR EVER. `ceil(V/T) <= c` with c frozen at 3 and T capped at")
+    print(f"    {R.BOUNDS.validator_max_consecutive_terms_max} by the genesis bounds gives V <= c * T_max = {v_max}. So")
+    print(f"    validator_max_set_size = {R.CONSENSUS.validator_max_set_size} and validator_max_set_size_max = "
+          f"{R.BOUNDS.validator_max_set_size_max} are")
+    print("    HEADROOM THAT CANNOT BE OCCUPIED. The values are harmless but the words")
+    print("    around them were wrong: 45 was justified as 'room to grow' and 81 as 3V,")
+    print("    and neither is reachable. The Lead may wish to bring")
+    print(f"    validator_max_set_size down to {v_max}, which is a value change and not this")
+    print("    spec's to make.")
+    print()
+    print("  * THE COOLDOWN HAS NO SECOND ATTEMPT. The drought table shows a cooldown of")
+    print("    1 holding all 27 seats at a standing pool of 33 where 2 settles at 24. If")
+    print("    the network discovers that pool in production, the corrective move does")
+    print("    not exist: the cooldown cannot be lowered by any lawful document. 2 is")
+    print("    still the right choice — it is the compromise between the censor's lever")
+    print("    and the term limit's bite — but it is chosen knowing it is final.")
+    print()
+    print("  * THE SAME IS TRUE OF c AND m, and this study's own reasoning missed it.")
+    print("    The argument for T_max = 12 is that a ceiling of 9 would leave a network")
+    print("    with a thin pool no lawful move at all. That argument is right about T.")
+    print("    For c and for the cooldown THE MOVE DOES NOT EXIST IN ANY CASE: raising c")
+    print("    to fill more seats per boundary, or lowering the cooldown, are both")
+    print("    rejected on acceptance. The only residual levers are raising T — an")
+    print("    irreversible ratchet with two steps left — or stopping.")
+    print()
+    print("  * min_set/V IS NOT PRESERVED. Measured path, each step inside 5/4 and the")
+    print("    monotonic term rule, each accepted by the constraint block:")
+    for e in S.s10_min_set_ratio_erosion():
+        print(f"      document {e.document}: V={e.V:>2} T={e.T:>2} min_set={e.min_set} "
+              f"-> min_set/V = {e.min_set_over_V:.3f}  "
+              f"({'accepted' if e.constraint_block_passes else 'REJECTED'})")
+    print("    Two documents, one election epoch apart — about fourteen days — take the")
+    print("    attrition-capture threshold from two thirds to one half. See the AT-10")
+    print("    section for the censorship measurement at the eroded ratio.")
+    print()
+    print("None of this changes a recommended value. It changes what may honestly be")
+    print("said about them: whoever tunes c, m and the cooldown is choosing them once.")
+
+
 def section_secreq16() -> None:
     rule("SEC-REQ-16 — the three quantities the simulator report must expose")
     print("(a) alpha, the fraction of emission flowing through the availability/existence")
@@ -566,7 +766,13 @@ def section_secreq16() -> None:
           f"{R.ALPHA_SURVEILLANCE_BAND[1]}]")
     print(f"    declared tolerance X    : {100 * R.X_DECLARED:.0f} %, equal to the band's upper edge,")
     print("                              a hard ceiling on the whole channel and therefore")
-    print("                              provable for every N and H")
+    print("                              provable for every N and H — ABOVE THE DECLARED")
+    print("                              USAGE FLOOR. Below it, alpha tends to 1 by")
+    print("                              construction and X is not an assertion; the")
+    print("                              published quantity there is the absolute amount")
+    print("                              diverted per epoch. Nothing in any rule holds")
+    print("                              alpha under 0.20 either: see the fund-shape")
+    print("                              section on values versus rules.")
     print()
     print("(b) E_p against S(1-k), the reputation-purchase margin of threat-model.md 6.3")
     print()
@@ -603,7 +809,25 @@ def section_secreq16() -> None:
               f"{100 * R.X_DECLARED:>10.0f}%")
     print()
     print("    Every entry is strictly below alpha, and alpha is held below the band's")
-    print("    upper edge, so X bounds the column by construction and not by luck.")
+    print("    upper edge, so X bounds the column by construction and not by luck —")
+    print("    above the usage floor, and by practice rather than by rule.")
+    print()
+    print("(d) THE QUANTITY FACING THE USER, added because (a), (b) and (c) all face the")
+    print("    attacker or the system and none of them is about the person the network")
+    print("    is for (REVIEW-011 RF-005): the fraction of its income an honest")
+    print("    availability-only node KEEPS under the AT-07 bench.")
+    print()
+    res = S.s4_at07()
+    keep = 100.0 * res.honest_income_with_fleet / res.honest_income_without_fleet
+    print(f"    {'N':>8} {'H':>8} {'honest node keeps':>19}")
+    for N, H in ((10_000, 100), (10_000, 1_000), (10_000, 10_000), (10_000, 100_000)):
+        print(f"    {N:>8,} {H:>8,} {100.0 * H / (N + H):>18.2f}%")
+    print()
+    print(f"    At the bench the project declares it tolerates it is {keep:.2f} %. The factor")
+    print("    is H/(N+H) and contains no alpha, so no choice of alpha improves it. This")
+    print("    is the number that has to be published beside X, because X alone invites")
+    print("    the reader to conclude their income is protected to within an order of")
+    print("    magnitude when it is not protected at all.")
 
 
 def section_values() -> None:
@@ -620,17 +844,18 @@ def section_values() -> None:
         ("candidacy_close_blocks", p.candidacy_close_blocks, "1 day before the boundary"),
         ("election_entropy_blocks", p.election_entropy_blocks, "1 hour"),
         ("validator_min_set_size", p.validator_min_set_size,
-         "2V/3: closes the attrition path below two thirds"),
+         "2V/3 AT THIS V: closes attrition below two thirds; the ratio is preserved by no rule"),
         ("validator_target_set_size", p.validator_target_set_size, "V"),
-        ("validator_max_set_size", p.validator_max_set_size, "room to grow"),
+        ("validator_max_set_size", p.validator_max_set_size,
+         "nominal headroom; V is permanently capped at 36 by the frozen c"),
         ("validator_churn_cap_seats", p.validator_churn_cap_seats,
-         "c = V/T exactly; at m = 3 the constraint block leaves no slack"),
+         "c = V/T exactly; at m = 3 no slack. FROZEN by the 5/4 rate limit"),
         ("validator_max_consecutive_terms", p.validator_max_consecutive_terms,
          "T = 3m, the smallest value the horizon admits"),
         ("validator_cooldown_epochs", p.validator_cooldown_epochs,
-         "short: cooldown multiplies a censor's lever and drains the pool"),
+         "short: multiplies a censor's lever and drains the pool. FROZEN: no lawful document may change it"),
         ("validator_min_capture_epochs", p.validator_min_capture_epochs,
-         "m = 3, the attrition horizon; more would be self-deception"),
+         "m = 3, the attrition horizon; more would be self-deception. FROZEN"),
     ):
         print(f"  {name:<34} {value:>10,}   # {note}")
     print()
@@ -638,9 +863,9 @@ def section_values() -> None:
     for name, value, note in (
         ("reward_epoch_ms", r.reward_epoch_ms, "1 day"),
         ("existence_fund_microtokens_per_epoch", r.existence_fund_microtokens_per_epoch,
-         "alpha = 0.15 at reference usage; governed, re-tuned to hold the band"),
+         "alpha = 0.15 at reference usage; governed with NO ceiling and NO rate limit"),
         ("availability_microtokens_per_unit", r.availability_microtokens_per_unit,
-         "MUST be 0 — see the AT-07 counter-example"),
+         "MUST be 0 (AT-07 counter-example) — a VALUE, imposed by no rule"),
         ("storage_units_per_contribution_unit", r.storage_units_per_contribution_unit,
          "1 unit per GiB-epoch proven"),
         ("compute_units_per_contribution_unit", r.compute_units_per_contribution_unit,
@@ -660,7 +885,8 @@ def section_values() -> None:
         ("election_epoch_blocks_max", b.election_epoch_blocks_max, "at most a doubling"),
         ("validator_max_consecutive_terms_max", b.validator_max_consecutive_terms_max,
          "the [DEBT-010] residual guard: tightest value leaving a usable valve"),
-        ("validator_max_set_size_max", b.validator_max_set_size_max, "3V"),
+        ("validator_max_set_size_max", b.validator_max_set_size_max,
+         "nominally 3V; unreachable, see the governance-reach section"),
         ("validator_min_set_size_min", b.validator_min_set_size_min,
          "pinned at the chosen minimum: it may never be lowered"),
         ("validator_min_capture_epochs_min", b.validator_min_capture_epochs_min,
@@ -675,6 +901,10 @@ def section_values() -> None:
     print()
     print("Twenty-two values, plus alpha, its band, X, and the fund cap. Every one of")
     print("them is checked against the constraint block above, not asserted to pass it.")
+    print()
+    print("For which of them a lawful next document may still move, and which three are")
+    print("frozen for ever by the 5/4 rate limit, see the governance-reach section: c, m")
+    print("and the cooldown are chosen once, and V is capped at 36 permanently.")
 
 
 PRODUCT_COPY = """\
@@ -698,9 +928,18 @@ The honest note the network owes its users (help panel, not the dashboard):
     Some of the nodes sharing the fund are not real people. The protocol cannot
     tell a phone from a program pretending to be one, and it does not claim to.
     What it does guarantee is that no amount of pretending creates new credits:
-    a fake node can only take a slice, never bake a bigger cake. The share of
-    all issuance that flows through this fund is published every epoch, and the
-    network commits to keeping it under 20 %.
+    a fake node can only take a slice, never bake a bigger cake.
+
+    But it takes that slice instead of you. Fake nodes do not reduce the fund -
+    they share it - so every one of them makes your share smaller, and the
+    network cannot stop that. It is the cost of letting anyone join with a
+    device they already own, and it is a cost you pay directly.
+
+    Once the network is carrying real work, we publish the share of all issuance
+    that flows through this fund every epoch, and we commit to keeping it under
+    20 %. Before then that share is close to everything, because there is
+    almost nothing else being issued yet, so we publish the amount instead of
+    the share - it is the honest number while the network is starting up.
 
 Words to avoid, with the reason:
 
@@ -709,6 +948,10 @@ Words to avoid, with the reason:
                      money, which is the one thing a credit is not.
     "reward"       - this fund pays for presence, not for work; the work
                      channels are named separately and paid per unit.
+    "protected"    - the 20 % commitment bounds what a fleet takes of ISSUANCE.
+                     It does not bound what an individual user loses, which is
+                     set by how many nodes are present. Never let the two be
+                     read as the same promise.
     "$", or any glyph before the number - [ADR-009]: the unit is written after
                      the number ("1 240 cr"), because that is the grammar of a
                      measure and not of a currency.
@@ -739,6 +982,7 @@ def main(argv: list[str]) -> int:
         section_at07()
         section_at10()
         section_couplings()
+        section_governance_reach()
         section_secreq16()
         section_values()
         section_product_copy()

@@ -34,6 +34,8 @@ from .params import (
     check_constraint_block,
     constraint_block_passes,
     feasible_c_values,
+    legal_next_intervals,
+    max_reachable_target_set_size,
     term_limit_satisfiable,
 )
 from .population import (
@@ -584,19 +586,25 @@ def s6b_at10_total_censorship(coalition: int = 10) -> At10Censorship:
     )
 
 
-def s6c_at10_selective_censorship(coalition: int) -> At10Censorship:
+def s6c_at10_selective_censorship(
+    coalition: int,
+    V: int | None = None,
+    min_set: int | None = None,
+) -> At10Censorship:
     """Configuration 2b: the coalition lets through exactly the honest
     candidacies that land the set on the smallest size the floor permits."""
 
     p = R.CONSENSUS
-    sizes = [p.V]
-    prev = p.V
+    V = p.V if V is None else V
+    min_set = p.validator_min_set_size if min_set is None else min_set
+    sizes = [V]
+    prev = V
     used = 0
     outcome = ""
     for b in range(1, 21):
         smallest_lawful = max(
             (2 * prev) // 3 + 1,  # strict contraction floor
-            p.validator_min_set_size,
+            min_set,
         )
         new = max(smallest_lawful, coalition)
         if new >= prev:
@@ -623,7 +631,7 @@ def s6c_at10_selective_censorship(coalition: int) -> At10Censorship:
         boundaries=sizes,
         outcome=outcome,
         boundaries_used=used,
-        predicted_continuous=boundaries_to_attrition_capture(p.V, coalition),
+        predicted_continuous=boundaries_to_attrition_capture(V, coalition),
     )
 
 
@@ -801,3 +809,145 @@ def s8_reputation_margin(subscription_price_microtokens: int) -> ReputationMargi
         cap_numerator=R.REWARD.publisher_reward_cap_numerator,
         cap_denominator=R.REWARD.publisher_reward_cap_denominator,
     )
+
+
+# --------------------------------------------------------------------------
+# S9 / S10 — what governance may still do to these values (REVIEW-011)
+# --------------------------------------------------------------------------
+
+
+def s9_legal_intervals() -> list:
+    """Which of the recommended values a lawful next document may still move."""
+
+    return legal_next_intervals(R.RECOMMENDED)
+
+
+def s9b_max_reachable_v() -> int:
+    return max_reachable_target_set_size(R.RECOMMENDED)
+
+
+@dataclass(frozen=True)
+class ErosionStep:
+    document: int
+    V: int
+    T: int
+    min_set: int
+    constraint_block_passes: bool
+    min_set_over_V: float
+    attrition_threshold_seats: int
+
+
+def s10_min_set_ratio_erosion() -> list[ErosionStep]:
+    """`min_set / V` is preserved by no rule, and the ratio is what the
+    anti-attrition property depends on.
+
+    The path is the one REVIEW-011 RF-003 identifies: raise `V` and `T`
+    together, each step inside the 5/4 rate limit and the monotonic term rule,
+    leaving `min_set` where it is because nothing requires it to follow.
+    """
+
+    steps = [(27, 9), (33, 11), (36, 12)]
+    out: list[ErosionStep] = []
+    previous: ConsensusParameters | None = None
+    for i, (V, T) in enumerate(steps):
+        cand = replace(
+            R.CONSENSUS,
+            validator_target_set_size=V,
+            validator_max_consecutive_terms=T,
+        )
+        ps = replace(R.RECOMMENDED, consensus=cand)
+        if previous is None:
+            results = check_constraint_block(ps)
+        else:
+            results = check_constraint_block(
+                ps,
+                active=previous,
+                active_activation_height=0,
+                new_activation_height=R.BOUNDS.election_parameter_min_activation_gap_blocks,
+            )
+        out.append(
+            ErosionStep(
+                document=i,
+                V=V,
+                T=T,
+                min_set=cand.validator_min_set_size,
+                constraint_block_passes=constraint_block_passes(results),
+                min_set_over_V=cand.validator_min_set_size / V,
+                attrition_threshold_seats=max(
+                    cand.validator_min_set_size, V // 3 + 1
+                ),
+            )
+        )
+        previous = cand
+    return out
+
+
+def s10b_censorship_at_eroded_ratio() -> list[At10Censorship]:
+    """Selective censorship once `V` has grown to its permanent ceiling."""
+
+    V = 36
+    min_set = R.CONSENSUS.validator_min_set_size
+    return [
+        s6c_at10_selective_censorship(k, V=V, min_set=min_set)
+        for k in (13, 18, 23, 24)
+    ]
+
+
+# --------------------------------------------------------------------------
+# S11 — AT-07 in the regime it will actually be run in (REVIEW-011 RF-002)
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class LaunchRegimeResult:
+    honest: int
+    fleet: int
+    fund_microtokens: int
+    work_channel_microtokens: int
+    observed_alpha: float
+    fleet_share_pct: float
+    absolute_diverted_microtokens: int
+    x_declared_pct: float
+
+    @property
+    def violates_x_as_written(self) -> bool:
+        return self.fleet_share_pct > self.x_declared_pct
+
+
+def s11_at07_launch_regime(
+    honest: int = 100, fleet: int = 10_000, usage_fraction: float = 0.0
+) -> LaunchRegimeResult:
+    """`AT-07` with the work channel where it is on day one, not where the
+    reference regime puts it.
+
+    `AT-07` is scheduled on a devnet. A devnet has no usage, so `W` is near
+    zero, so `alpha` is near one whatever `F` is, so criterion (c) as literally
+    written is violated by about five times. The ratio is not the honest
+    quantity there; the absolute diverted amount is.
+    """
+
+    F = R.REWARD.existence_fund_microtokens_per_epoch
+    W = int(R.REFERENCE_WORK_CHANNEL_MICROTOKENS * usage_fraction)
+    contributors = max(1, int(honest * R.REFERENCE_CONTRIBUTOR_FRACTION))
+    res = run_epoch(
+        NodePopulation(honest - contributors, contributors, fleet),
+        F,
+        WorkChannel(total_microtokens=W),
+    )
+    return LaunchRegimeResult(
+        honest=honest,
+        fleet=fleet,
+        fund_microtokens=F,
+        work_channel_microtokens=W,
+        observed_alpha=float(res.alpha),
+        fleet_share_pct=100.0 * float(res.captured_share),
+        absolute_diverted_microtokens=res.fleet_minted,
+        x_declared_pct=100.0 * R.X_DECLARED,
+    )
+
+
+def s11b_usage_ramp() -> list[LaunchRegimeResult]:
+    return [
+        s11_at07_launch_regime(usage_fraction=f)
+        for f in (0.0, 0.05, 0.10, 0.25, 0.50, 1.00)
+    ]

@@ -27,7 +27,7 @@ CONSENSUS = ConsensusParameters(
     election_entropy_blocks=720,  # 1 hour
     validator_min_set_size=18,
     validator_target_set_size=27,
-    validator_max_set_size=45,
+    validator_max_set_size=45,  # see the governance-reach section: V <= 36 for ever
     validator_churn_cap_seats=3,
     validator_max_consecutive_terms=9,
     validator_cooldown_epochs=2,
