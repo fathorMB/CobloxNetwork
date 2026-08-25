@@ -21,8 +21,9 @@ updated: 2026-08-25
 
 - `status`: active
 - `outcome`: Una devnet di validatori seed raggiunge consenso BFT; i light client verificano saldi con prove Merkle; mint & burn implementati a livello di transazioni; primo simulatore economico per la taratura dei parametri.
-- `specs`: [SPEC-005, SPEC-006, SPEC-007, SPEC-008, SPEC-009]
+- `specs`: [SPEC-005, SPEC-006, SPEC-007, SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012, SPEC-013]
 - `risks`: [complessità del consenso, taratura curve emissione/burn]
+- `nota`: Cinque spec `done`. Le quattro nuove sono in `backlog` dal 2026-08-25 e precedono tutte la devnet, ciascuna per una ragione propria: [SPEC-010] rende eseguibile la gate di [ADR-012]; [SPEC-011] chiude il divario fra regole scritte e regole applicate; [SPEC-012] dà alla rete il verificatore di firme che non ha; [SPEC-013] deve atterrare prima del primo certificato di enrollment. Il rischio *taratura curve emissione/burn* è **rientrato** con [SPEC-007] e [SPEC-009].
 
 ### M-03 — Presenza dimostrata: challenge di availability e reddito di esistenza
 

@@ -2,13 +2,17 @@
 id: ADR-015
 # Note: Quote the title if it contains a colon
 title: "L'identita di trasporto e subordinata e ruotabile, non e la chiave di identita"
-status: proposed
+status: accepted
 decision_date: 2026-08-25
 decider: AGENT-LEAD
 supersedes: []
 superseded_by: []
 links: [ADR-007, ADR-012, ADR-014]
 tags: [architecture, security, privacy]
+updated: 2026-08-25
+activity:
+  - date: 2026-08-25
+    action: "transitioned proposed -> accepted"
 ---
 # L'identita di trasporto e subordinata e ruotabile, non e la chiave di identita
 

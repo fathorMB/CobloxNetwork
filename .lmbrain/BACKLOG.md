@@ -11,12 +11,12 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 
 ## Now — M-02, nell'ordine
 
-Nessuna di queste esiste ancora come file. L'ordine è dettato da [ADR-012] e dalle decisioni di prodotto del 2026-08-25, non dalla dimensione.
+Tutte e quattro redatte il 2026-08-25 e in `backlog`, in attesa dell'approvazione dell'operatore. Gli ID seguono l'ordine di esecuzione. Owner AGENT-001 per tutte.
 
-1. **SPEC-012 — Inventario degli artefatti pubblicati, `lifecycle_u8`, [DEBT-008].** Prerequisito e non smaltimento: la gate di [ADR-012] non è eseguibile finché l'elenco su cui girare non esiste, e due decisioni appena prese cambiano artefatti pubblicati. Chiude [DEBT-012] (`high`) e [DEBT-008] (`low`). Include la domanda generale che [DEBT-012] pone: quante altre preimmagini non hanno una fixture pubblicata, e fra queste quante contengono campi la cui codifica non è fissata altrove.
-2. **SPEC-010 — `RewardBounds` e le regole di [ADR-010]/[ADR-011] in `coblox-core`.** Chiude il divario fra documenti e codice lasciato aperto da [SPEC-009], che toccò `tests/` e non `src/`. Porta anche `F` di genesi = 300 000 000 µt e l'intervallo di blocco di [ADR-013] nei documenti. Criterio portante: **ogni fixture dichiarata `invalid` dev'essere rifiutata**, provata in negativo.
-3. **SPEC-011 — Verificatore Ed25519 consensus-critical.** Isolata, parallelizzabile in qualunque momento, **prima di qualunque devnet**. Gate: i vettori 0–11 di `ed25519-speccheck` con il verdetto atteso per ciascuno.
-4. **SPEC-013 — Separazione della chiave di trasporto**, attuazione di [ADR-015]. **Prima che la devnet emetta il primo certificato**: dopo è una migrazione, non una decisione.
+1. **[SPEC-010] — Inventario degli artefatti pubblicati, codifica del `lifecycle`, precisione normativa.** `sol`/`extended`. Prerequisito e non smaltimento: la gate di [ADR-012] non è eseguibile finché l'elenco su cui girare non esiste. Chiude [DEBT-012] (`high`) e [DEBT-008] (`low`), e porta nei documenti l'intervallo di blocco di [ADR-013].
+2. **[SPEC-011] — `RewardBounds` e le regole di validità economiche in `coblox-core`.** `sol`/`standard`. Chiude il divario fra documenti e codice lasciato da [SPEC-009], che toccò `tests/` e non `src/`. Corregge anche il fondo di genesi in `recommended.py`, che oggi contraddice [ADR-011].
+3. **[SPEC-012] — Verificatore Ed25519 con i vettori speccheck come oracolo.** `sol`/`extended`. Isolata, parallelizzabile, **prima di qualunque devnet**.
+4. **[SPEC-013] — Separazione della chiave di trasporto**, attuazione di [ADR-015]. `sol`/`extended`. **Prima che la devnet emetta il primo certificato**: dopo è una migrazione, non una decisione.
 
 Poi devnet BFT, light client con prove Merkle e mint & burn — dipendono dalle API fissate da [SPEC-008].
 

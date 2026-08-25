@@ -79,7 +79,13 @@ Questa disposizione è di **natura diversa** dalle tre di [ADR-010] e per questo
 
 ## Consequences
 
-- ~~Il dimensionamento del fondo di genesi diventa una **decisione da prendere con un numero**, cioè la popolazione attesa al lancio. Non è fissata qui: appartiene alla spec che attua questa ADR insieme ad [ADR-010].~~ **Deciso il 2026-08-25**, vedi l'annotazione sopra. Il valore deve entrare nella fixture `reward_policy` `PD-0`, quindi cambia il `policy_hash` pubblicato: è un artefatto pubblicato e la gate di [ADR-012] si applica alla spec che lo scrive.
+- ~~Il dimensionamento del fondo di genesi diventa una **decisione da prendere con un numero**, cioè la popolazione attesa al lancio. Non è fissata qui: appartiene alla spec che attua questa ADR insieme ad [ADR-010].~~ **Deciso il 2026-08-25**, vedi l'annotazione sopra.
+
+> **Correzione del Lead, stessa data.** Una prima stesura di questa annotazione diceva che il valore deve entrare nella fixture `reward_policy` `PD-0`, cambiando il `policy_hash` pubblicato. **È falso, ed è corretto qui invece che riscritto in silenzio.** `PD-0` è una fixture di *hashing*, con `network_id: "fixture"` e ogni valore numerico a `1` salvo le eccezioni strutturalmente necessarie; non è il documento di genesi, e il valore reale non vi appartiene. Nessun hash pubblicato cambia per effetto di questa decisione.
+>
+> Il valore vive già in `sim/tools/reward_rules.py`, dove il documento base porta `existence_fund_microtokens_per_epoch = 300 000 000` — [SPEC-009] lo aveva usato come esempio dimensionato al lancio, e la decisione dell'operatore lo promuove da illustrazione a numero.
+>
+> **Divergenza trovata nella stessa verifica.** `sim/coblox_sim/recommended.py` porta invece `existence_fund_microtokens_per_epoch = 15 882 352 941` — cioè `F_max`, il valore del regime maturo — dentro un insieme di parametri chiamato `coblox-v0-genesis-candidate`. È esattamente ciò che il punto 1 di questa ADR vieta: **un fondo di genesi dimensionato sulla rete che non c'è ancora**, e per giunta al tetto. [SPEC-009] non toccò quel file. La correzione è in [SPEC-011].
 - La crescita del fondo verso la scala di riferimento richiede **governance attiva**: una successione di documenti al limite di variazione, con la spaziatura minima in altezze di catena. È un costo operativo ricorrente e va dichiarato come tale, non scoperto.
 - La comunicazione di prodotto acquista una seconda frase e ne perde una falsa. Il reddito della prima ora è **più piccolo in valore assoluto** di quello a regime, per costruzione e non per accidente, e questo va detto a chi entra presto invece di essere lasciato scoprire.
 - `RewardBounds` di [ADR-010] deve poter esprimere un tetto che il fondo di genesi rispetta e che la crescita successiva non viola: le due ADR si attuano insieme, in una sola spec.

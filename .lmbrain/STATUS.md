@@ -51,13 +51,13 @@ M-02 non ha ancora spec redatte: è il primo lavoro del Lead. La priorità non �
 
 ## Ready for handoff
 
-Nessuna. Non ci sono spec in `ready`: quelle di M-02 vanno ancora redatte.
+Nessuna in `ready`. Quattro in `backlog` in attesa della tua approvazione: [SPEC-010], [SPEC-011], [SPEC-012], [SPEC-013].
 
 ## In progress
 
 Nessuna. Le prime due spec di M-02 sono chiuse.
 
-**Nessuna spec in lavorazione.** Le nove redatte finora sono tutte `done`. Le quattro di M-02 elencate in *Lavoro immediato* sono da redigere: nessuna esiste ancora come file.
+**Nessuna spec in lavorazione.** Le nove precedenti sono tutte `done`. Le quattro nuove — [SPEC-010]…[SPEC-013] — sono in `backlog` e aspettano la tua approvazione; vedi *Lavoro immediato di M-02*.
 
 ## Done
 
@@ -103,12 +103,14 @@ Risolti, tutti il 2026-08-25 — **cinque su dieci**: [DEBT-001] con la run CI v
 
 Quattro fixture di frontiera pubblicate in `docs/protocol/README.md` dichiarano `invalid` casi che **oggi nessuna implementazione rifiuta**.
 
-### Ordine delle spec di M-02, rivisto dopo la passata di decisioni
+### Quattro spec redatte il 2026-08-25, in `backlog`, in attesa della tua approvazione
 
-1. **SPEC-012 — inventario degli artefatti pubblicati, `lifecycle_u8` ([DEBT-012]), [DEBT-008].** Era terza, è diventata **prerequisito**: due delle cinque decisioni cambiano artefatti pubblicati, la gate di [ADR-012] si applica, e quella gate non è eseguibile finché nessuno sa quale sia l'elenco su cui girare. [ADR-012] lo dice di sé — *la quarta occorrenza esiste perché quell'inventario non era mai stato fatto*.
-2. **SPEC-010 — `RewardBounds` e le tre regole in `coblox-core`**, più i valori decisi dall'operatore e l'intervallo di blocco di [ADR-013] nei documenti di protocollo. Criterio che la rende utile: **ogni fixture dichiarata `invalid` dev'essere rifiutata**. Una suite di soli casi validi la passerebbe anche un validatore che accetta tutto — è la precisazione n.3 di [ADR-012] applicata a se stessa.
-3. **SPEC-011 — verificatore Ed25519**, con i vettori 0–11 di `ed25519-speccheck` come gate. Isolata e dispatchabile in parallelo in qualunque momento. Raccomandazione di AGENT-001 in [SPEC-008]: *senza oracolo un verificatore crittografico è indistinguibile da uno corretto fino a una divisione della catena*.
-4. **SPEC-013 — separazione della chiave di trasporto**, attuazione di [ADR-015], **prima che la devnet emetta il primo certificato**.
+Gli ID seguono **l'ordine di esecuzione**, non quello della proposta iniziale. Tutte e quattro ad AGENT-001, che è l'autore del protocollo v0 e di `coblox-core` e quindi conosce entrambi i lati di ciascuna.
+
+1. **[SPEC-010] — Inventario degli artefatti pubblicati, codifica del `lifecycle`, precisione normativa.** `sol`/`extended`. **Prerequisito e non smaltimento**: la gate di [ADR-012] non è eseguibile finché l'elenco su cui girare non esiste, e [ADR-012] lo dice di sé — *la quarta occorrenza esiste perché quell'inventario non era mai stato fatto*. Chiude [DEBT-012] e [DEBT-008], e porta nei documenti l'intervallo di blocco di [ADR-013]. **L'inventario ha due metà e la seconda è quella che conta**: una verifica di completezza che fallisce se un artefatto presente nei documenti non compare nel manifesto — senza la quale il manifesto invecchia in silenzio esattamente come gli artefatti che deve sorvegliare.
+2. **[SPEC-011] — `RewardBounds` e le regole di validità economiche in `coblox-core`.** `sol`/`standard`. Chiude il divario fra documenti e codice lasciato da [SPEC-009]. Criterio portante: **ogni caso dichiarato `invalid` dev'essere rifiutato**, perché una suite di soli casi validi la passa anche un validatore che accetta tutto. Con una gate dedicata alla **direzione** del limite, che [REVIEW-014] indica come il punto in cui l'errore sarebbe facile e invisibile.
+3. **[SPEC-012] — Verificatore Ed25519 con i vettori speccheck come oracolo.** `sol`/`extended`. Isolata, dispatchabile in parallelo in qualunque momento, **prima di qualunque devnet**. Il suo rischio dichiarato è anche il suo possibile risultato migliore: **la tabella pubblicata dei dodici esiti non è mai stata eseguita da nessuno**, e se un esito diverge non è un fallimento della spec ma la ragione per cui esiste.
+4. **[SPEC-013] — Separazione della chiave di trasporto dalla chiave di identità.** `sol`/`extended`. Attua [ADR-015]. Scadenza dura: **prima che la devnet emetta il primo certificato**. Il primo passo del piano è tracciare cosa usava `libp2p_peer_id`, perché il Lead non l'ha fatto e lo dichiara.
 
 Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla forma delle API fissate da [SPEC-008]. Costruirli prima significherebbe poggiare il consenso su uno strato di firme che nessuno ha verificato e su un validatore di parametri che accetta genesi inammissibili.
 
