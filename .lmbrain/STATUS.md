@@ -15,6 +15,10 @@ updated: 2026-08-25
 
 Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007] tocca una promessa di prodotto ed è superabile se non concorda; e un proprio errore di processo è documentato in `.lmbrain/knowledge/commit-discipline.md`.
 
+**Ripresa del 2026-08-25, sessione successiva: la CI è verde e il repository è pubblico.** L'operatore ha sbloccato la fatturazione GitHub e reso pubblico il repository. La pipeline ha eseguito per la prima volta e ora passa su tutti e cinque i job; [DEBT-001] è chiuso. Il risultato che conta oltre il colore: **le tre rotture emerse non erano problemi di toolchain cross-platform**, cioè il rischio n.1 di [ADR-003], ma difetti di confezionamento del repository — due bit di esecuzione persi perché i file erano stati committati da Windows, e un ordine di step sbagliato nel workflow. Rust, NDK, cargo-ndk, UniFFI e Tauri hanno funzionato al primo tentativo utile su Windows e su Linux.
+
+Il passaggio a pubblico ha portato con sé il proprio lavoro di sicurezza, in parte fatto e in parte da decidere; vedi la sezione *Postura di sicurezza del repository pubblico*.
+
 ## Handoff attivo
 
 [HANDOFF-001] — consegna della sessione del 2026-08-25. Il Lead entrante lo legga per primo: contiene stato, decisioni prese su delega, debiti e prossime azioni.
@@ -35,7 +39,7 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 ## Done
 
 - [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
-- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` derogato e coperto da [DEBT-001]. Commit `81cca93`.
+- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` era derogato e coperto da [DEBT-001]. Commit `81cca93`. **Deroga rientrata il 2026-08-25:** la run 32821923135 sul commit `6b9ad1f` è verde su tutti e cinque i job, con `cargo fmt`, `clippy -D warnings` e `cargo-deny` eseguiti come step distinti e riusciti; [DEBT-001] è risolto. Ne è però emerso [DEBT-009]: quel `cargo-deny` non copre `apps/desktop/src-tauri`, escluso dal workspace.
 - [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
 
 ## Blockers and risks
@@ -43,7 +47,7 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 - **Il claim di sicurezza, nella forma che AGENT-007 giudica difendibile.** La rete è robusta contro la falsificazione ma **non** resistente ai Sybil per via crittografica, e tre cose non sono garantite: la disponibilità dell'enrollment sotto attacco sostenuto (i dispositivi lenti soffrono per primi), la resistenza Sybil crittografica, e la verifica indipendente dell'eleggibilità a validatore prima di M-02. Parole della reviewer: *"il progetto non deve chiamare la rete super-sicura senza quelle tre frasi accanto; con quelle accanto il claim è più solido della media a questo stadio, e la parte migliore non è nessun singolo meccanismo ma il fatto che i limiti siano quantificati."*
 - **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Da rivedere con l'operatore al risveglio:** è una decisione di prodotto presa in sua assenza e, se non concorda, va superata con una nuova ADR e non modificata in silenzio.
 - **Attenzione, decisione delegata di rilievo:** il progetto ora dichiara di essere robusto contro la falsificazione ma **non** resistente ai Sybil per via crittografica. È una rinuncia esplicita a una promessa, resa in cambio di onestà verificabile.
-- **BLOCCO 2 — risolto per ora con una deroga.** La prima run CI (commit `4ea0db9`) è fallita in 6 secondi **senza eseguire alcun job**: `The job was not started because recent account payments have failed or your spending limit needs to be increased`. Problema dell'account GitHub, non del codice. L'operatore ha concesso il 2026-08-25 la deroga su `GATE-CI-GREEN`, registrata come **[DEBT-001]** (open, owner AGENT-008, severità high). I criteri che richiedevano la verifica *in CI* sono marcati `[~] ... | waived=DEBT-001`; la verifica locale equivalente **non** è derogata. Alla ripresa della fatturazione, DEBT-001 impone una run verde e la ri-attestazione del gate.
+- **BLOCCO 2 — chiuso.** La prima run CI (commit `4ea0db9`) era fallita in 6 secondi **senza eseguire alcun job**, per la fatturazione dell'account GitHub e non per il codice; l'operatore aveva concesso la deroga su `GATE-CI-GREEN`, registrata come [DEBT-001]. Il 2026-08-25 la fatturazione è stata sbloccata, la pipeline ha eseguito e, dopo due giri di remediation, la run 32821923135 è verde su tutti i job. [DEBT-001] è **risolto**. I criteri di [SPEC-002] marcati `[~] ... | waived=DEBT-001` non sono più coperti da una deroga ma da una run reale.
 - Nome del token non ancora deciso (placeholder: `◇`). Lia propone JetBrains Mono come monospace: decisione dell'operatore.
 
 ## Debiti aperti
@@ -51,10 +55,12 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 | ID | Severità | Owner | Questione |
 | --- | --- | --- | --- |
 | [DEBT-005] | critical | AGENT-002 | Il set di validatori è auto-perpetuante: manca la regola di elezione. Nessuna devnet deve accumulare storia conservabile prima che sia scritta. |
-| [DEBT-001] | high | AGENT-008 | La pipeline CI non è mai stata eseguita, `GATE-CI-GREEN` derogato. Sbloccabile solo dalla fatturazione GitHub dell'operatore. |
+| [DEBT-009] | high | AGENT-008 | `cargo-deny` non vede il grafo di `apps/desktop/src-tauri`, escluso dal workspace: la CI riporta verde su dipendenze mai controllate. Già un advisory sfuggito (GHSA-wrw7-89jp-8q8g su `glib`). |
 | [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
 | [DEBT-007] | high | AGENT-002 | La forma del reddito di esistenza non è decisa e determina `α`, il parametro più importante dell'economia. |
 | [DEBT-008] | low | AGENT-001 | Due frasi della specifica del protocollo promettono poco più di quanto le regole impongano. Una riga ciascuna, M-02. |
+
+Risolti: [DEBT-001] il 2026-08-25, con la run CI verde 32821923135. È il primo debito chiuso del progetto.
 
 ## Next recommended actions
 
@@ -62,15 +68,36 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 
 1. **Rivedere [ADR-007]**, la decisione anti-Sybil presa su delega: riformula una promessa di prodotto. Se non concordi va superata con una nuova ADR, non modificata a mano.
 2. **Attestare `GATE-OPERATOR-LOOK`** guardando `.lmbrain/design/coblox-design-system/index.html`: è l'unico passo che separa SPEC-003 da `done`.
-3. **Sbloccare la fatturazione GitHub** per chiudere [DEBT-001] e far girare finalmente la pipeline.
+3. ~~Sbloccare la fatturazione GitHub~~ — **fatto il 2026-08-25**, [DEBT-001] chiuso.
 4. Decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
 
-5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. Vanno aggiunti al `.gitignore` oppure resi portabili.
+5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. Vanno aggiunti al `.gitignore` oppure resi portabili. **Ora più urgente:** il repository è pubblico e questi file restano untracked solo per disciplina manuale, non per una regola.
+6. **Decidere licenza e canale di disclosure** del repository pubblico: vedi la sezione seguente.
 
 **Per il Lead, in autonomia:**
 
 6. Alla consegna del Lotto B: verificare, poi chiedere ad AGENT-007 la ri-attestazione di `GATE-SECREVIEW` e chiudere SPEC-001. È l'ultima spec aperta di M-01.
 7. A ogni spec che passa a `done`: commit e push su `main`.
+
+## Postura di sicurezza del repository pubblico
+
+Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Quanto segue è lo stato verificato quel giorno.
+
+**Audit della storia dei commit: pulita.** Nessuna chiave, token o credenziale in nessun commit — scansionati i pattern `ghp_`, `gho_`, `github_pat_`, `sk-`, `AKIA`, e le intestazioni di chiave privata PEM. I file di configurazione degli harness, che contengono davvero percorsi assoluti e nome utente, non sono mai entrati in un commit. Unica esposizione residua, di severità bassa: le trascrizioni PowerShell delle evidenze in [SPEC-002] mostrano `E:\Git\CobloxNetwork` e `F:/dev/android-sdk`. Sono metadati di ambiente, senza username né email.
+
+**Attivato dal Lead il 2026-08-25, su autorizzazione esplicita dell'operatore:**
+
+- Secret scanning e **push protection** — quest'ultima è l'unico controllo che agisce in tempo, perché blocca un segreto prima che diventi pubblico anziché segnalarlo dopo.
+- Dependabot alerts e security updates. Hanno prodotto un risultato entro pochi minuti, che è come [DEBT-009] è stato scoperto.
+- Ruleset su `main` che vieta force-push e cancellazione del branch. Deliberatamente **non** richiede pull request: la strategia main-only con push diretto del Lead resta intatta.
+
+*Non* disponibile: `secret_scanning_non_provider_patterns` richiede GitHub Advanced Security e resta disabilitato sul piano attuale. In pratica significa che vengono riconosciuti i formati di segreto dei provider noti, non quelli inventati dal progetto — rilevante se in futuro Coblox definisse un proprio formato di chiave.
+
+**Aperto, e in attesa dell'operatore:**
+
+- **Nessuna `LICENSE`.** Un repository pubblico senza licenza è, per default legale, *tutti i diritti riservati*: nessuno può forkare, modificare o contribuire legalmente. Per un progetto che si fonda su una rete di nodi volontari è una contraddizione da sciogliere presto.
+- **Nessun `SECURITY.md`.** Non esiste un canale per segnalare una vulnerabilità in privato. Il progetto dichiara la sicurezza come proprietà portante e ora lo fa in pubblico, dove qualcuno può trovare qualcosa davvero.
+- **Le action di terze parti non sono pinnate a SHA.** Il workflow ne usa cinque per tag mutabile (`dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `EmbarkStudios/cargo-deny-action`, `android-actions/setup-android`, più le `actions/*` ufficiali). Un tag ripuntato dal manutentore, o un suo account compromesso, esegue codice arbitrario nel runner. Mitigazione già in essere: il `GITHUB_TOKEN` è di default in sola lettura e la CI non usa segreti, quindi oggi non c'è nulla da esfiltrare — la posta in gioco sale il giorno in cui la pipeline firmerà o pubblicherà artefatti.
 
 ## Strategia di branching
 
