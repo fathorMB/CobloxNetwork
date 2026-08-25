@@ -39,7 +39,7 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 ## Done
 
 - [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
-- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` era derogato e coperto da [DEBT-001]. Commit `81cca93`. **Deroga rientrata il 2026-08-25:** la run 32821923135 sul commit `6b9ad1f` è verde su tutti e cinque i job, con `cargo fmt`, `clippy -D warnings` e `cargo-deny` eseguiti come step distinti e riusciti; [DEBT-001] è risolto. Ne è però emerso [DEBT-009]: quel `cargo-deny` non copre `apps/desktop/src-tauri`, escluso dal workspace.
+- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` era derogato e coperto da [DEBT-001]. Commit `81cca93`. **Deroga rientrata il 2026-08-25:** la run 32821923135 sul commit `6b9ad1f` è verde su tutti e cinque i job, con `cargo fmt`, `clippy -D warnings` e `cargo-deny` eseguiti come step distinti e riusciti; [DEBT-001] è risolto. Ne era però emerso [DEBT-009] — quel `cargo-deny` non copriva `apps/desktop/src-tauri`, escluso dal workspace — **anch'esso risolto lo stesso giorno** con la run 32833295352, che aggiunge il gate sul grafo della shell desktop.
 - [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
 
 ## Blockers and risks
@@ -55,12 +55,11 @@ Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo ga
 | ID | Severità | Owner | Questione |
 | --- | --- | --- | --- |
 | [DEBT-005] | critical | AGENT-002 | Il set di validatori è auto-perpetuante: manca la regola di elezione. Nessuna devnet deve accumulare storia conservabile prima che sia scritta. |
-| [DEBT-009] | high | AGENT-008 | `cargo-deny` non vede il grafo di `apps/desktop/src-tauri`, escluso dal workspace: la CI riporta verde su dipendenze mai controllate. Già un advisory sfuggito (GHSA-wrw7-89jp-8q8g su `glib`). |
 | [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
 | [DEBT-007] | high | AGENT-002 | La forma del reddito di esistenza non è decisa e determina `α`, il parametro più importante dell'economia. |
 | [DEBT-008] | low | AGENT-001 | Due frasi della specifica del protocollo promettono poco più di quanto le regole impongano. Una riga ciascuna, M-02. |
 
-Risolti: [DEBT-001] il 2026-08-25, con la run CI verde 32821923135. È il primo debito chiuso del progetto.
+Risolti, entrambi il 2026-08-25: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
 
 ## Next recommended actions
 
@@ -72,7 +71,7 @@ Risolti: [DEBT-001] il 2026-08-25, con la run CI verde 32821923135. È il primo 
 4. Decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
 
 5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. Vanno aggiunti al `.gitignore` oppure resi portabili. **Ora più urgente:** il repository è pubblico e questi file restano untracked solo per disciplina manuale, non per una regola.
-6. **Decidere licenza e canale di disclosure** del repository pubblico: vedi la sezione seguente.
+6. **Decidere sulla `LICENSE`**: il canale di disclosure è fatto (`SECURITY.md`), ma il repository pubblica crate che dichiarano `Apache-2.0` senza un file che conceda quella licenza. Vedi la sezione seguente.
 
 **Per il Lead, in autonomia:**
 
@@ -90,14 +89,16 @@ Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Qu
 - Secret scanning e **push protection** — quest'ultima è l'unico controllo che agisce in tempo, perché blocca un segreto prima che diventi pubblico anziché segnalarlo dopo.
 - Dependabot alerts e security updates. Hanno prodotto un risultato entro pochi minuti, che è come [DEBT-009] è stato scoperto.
 - Ruleset su `main` che vieta force-push e cancellazione del branch. Deliberatamente **non** richiede pull request: la strategia main-only con push diretto del Lead resta intatta.
+- **Pin a SHA di tutte le action di terze parti**, tredici occorrenze, con la versione leggibile in commento. Il caso peggiore era `dtolnay/rust-toolchain@1.96.0`, che non è un tag ma un **branch**, quindi ripuntabile con un commit qualsiasi. Completato da `.github/dependabot.yml`, che propone il refresh in un solo pull request settimanale in batch: un pin non invecchia in un modo che GitHub segnali come vulnerabile, smette solo di ricevere le correzioni in silenzio, quindi il refresh è la seconda metà della difesa e non un extra. Il ciclo ha già girato una volta: [PR #1](https://github.com/fathorMB/CobloxNetwork/pull/1), quattro action con salti di major, verificata verde e mergiata su richiesta dell'operatore. Ha eliminato anche i warning di deprecazione Node 20.
+- **Private vulnerability reporting** abilitato, e `SECURITY.md` che lo documenta. Nessun indirizzo email esposto — è un bersaglio di spam e un punto singolo di rottura, mentre il canale di GitHub dà una discussione privata tracciata. Il documento dichiara per iscritto i limiti noti invece di lasciarli scoprire: rete non resistente ai Sybil per via crittografica ([ADR-007]), set di validatori auto-perpetuante in v0 ([DEBT-005]), e advisory derogati con la loro condizione di riesame.
 
 *Non* disponibile: `secret_scanning_non_provider_patterns` richiede GitHub Advanced Security e resta disabilitato sul piano attuale. In pratica significa che vengono riconosciuti i formati di segreto dei provider noti, non quelli inventati dal progetto — rilevante se in futuro Coblox definisse un proprio formato di chiave.
 
 **Aperto, e in attesa dell'operatore:**
 
-- **Nessuna `LICENSE`.** Un repository pubblico senza licenza è, per default legale, *tutti i diritti riservati*: nessuno può forkare, modificare o contribuire legalmente. Per un progetto che si fonda su una rete di nodi volontari è una contraddizione da sciogliere presto.
-- **Nessun `SECURITY.md`.** Non esiste un canale per segnalare una vulnerabilità in privato. Il progetto dichiara la sicurezza come proprietà portante e ora lo fa in pubblico, dove qualcuno può trovare qualcosa davvero.
-- **Le action di terze parti non sono pinnate a SHA.** Il workflow ne usa cinque per tag mutabile (`dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `EmbarkStudios/cargo-deny-action`, `android-actions/setup-android`, più le `actions/*` ufficiali). Un tag ripuntato dal manutentore, o un suo account compromesso, esegue codice arbitrario nel runner. Mitigazione già in essere: il `GITHUB_TOKEN` è di default in sola lettura e la CI non usa segreti, quindi oggi non c'è nulla da esfiltrare — la posta in gioco sale il giorno in cui la pipeline firmerà o pubblicherà artefatti.
+- **Il file `LICENSE` manca, ma la licenza non è indecisa.** Il `Cargo.toml` del workspace dichiara `license = "Apache-2.0"` dal bootstrap, e ora lo dichiara anche `coblox-desktop`. La questione non è quindi *quale* licenza — quella scelta è già nei metadati — ma che **il repository pubblica crate che dichiarano Apache-2.0 senza concedere quella licenza a nessuno**, perché il file che la concede non esiste. È una contraddizione, non una casella vuota, e va sciolta con un file `LICENSE` o con una decisione diversa da registrare anche nei manifest. Serve solo la conferma dell'operatore.
+
+**Chiuso rispetto alla rilevazione iniziale:** il pin a SHA delle action, i file di configurazione degli harness ora esclusi da regola in `.gitignore` invece che per disciplina manuale, il canale di disclosure, e la copertura `cargo-deny` sulla shell desktop ([DEBT-009]).
 
 ## Strategia di branching
 
