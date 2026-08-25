@@ -2,7 +2,7 @@
 id: SPEC-009
 # Note: Quote the title if it contains a colon
 title: "Attuazione di ADR-010 e ADR-011: RewardBounds, regole di validita economiche, claim in due regimi"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: token-economy
@@ -32,6 +32,8 @@ activity:
     action: "set effort"
   - date: 2026-08-25
     action: "set tags"
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
 # Attuazione di ADR-010 e ADR-011: RewardBounds, regole di validità economiche, claim in due regimi
 
