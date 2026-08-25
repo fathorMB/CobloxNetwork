@@ -95,10 +95,14 @@ jobs:
       # Run its own fmt/clippy gate once, on Linux, to keep it covered.
       - if: runner.os == 'Linux'
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - if: runner.os == 'Linux'
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
       - run: npm ci
       - run: npm run build
+      # clippy has to run after `npm run build`: `tauri::generate_context!`
+      # resolves `frontendDist` (apps/desktop/dist) at macro-expansion time and
+      # panics when that directory is missing, so src-tauri cannot be compiled
+      # -- and therefore cannot be linted -- before the frontend bundle exists.
+      - if: runner.os == 'Linux'
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
       - run: npm run tauri -- build --no-bundle
       - name: Verify core version command is compiled into the desktop shell
         run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features core_version -- --nocapture
