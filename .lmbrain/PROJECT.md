@@ -41,7 +41,13 @@ Ogni utente riceve un **reddito di esistenza** di base per la sola presenza dimo
 - Trasferimenti diretti di token utente→utente (non previsti; riaprire solo con ADR dedicato).
 - iOS/macOS (valutabili in futuro, non in scope ora).
 - Container OCI come runtime app (eventuale tier futuro, [ADR-004]).
-- Mining/proof-of-work continuo di qualsiasi tipo.
+- **Mining, cioè lavoro il cui costo è il meccanismo** ([ADR-008]). L'esclusione colpisce il lavoro in cui bruciare risorse *è* l'evidenza: chi partecipa razionalmente scala la spesa senza limite, e il budget di sicurezza della rete finisce per coincidere con la sua dissipazione. Non colpisce il lavoro il cui *prodotto* è il meccanismo — la risorsa sarebbe stata spesa comunque per servire la rete, e la challenge si limita a campionarla. Le challenge di [ADR-002] e l'ancoraggio dell'eleggibilità a validatore a storage e compute di [ADR-007] stanno da questa parte e sono ammessi.
+
+  **Il test.** Una proposta ricade nell'esclusione se soddisfa anche una sola delle prime due condizioni, e non è ammissibile su nodi mobili se non soddisfa la terza. Ogni ADR o spec che introduca una nuova forma di lavoro remunerato deve dichiarare l'esito dei tre punti.
+
+  1. **Limite.** Se un nodo può guadagnare di più spendendo di più *senza che la rete abbia bisogno di più*, è mining. I blocchi da custodire e i task da eseguire hanno un tetto dato dalla domanda; gli hash da calcolare no.
+  2. **Spreco.** Se quel lavoro smettesse di essere svolto, un servizio visibile all'utente si degraderebbe? Se no, il lavoro era il fine e non il mezzo.
+  3. **Batteria.** Il lavoro è campionabile entro una finestra di risposta ampia, che consenta a un dispositivo mobile di accorpare i risvegli senza poterne anticipare l'istante di emissione (`SEC-REQ-17`)? Un lavoro che pretende presenza continua a bassa latenza non è proponibile su nodi mobili, comunque vadano i punti 1 e 2.
 
 ## Constraints
 
