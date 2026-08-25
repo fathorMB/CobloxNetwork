@@ -7,5 +7,12 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[dependencies]
+# SHA-256 is the only cryptographic primitive this crate needs: the protocol
+# uses it for every identifier, commitment and Merkle tree. RustCrypto's `sha2`
+# is used rather than a hand-rolled compression function because a consensus
+# hash must be exactly right and this implementation is widely reviewed.
+sha2 = { version = "0.11.0", default-features = false }
+
 [lints]
 workspace = true
