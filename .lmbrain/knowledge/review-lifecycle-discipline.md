@@ -45,3 +45,15 @@ Se qualcosa resta lì mentre la spec sta per chiudersi, o quella review va chius
 ## Cosa c'era di buono sotto il difetto
 
 Le tre review appese contengono il materiale migliore prodotto sul protocollo v0, ed è la ragione per cui la disposizione è stata scelta caso per caso invece che in blocco. In `REVIEW-007` la reviewer scrive che una **propria** condizione di chiusura era sbagliata e che la forma alternativa scelta dall'implementatore era migliore della sua. Quel tipo di annotazione è il valore vero di una review, e va conservato con lo stato che dice il vero su come quel giro si è concluso.
+
+## Scrivere gate soddisfacibili da chi deve soddisfarle
+
+Aggiunta il 2026-08-25, da un difetto di scrittura del Lead in [SPEC-008].
+
+`GATE-CI-GREEN` di quella spec chiedeva la pipeline verde **«sul commit consegnato»** ed era dichiarata `owner=agent`. Ma il dispatch vieta agli specialisti di committare e pushare: non esiste un commit consegnato, e nessun agente poteva soddisfarla. AGENT-001 ha rifiutato di spuntarla, ha forzato `spec_submit` registrandone la ragione, e ha eseguito localmente ogni comando dei cinque job che la sua macchina poteva eseguire dichiarando i tre che non poteva. È la condotta corretta: spuntarla sarebbe stato falso.
+
+**La regola.** Una gate `owner=agent` non può richiedere un'azione che il ruolo di quell'agente ha vietato. Prima di dichiarare una gate, verificare che il suo proprietario abbia i permessi per soddisfarla — la strategia di branching vieta agli specialisti commit e push, quindi qualunque gate che dipenda da un commit, da una run di CI o da un artefatto pubblicato è `owner=lead`, mai `owner=agent`.
+
+**La conseguenza sullo stato.** Quella casella resta **non spuntata** e `lmbrain_validate` segnala un `verification-unresolved` su una spec `done`. È lasciata così deliberatamente: spuntarla attribuirebbe all'agente un'azione che non ha compiuto e che non poteva compiere. La gate è stata chiusa dal Lead sulla pipeline reale — run 32856348095 sul commit `27187e7`, verde su tutti e cinque i job — e il fatto è registrato in [REVIEW-012], finding RF-002.
+
+Chi ritrovi quella segnalazione non la corregga spuntando la casella: la segnalazione **dice il vero**, ed è il residuo di un difetto del Lead, non dell'implementatore.
