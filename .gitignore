@@ -42,3 +42,7 @@ Thumbs.db
 .pi/
 .mcp.json
 opencode.json
+
+# Python bytecode cache (simulatore economico in sim/)
+__pycache__/
+*.py[cod]

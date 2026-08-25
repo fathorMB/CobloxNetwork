@@ -1,0 +1,120 @@
+Coblox economic simulator — SPEC-007
+seed: SPEC-007/coblox-economic-simulator/v1
+deterministic: every draw is SHA-256 of (seed, stream, index); no RNG state,
+so the figures are reproducible across Python versions and platforms.
+
+==============================================================================
+GATE-MODEL-VALIDATED — the model reproduces the arithmetic of [ADR-007]
+==============================================================================
+Scenario: N = 10 000 emulated identities against H = 1 000 honest nodes.
+Expected (verified independently by the Lead): 90,9 % at alpha=1, 9,1 % at alpha=0,1.
+
+  alpha  observed alpha   captured   expected   verdict
+   1.00        1.000000   90.9091%   90.9091%      PASS
+   0.10        0.100000    9.0909%    9.0909%      PASS
+
+The figures are not the formula restated: the model mints one epoch node by
+node under the ledger's own rule (amount = F // E, remainder discarded and
+never minted) and then sums who received what.
+
+GATE-MODEL-VALIDATED: PASS
+
+==============================================================================
+GATE-CONSTRAINTS — the recommended combination against the constraint block
+==============================================================================
+parameter set: coblox-v0-genesis-candidate
+V = 27   T = 9   c = 3   m = 3   cooldown = 2   min_set = 18
+
+  [PASS] 0 < validator_min_set_size <= V <= validator_max_set_size 0 < 18 <= 27 <= 45
+  [PASS] election_entropy_blocks >= 2                         720 >= 2
+  [PASS] candidacy_close_blocks > election_entropy_blocks     17280 > 720
+  [PASS] election_epoch_blocks > candidacy_close_blocks       120960 > 17280
+  [PASS] T >= 1 and validator_cooldown_epochs >= 1            9 >= 1 and 2 >= 1
+  [PASS] validator_cooldown_epochs <= T                       2 <= 9
+  [PASS] validator_eligibility_window_epochs >= 1             28 >= 1
+  [PASS] ceil(V / T) <= c                                     ceil(27/9) = 3 <= 3
+  [PASS] 3 * c < V                                            3*3 = 9 < 27
+  [PASS] 3 * c * m <= V                                       3*3*3 = 27 <= 27
+  [PASS] storage_units_per_contribution_unit > 0              1073741824 > 0
+  [PASS] compute_units_per_contribution_unit > 0              1000000 > 0
+  [PASS] validator_eligibility_min_issuers >= 2               3 >= 2
+  [PASS] election_epoch_blocks <= election_epoch_blocks_max   120960 <= 241920
+  [PASS] T <= validator_max_consecutive_terms_max             9 <= 12
+  [PASS] validator_max_set_size <= validator_max_set_size_max 45 <= 81
+  [PASS] validator_min_set_size >= validator_min_set_size_min 18 >= 18
+  [PASS] m >= validator_min_capture_epochs_min                3 >= 3
+  [PASS] change_numerator > change_denominator > 0            5 > 4 > 0
+  [PASS] election_parameter_min_activation_gap_blocks > 0     120960 > 0
+  [PASS] rate of change vs active document                    genesis document: no active document to compare against
+  [PASS] activation_height spacing                            genesis document: no previous activation height
+  [PASS] T_new >= T_active                                    genesis document: no active T
+
+  constraint block (genesis document): PASS
+
+After the [DEBT-010] ratchet pushes T to its genesis ceiling (12):
+  [PASS] 0 < validator_min_set_size <= V <= validator_max_set_size 0 < 18 <= 27 <= 45
+  [PASS] election_entropy_blocks >= 2                         720 >= 2
+  [PASS] candidacy_close_blocks > election_entropy_blocks     17280 > 720
+  [PASS] election_epoch_blocks > candidacy_close_blocks       120960 > 17280
+  [PASS] T >= 1 and validator_cooldown_epochs >= 1            12 >= 1 and 2 >= 1
+  [PASS] validator_cooldown_epochs <= T                       2 <= 12
+  [PASS] validator_eligibility_window_epochs >= 1             28 >= 1
+  [PASS] ceil(V / T) <= c                                     ceil(27/12) = 3 <= 3
+  [PASS] 3 * c < V                                            3*3 = 9 < 27
+  [PASS] 3 * c * m <= V                                       3*3*3 = 27 <= 27
+  [PASS] storage_units_per_contribution_unit > 0              1073741824 > 0
+  [PASS] compute_units_per_contribution_unit > 0              1000000 > 0
+  [PASS] validator_eligibility_min_issuers >= 2               3 >= 2
+  [PASS] election_epoch_blocks <= election_epoch_blocks_max   120960 <= 241920
+  [PASS] T <= validator_max_consecutive_terms_max             12 <= 12
+  [PASS] validator_max_set_size <= validator_max_set_size_max 45 <= 81
+  [PASS] validator_min_set_size >= validator_min_set_size_min 18 >= 18
+  [PASS] m >= validator_min_capture_epochs_min                3 >= 3
+  [PASS] change_numerator > change_denominator > 0            5 > 4 > 0
+  [PASS] election_parameter_min_activation_gap_blocks > 0     120960 > 0
+  [PASS] rate of change vs active document                    genesis document: no active document to compare against
+  [PASS] activation_height spacing                            genesis document: no previous activation height
+  [PASS] T_new >= T_active                                    genesis document: no active T
+
+  constraint block (T at ceiling): PASS
+
+Coupling 1, executed rather than quoted: is any (V, c) satisfiable for a
+given term limit T at m = 1?  ledger.md claims T <= 3 is unsatisfiable at
+every set size; brute force over V in [1, 399]:
+
+    T  satisfiable  smallest V
+    1        False        None
+    2        False        None
+    3        False        None
+    4         True           4
+    5         True           4
+    6         True           4
+    7         True           4
+    8         True           4
+    9         True           4
+   10         True           4
+   11         True           4
+   12         True           4
+   13         True           4
+   14         True           4
+   15         True           4
+   16         True           4
+
+  T >= max(4, 3m) coupling reproduced: PASS
+
+Coupling 2: the declared capture horizon m bounds the term limit from below.
+    m   smallest T that admits any V
+    1                              4
+    2                              6
+    3                              9
+    4                             12
+    5                             15
+    6                             18
+
+GATE-CONSTRAINTS: PASS
+
+==============================================================================
+Gate summary
+==============================================================================
+GATE-MODEL-VALIDATED : PASS
+GATE-CONSTRAINTS     : PASS

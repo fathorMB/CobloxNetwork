@@ -1817,9 +1817,9 @@ verifica `GATE-LEAD-MAP`.
 | `SEC-REQ-13` | La regola di elezione dei validatori è scritta, deterministica a partire da casualità finalizzata su un insieme di eleggibili calcolabile da chiunque, con tetto di rotazione per epoca e con impegno nel header che ne consenta il ricalcolo a posteriori; l'equivocazione di un validatore è una transazione di evidenza sanzionabile | `AT-09`, `AT-10` | **M-02: coperto in specifica** da [SPEC-006] (`ledger.md` §"Validator election and rotation"), **in dipendenza da `SEC-REQ-14`**: la regola di elezione non è più forte dei limiti che vincolano i parametri che la definiscono, e finché quei parametri non hanno intervallo firmato alla genesi e variazione massima per epoca la copertura è condizionale. [SPEC-006] soddisfa quella dipendenza per i soli parametri di elezione, tramite l'oggetto `ElectionBounds` del trust anchor; `SEC-REQ-14` resta aperto per gli altri parametri governati. M-07 (rotazione automatica e sanzione dell'equivocazione) resta aperto | AGENT-002 | TM-09, TM-15, TM-17, TM-18 |
 | `SEC-REQ-14` | Ogni parametro governabile ha un intervallo ammissibile firmato alla genesi e una variazione massima per epoca; le modifiche hanno un ritardo di attivazione dichiarato | Fixture: un blocco che attiva un parametro fuori intervallo o oltre la variazione massima è invalido | M-02 | AGENT-002 | TM-19, TM-35 |
 | `SEC-REQ-15` | Per ogni `(app_id, reward_epoch)` vale `publisher_reward ≤ k × Σ(burn di abbonamento conteggiati nella radice)` con `k < 1` fissato nei parametri firmati, imposto dai validatori come regola di validità | `AT-11`: fixture al confine di `k` | M-02 | AGENT-002 | TM-22, [RF-007] |
-| `SEC-REQ-16` | Il simulatore economico verifica ed espone nel proprio rapporto: (a) la frazione `α` dell'emissione che passa dal canale availability/esistenza; (b) la relazione `E_p` contro `S(1−k)` di §6.3; (c) la quota di emissione catturabile da `N` identità emulate | Il rapporto del simulatore contiene le tre grandezze con i valori tarati; review del Lead | M-02 | AGENT-002 | §6.2, §6.3, TM-08, TM-22 |
+| `SEC-REQ-16` | Il simulatore economico verifica ed espone nel proprio rapporto: (a) la frazione `α` dell'emissione che passa dal canale availability/esistenza; (b) la relazione `E_p` contro `S(1−k)` di §6.3; (c) la quota di emissione catturabile da `N` identità emulate | Il rapporto del simulatore contiene le tre grandezze con i valori tarati; review del Lead | **M-02: coperto** da [SPEC-007], rapporto in `knowledge/economic-simulation-report.md` §7, simulatore in `sim/`. (a) `α = 0,15`, banda [0,10–0,20], `X = 20 %`; (b) margine di reputazione **≈ 3 finti abbonati per nodo controllato per periodo** a 30 cr di abbonamento — non i 50× stimati da cifre illustrative — e **non chiudibile per taratura**: resta aperto sulle opzioni 2 e 3 di §6.3 sotto [ADR-006]; (c) 14,851 % a `N=10⁴`, `H=100`, sotto il tetto `X` per costruzione | AGENT-002 | §6.2, §6.3, TM-08, TM-22 |
 | `SEC-REQ-17` | La `randomness` di challenge e l'assegnazione emittente→soggetto derivano da casualità finalizzata con impegno pubblicato prima della selezione, sono ricalcolabili da chiunque, e ogni soggetto è coperto da almeno due emittenti indipendenti per epoca | `AT-12`; più un test statistico sul log di una devnet che verifichi l'imprevedibilità degli istanti per il soggetto | M-03 | AGENT-002, AGENT-001 | TM-05, TM-13, TM-14, [RF-013] |
-| `SEC-REQ-18` | L'emissione del reddito di esistenza è ripartita da un fondo a tetto per epoca; la frazione `α` è un parametro pubblicato e sorvegliato; il valore atteso di un custode cresce strettamente con la frazione di dati realmente conservati | `AT-07`; per la seconda parte, `AT-12` parte B (simulazione del custode parziale con esito monotono) | M-03 (fondo ed `α`), M-05 (custode parziale) | AGENT-002 | TM-01, TM-02, TM-08 |
+| `SEC-REQ-18` | L'emissione del reddito di esistenza è ripartita da un fondo a tetto per epoca; la frazione `α` è un parametro pubblicato e sorvegliato; il valore atteso di un custode cresce strettamente con la frazione di dati realmente conservati | `AT-07`; per la seconda parte, `AT-12` parte B (simulazione del custode parziale con esito monotono) | **Fondo ed `α`: fissati** da [SPEC-007] ([DEBT-007] chiuso). Ripartizione **uniforme**, già regola di validità in `ledger.md` (`amount = F/E`), confermata con l'argomento sulla cattura per numerosità; tetto di genesi `F = 15.882.352.941` µt per epoca di un giorno; `α = 0,15` sorvegliata in [0,10–0,20] con regola di governance di `F` al 5/4 per documento. **Limite dichiarato:** la banda non può valere alla genesi, dove `W ≈ 0` e quindi `α ≈ 1` qualunque sia `F`; vincola da una soglia d'uso dichiarata (25 % dell'uso di riferimento), sotto la quale si pubblica l'importo assoluto dirottato. `AT-07` superato. Custode parziale resta M-05 | AGENT-002 | TM-01, TM-02, TM-08 |
 | `SEC-REQ-19` | Un host valuta automaticamente ogni assegnazione contro una politica dichiarata (capability, tetti, origini, capacità): dentro la politica è accettazione, fuori è **rifiuto**, mai concessione; l'operatore può vedere in ogni momento quali `app_id` ospita e con quali capability | Test: un'assegnazione fuori politica su un host headless produce rifiuto e non esecuzione | M-06 | AGENT-003 | TM-23, TM-24, TM-25, [RF-015] |
 | `SEC-REQ-20` | `http_fetch` risolve il nome una sola volta, valida tutti gli indirizzi risultanti contro le classi vietate, si connette all'indirizzo validato senza ri-risolvere, applica la stessa validazione a ogni redirect, e imputa durata e byte ai limiti dichiarati | Vettore con un nome che cambia risoluzione fra validazione e connessione | M-06 | AGENT-003 | [RF-018] |
 | `SEC-REQ-21` | La lista di blocco di rete è un oggetto di protocollo firmato con quorum, con motivo tra categorie chiuse, impegno all'evidenza, **scadenza obbligatoria**, distinzione fra blocco dell'app e blocco del publisher, e visibilità per il light client; un blocco non distrugge i token già versati né è retroattivo | Review del Lead sullo schema; test che un blocco senza scadenza è rifiutato | M-06 | AGENT-002 | TM-33, TM-34, [RF-017] |
@@ -1840,6 +1840,27 @@ Definizione, non esecuzione. Ogni test dichiara preparazione, procedura e **crit
 di superamento binario**, perché AGENT-001 e AGENT-002 possano implementarlo senza
 reinterpretarlo. Dove il criterio dipende da un parametro non ancora tarato, il
 parametro è nominato e il test verifica la *relazione*, non un valore.
+
+> **Convenzione di scrittura dei criteri di superamento** (aggiunta 2026-08-25,
+> AGENT-007, [REVIEW-011] RF-004). Un criterio di superamento deve essere una
+> **disuguaglianza contro un parametro pubblicato** oppure una **proprietà imposta da
+> una regola di validità nominata**. Un criterio che esprime un esito desiderato
+> senza nominare la regola che lo produce non è un criterio: è un'aspirazione, e va
+> marcato come tale finché non lo diventa.
+>
+> La convenzione è scritta perché la sua assenza è già costata due volte, entrambe su
+> `AT-10`: «la coalizione non arriva mai al 100 % sotto i due terzi» e «l'attaccante
+> non raggiunge 1/3 entro 50 epoche» sono entrambe affermazioni assolute su una
+> grandezza *emergente*, formulate prima che esistesse la regola che quella grandezza
+> produce, e nessuna delle due nomina una regola. Un criterio così non è falsificabile
+> in fase di scrittura — lo è solo quando la simulazione lo smentisce, e a quel punto
+> **lo smentisce addosso a chi implementa** invece che a chi ha scritto la specifica.
+> Il modo di fallire era già nominato in questo documento e la nota da sola non è
+> bastata.
+>
+> Seguito registrato: la convenzione va passata **una volta su tutti gli `AT-*`
+> esistenti**, per scoprire eventuali terze occorrenze prima che sia una simulazione a
+> farlo. Non è stato fatto in [SPEC-007], che aveva scope diverso.
 
 | ID | Nome | Milestone | Owner |
 | --- | --- | --- | --- |
@@ -1914,6 +1935,36 @@ dalla flotta; (e) tempo e costo hardware impiegati per produrre le `N` identità
 (d) esattamente **zero**; (b) non superiore alla soglia dichiarata nella metrica
 scelta. Il test **non** può essere superato dichiarando che (b) è zero: la misura va
 riportata comunque, ed è il numero che il progetto deve pubblicare.
+
+> **Valutazione contro i valori tarati di [SPEC-007] (2026-08-25, AGENT-002).** Esito:
+> **superato in simulazione su tutti e quattro i criteri**, con `α = 0,15`, `X` dichiarato
+> pari al **20 %** e `H = 100` contro `N = 10.000`. Misure: (a) emissione totale
+> 105.882.352.900 µt senza flotta contro 105.882.351.000 µt con la flotta — non
+> aumentata, e leggermente **minore** per il resto della divisione intera che il fondo
+> a tetto scarta; (b) quota della flotta **14,851 %**, sotto `X`; (c) accrediti in
+> `storage` e `compute` **zero**; (d) seggi di validatore **zero**. Il criterio (d)
+> tiene per la regola e non per fortuna: `contribution_score` conta l'evidenza
+> `availability` come zero, quindi una flotta che si limita a firmare ha punteggio 0 e
+> fallisce la condizione di eleggibilità 3 a qualunque soglia positiva.
+>
+> *Il numero che il progetto deve pubblicare, e che questo test rende obbligatorio:*
+> sotto quell'attacco il nodo onesto di sola availability conserva lo **0,99 %** del
+> proprio reddito. Quel rapporto è `H/(N+H)` e **non contiene `α`**: abbassare `α`
+> riduce la percentuale catturata dall'attaccante e riduce il reddito dell'onesto dello
+> stesso fattore, quindi non migliora di nulla la perdita dell'utente. È la
+> qualificazione che mancava alla leva di §6.2 ed è portata qui perché la misura (b),
+> presa da sola, la nasconde.
+>
+> *Un valore che il test obbliga a fissare a zero.* `work_compensation` con
+> `work_kind = "availability"` è un importo **per nodo senza tetto**, e
+> `RewardPolicyBody` porta la tariffa `availability_microtokens_per_unit` senza che
+> alcuna regola vieti un valore positivo. Con una tariffa positiva la stessa prova dà
+> un'emissione totale che passa da 205.882.352.900 a 10.205.882.351.000 µt: **il
+> criterio (a) fallisce e la flotta stampa**. Non è un difetto della regola e non serve
+> un'ADR — il campo resta e il valore deve essere `0` — ma uno zero non scritto è uno
+> zero che qualcuno più tardi alza «solo un po'», e questa riga è il posto in cui è
+> scritto. Se il progetto volesse renderlo non violabile per governance, servirebbe una
+> regola di validità nuova e quindi un'ADR.
 
 **`AT-08` — Prove precomputate.** *Preparazione:* un parameter set futuro non ancora
 attivo. *Procedura:* (i) minare prove per il set futuro e presentarle all'attivazione;
@@ -2029,6 +2080,155 @@ composizione del set è osservabile a ogni epoca da un light client.
 >    «uscita per qualunque ragione» la misura attesa è `validator_cooldown_epochs`;
 >    con la formulazione precedente, limitata alla scadenza del mandato, era **una**
 >    epoca, e il confronto fra le due misure è ciò che rende il test utile.
+
+> **Verdetto numerico di [SPEC-007] (2026-08-25, AGENT-002).** Il verdetto rinviato
+> dalla valutazione precedente è emesso qui, con `V = 27`, `c = 3`, `T = 9`, `m = 3` e
+> `validator_min_set_size = 18`. Esito: **superato su cinque criteri su sei; il sesto
+> non è soddisfacibile da alcuna rete operabile e va corretto, non ritarato.**
+>
+> *Configurazione 1, macinatura del seme — superata.* Attaccante che fornisce storage e
+> compute reali appena sopra la soglia, con `G = 128` ricampionamenti dell'ultimo blocco
+> della finestra, e **solo ai confini in cui detiene lo slot di proposta**, perché solo
+> un proposer può macinare. Riempimenti ottenuti su 50 confini, senza e con macinatura:
+> 12 → 13 a `N/H = 0,1`; 32 → 36 a `N/H = 1`; 31 → 27 a `N/H = 10`. Il guadagno resta
+> **sotto il tetto di rotazione di un singolo confine su 50 confini**: la macinatura
+> produce bias e mai scelta, che è esattamente ciò che `ledger.md` afferma.
+>
+> *Configurazione 2a, censura totale — superata.* Coalizione a 10 seggi su 27 (37,0 %):
+> la catena **si ferma al primo confine** sul pavimento di contrazione (`3·8 ≤ 2·27`).
+> La coalizione ottiene un arresto, mai il set.
+>
+> *Configurazione 2b, censura selettiva — superata, e con un risultato che il documento
+> non prevedeva.* Le misure: `k = 10` (37,0 %) e `k = 17` (63,0 %) contraggono il set
+> `27 → 19 → 18` e poi **si bloccano**, perché il pavimento e
+> `validator_min_set_size = 18` vietano un set più piccolo; la coalizione detiene
+> rispettivamente il 55,6 % e il 94,4 % del set e **non ottiene mai l'intero set**.
+> Solo da `k = 18 = 2V/3` in su la cattura si completa, in **2 confini** a `k = 18` e in
+> **1** a `k = 19`. Ne segue che `validator_min_set_size` **sta facendo lavoro
+> anti-cattura che `ledger.md` attribuisce al solo pavimento di contrazione**: la
+> conclusione «la soglia effettiva di cattura resta appena sopra un terzo» è esatta del
+> pavimento preso da solo, e portare il minimo del set a `2V/3` la alza a due terzi,
+> punto oltre il quale la safety BFT è già caduta e nessuna regola di composizione
+> stava più promettendo niente. Il prezzo è liveness ed è misurato: il set non può
+> contrarsi sotto 18, quindi **tre** confini consecutivi con pool di riempimento vuoto
+> fermano la catena invece di cinque. **È un'affermazione di sicurezza prodotta da una
+> spec di taratura e va rivista come tale.** Nota metodologica: la formula continua
+> predice meno confini della simulazione perché il pavimento è **stretto** — un set di
+> 27 scende a 19, non a 18 — e la cifra misurata, mai inferiore a quella della formula,
+> è quella da citare.
+>
+> *Configurazione 3, evasione del cooldown — superata.* Con
+> `validator_cooldown_epochs = 2`, l'assenza misurata è di **2 epoche** sia dopo la
+> scadenza del mandato sia dopo un'uscita volontaria un'epoca prima. Con la
+> formulazione precedente della condizione 5 l'uscita volontaria avrebbe misurato
+> **una** epoca: il confronto fra le due misure conferma che la riformulazione «per
+> qualunque ragione» fa il lavoro per cui è stata scritta.
+>
+> *Osservabilità della deriva — superata per costruzione*, come già stabilito.
+>
+> **Il criterio che fallisce, e perché va corretto invece che ritarato.** «L'attaccante
+> non raggiunge 1/3 entro 50 epoche» è **fallito** a `N/H = 1` (6 confini) e a
+> `N/H = 10` (4 confini). Non è un fallimento di taratura e **nessuna combinazione di
+> parametri lo ripara.** Il tempo per raggiungere un terzo **per ammissione** è
+> `ceil((V/3)/c)` confini nel caso migliore per l'attaccante, e il blocco di vincoli
+> impone `3·c·m ≤ V`, cioè `(V/3)/c ≥ m`. Il criterio letterale è quindi la richiesta
+> `m ≥ 50`, che per `T ≥ 3m` forza `T ≥ 150` e `c ≤ V/150`: un set di almeno 150
+> validatori che ruota **un** seggio per confine con mandati di 150 confini, cioè circa
+> tre anni a confini settimanali. Non è una rete operabile, ed è l'esatto contrario
+> dell'istruzione di [DEBT-010] di tenere il limite di mandato stretto quanto la rete
+> tollera. A ciò si aggiunge che l'orizzonte per **attrito** è fisso a tre confini e non
+> si allunga con alcun parametro, quindi anche un `m` enorme non comprerebbe il tempo
+> che il criterio chiede: lo comprerebbe su uno solo dei due percorsi.
+>
+> Questa è la **seconda** volta che un criterio di superamento di `AT-10` risulta
+> sbagliato invece che non soddisfatto — la prima era «la coalizione non arriva mai al
+> 100 % sotto i due terzi» — e la ragione per correggerlo è la stessa già scritta qui
+> sopra: *un criterio di test errato viene attribuito all'implementazione invece che
+> alla specifica*. La formulazione che la regola garantisce davvero, e che un light
+> client può verificare, è:
+>
+> > *Il tempo per raggiungere un terzo del potere di voto per ammissione non è
+> > inferiore ai `validator_min_capture_epochs` confini dichiarati; il tempo per
+> > raggiungerlo per attrito non è inferiore a `ceil(log(V/k)/log(3/2))` confini; la
+> > cattura per attrito è impossibile per una coalizione più piccola di
+> > `validator_min_set_size`; e la deriva della composizione è calcolabile da un light
+> > client a ogni confine.*
+>
+> **La correzione non è applicata qui.** Questo documento è di AGENT-007 e il criterio è
+> una scelta di prodotto sulla perdita dichiarata: [SPEC-007] emette il verdetto e
+> registra la proposta, e la decisione spetta al Lead e all'operatore, eventualmente con
+> un'ADR. Nessuna regola di protocollo cambia in nessuno dei due casi.
+
+> **Revisione di sicurezza di [SPEC-007] (2026-08-25, AGENT-007, [REVIEW-011]).** Due
+> qualificazioni alle misure sopra, entrambe verificate rieseguendo il simulatore del
+> progetto con parametri diversi da quelli raccomandati.
+>
+> *La chiusura della cattura per attrito sotto `2V/3` è una proprietà della
+> combinazione raccomandata, non una regola* ([REVIEW-011] RF-003). Il blocco di
+> vincoli impone `0 < validator_min_set_size <= V` e **nessuna regola lega il minimo a
+> `V`**, mentre la proprietà dipende dal loro rapporto. `validator_min_set_size_min = 18`
+> impedisce di abbassare il minimo, ma non di alzare `V`: con `c` e `m` congelati a 3
+> dal limite 5/4, `ceil(V/T) <= c` e `T <= 12` danno `V <= 36`, e **`V = 36` è
+> raggiungibile in due documenti leciti** (`V: 27 → 33 → 36`, `T: 9 → 11 → 12`),
+> distanziati da un'epoca di elezione, cioè circa 14 giorni. `check_constraint_block`
+> accetta lo stato finale riga per riga. Lì `2V/3 = 24 > 18`, e la simulazione di
+> censura selettiva dà cattura completa dell'intero set in 2 confini già a `k = 18`,
+> cioè al **50,0 % di `V`**. La soglia scende quindi da due terzi a una metà, e con
+> essa cade la rassicurazione che la reggeva: a `V = 27` la cattura si completava solo
+> oltre il punto in cui la safety BFT è già persa; a `V = 36` si completa dove non lo è
+> ancora. La chiusura proposta è un vincolo di accettazione nuovo,
+> `3 * validator_min_set_size >= 2 * V`, soddisfatto con uguaglianza dalla combinazione
+> raccomandata (`54 >= 54`) e quindi a costo zero oggi. È lavoro di protocollo e
+> un'ADR, fuori dallo scope di [SPEC-007].
+>
+> *`AT-07` è superato al regime d'uso di riferimento e non al regime di lancio*
+> ([REVIEW-011] RF-002). `α = F/(F+W)` è **osservata**, e al lancio `W ≈ 0` implica
+> `α ≈ 1` qualunque sia `F`: una flotta di 10 000 identità contro 100 nodi onesti
+> cattura allora circa il 99 % dell'emissione, contro il `X = 20 %` dichiarato dal
+> criterio (c) di [ADR-007]. `AT-07` è schedulato in M-03 su devnet, cioè proprio in
+> quel regime. Finché la soglia d'uso non è scritta dentro la formulazione di `X`, la
+> riga `AT-07` della matrice va letta come **parzialmente coperta**: superata sopra la
+> soglia d'uso dichiarata, non valutata sotto, dove la grandezza onesta è l'importo
+> assoluto dirottato e non il rapporto.
+
+### Soglia di partecipazione: dove la rete si ferma senza avversario
+
+*Aggiunta 2026-08-25, AGENT-007, [REVIEW-011] RF-007. Misure da
+`knowledge/economic-simulation-report.md` §6.*
+
+È la sola condizione nota in cui la rete perde liveness **senza che nessuno l'abbia
+attaccata**, e una perdita di disponibilità è dentro il perimetro di questo documento
+quanto una cattura. Alla combinazione raccomandata (`V = 27`, `T = 9`, `c = 3`,
+`cooldown = 2`, `validator_min_set_size = 18`):
+
+| pool stabile di candidati | esito |
+| --- | --- |
+| 0 | arresto in **3** confini, sotto `validator_min_set_size` |
+| 24 | arresto in **11** confini |
+| **30** | nessun arresto, il set si assesta a 21 seggi |
+| **36** (minimo aritmetico) | nessun arresto, tutti e 27 i seggi |
+
+**Grandezza da sorvegliare:** un pool stabile `>= 30` per non arrestarsi e `>= 36`
+per tenere `V` seggi — alla rete di riferimento, circa il **3 % dei contribuenti**
+disposto a candidarsi. Il minimo aritmetico 36 è `V` seduti più `ceil(V/T) = 3` in
+cooldown più 3 liberi per il riempimento.
+
+Due note che rendono il numero più fragile di come appare:
+
+- **il cooldown moltiplica l'effetto di una censura sul pool.** Censurare una
+  candidatura per una sola epoca rimuove quel nodo per `1 + validator_cooldown_epochs`
+  epoche, quindi il pool *efficace* sotto pressione avversariale è più piccolo di
+  quello nominale, proprio nella direzione in cui non c'è margine;
+- **la manopola correttiva non esiste.** `validator_churn_cap_seats = 3` e
+  `validator_cooldown_epochs = 2` sono **congelati per sempre** dal limite di
+  variazione 5/4 applicato a interi piccoli (intervallo lecito `[3,3]` e `[2,2]`): una
+  rete che si scoprisse il pool troppo sottile non può né alzare il tetto di
+  riempimento né accorciare il cooldown. La sola mossa residua è alzare `T`, che è il
+  cricchetto irreversibile di [DEBT-010].
+
+La decisione se promuovere questa soglia a `SEC-REQ` con un test d'attacco dedicato
+spetta al Lead; qui è registrata perché finora esisteva solo in un rapporto di
+taratura, e nessuno l'avrebbe osservata.
 
 **`AT-11` — Abbonati fittizi.** *Preparazione:* un publisher che controlla `N`
 identità enrollate e un'app con `microtokens_per_period = S`. *Procedura:* abbonare
