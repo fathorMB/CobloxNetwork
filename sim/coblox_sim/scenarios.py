@@ -915,7 +915,10 @@ class LaunchRegimeResult:
 
 
 def s11_at07_launch_regime(
-    honest: int = 100, fleet: int = 10_000, usage_fraction: float = 0.0
+    honest: int = 100,
+    fleet: int = 10_000,
+    usage_fraction: float = 0.0,
+    fund_microtokens: int | None = None,
 ) -> LaunchRegimeResult:
     """`AT-07` with the work channel where it is on day one, not where the
     reference regime puts it.
@@ -926,7 +929,11 @@ def s11_at07_launch_regime(
     quantity there; the absolute diverted amount is.
     """
 
-    F = R.REWARD.existence_fund_microtokens_per_epoch
+    F = (
+        R.REWARD.existence_fund_microtokens_per_epoch
+        if fund_microtokens is None
+        else fund_microtokens
+    )
     W = int(R.REFERENCE_WORK_CHANNEL_MICROTOKENS * usage_fraction)
     contributors = max(1, int(honest * R.REFERENCE_CONTRIBUTOR_FRACTION))
     res = run_epoch(

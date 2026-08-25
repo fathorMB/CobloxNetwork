@@ -18,7 +18,10 @@
 
 use coblox_core::hash::{ChainId, Digest32};
 use coblox_core::json::{Json, JsonObject};
-use coblox_core::params::{ConsensusParameters, ElectionBounds, ValidatedConsensusParameters};
+use coblox_core::params::{
+    ConsensusParameters, ElectionBounds, RewardBounds, RewardPolicy, ValidatedConsensusParameters,
+    ValidatedRewardPolicy,
+};
 
 /// "Fixture `HASH-0` uses 32 zero bytes for `chain_id`."
 ///
@@ -309,6 +312,130 @@ pub fn consensus_parameters_of(parameters: &ConsensusParameters) -> ValidatedCon
         .expect("the parameter fixture must satisfy the election constraint block")
 }
 
+/// The `PD-0` reward policy values, matching `reward_body_pd0()`.
+#[must_use]
+pub fn reward_policy_pd0() -> RewardPolicy {
+    RewardPolicy {
+        reward_epoch_ms: 1,
+        existence_fund_microtokens_per_epoch: 1,
+        availability_microtokens_per_unit: 0,
+        storage_microtokens_per_byte_epoch: 1,
+        compute_microtokens_per_million_fuel: 1,
+        publisher_microtokens_per_active_subscriber: 1,
+        publisher_reward_cap_numerator: 1,
+        publisher_reward_cap_denominator: 2,
+        storage_units_per_contribution_unit: 1,
+        compute_units_per_contribution_unit: 1,
+        validator_eligibility_threshold_units: 1,
+        validator_eligibility_window_epochs: 1,
+        validator_eligibility_min_issuers: 2,
+    }
+}
+
+/// Test-local `RewardBounds`, wide enough not to constrain a fixture.
+#[must_use]
+pub fn permissive_reward_bounds() -> RewardBounds {
+    RewardBounds {
+        network_id: "fixture".to_owned(),
+        chain_id: zero_chain_id(),
+        existence_fund_microtokens_per_epoch_max: 15_882_352_941,
+        reward_epoch_ms_min: 1,
+        reward_epoch_ms_max: 1_000_000_000,
+        publisher_reward_cap_numerator_max: 1,
+        publisher_reward_cap_denominator_min: 2,
+        validator_eligibility_threshold_units_min: 1,
+        validator_eligibility_window_epochs_max: 1_000,
+        validator_eligibility_min_issuers_min: 2,
+        storage_units_per_contribution_unit_max: 2_000_000_000,
+        compute_units_per_contribution_unit_max: 2_000_000,
+        storage_microtokens_per_byte_epoch_min: 1,
+        compute_microtokens_per_million_fuel_min: 1,
+        reward_parameter_change_numerator: 5,
+        reward_parameter_change_denominator: 4,
+        reward_parameter_min_activation_gap_blocks: 100,
+    }
+}
+
+/// An unsigned `reward_policy` document carrying `policy`, in the `PD-0`
+/// envelope shape, for exercising the composed acceptance path.
+#[must_use]
+pub fn reward_document_of(
+    policy: &RewardPolicy,
+    activation_height: u64,
+    sequence: u64,
+) -> JsonObject {
+    let body = JsonObject::builder()
+        .uint("reward_epoch_ms", policy.reward_epoch_ms)
+        .uint(
+            "existence_fund_microtokens_per_epoch",
+            policy.existence_fund_microtokens_per_epoch,
+        )
+        .uint(
+            "availability_microtokens_per_unit",
+            policy.availability_microtokens_per_unit,
+        )
+        .uint(
+            "storage_microtokens_per_byte_epoch",
+            policy.storage_microtokens_per_byte_epoch,
+        )
+        .uint(
+            "compute_microtokens_per_million_fuel",
+            policy.compute_microtokens_per_million_fuel,
+        )
+        .uint(
+            "publisher_microtokens_per_active_subscriber",
+            policy.publisher_microtokens_per_active_subscriber,
+        )
+        .uint(
+            "publisher_reward_cap_numerator",
+            policy.publisher_reward_cap_numerator,
+        )
+        .uint(
+            "publisher_reward_cap_denominator",
+            policy.publisher_reward_cap_denominator,
+        )
+        .uint(
+            "storage_units_per_contribution_unit",
+            policy.storage_units_per_contribution_unit,
+        )
+        .uint(
+            "compute_units_per_contribution_unit",
+            policy.compute_units_per_contribution_unit,
+        )
+        .uint(
+            "validator_eligibility_threshold_units",
+            policy.validator_eligibility_threshold_units,
+        )
+        .uint(
+            "validator_eligibility_window_epochs",
+            policy.validator_eligibility_window_epochs,
+        )
+        .uint(
+            "validator_eligibility_min_issuers",
+            policy.validator_eligibility_min_issuers,
+        )
+        .build()
+        .expect("reward policy body");
+    JsonObject::builder()
+        .str("schema_version", "0.1")
+        .str("document_kind", "reward_policy")
+        .str("network_id", "fixture")
+        .digest("chain_id", &Digest32::repeated(0x00))
+        .uint("sequence", sequence)
+        .uint("activation_height", activation_height)
+        .object("body", body)
+        .build()
+        .expect("reward policy document")
+}
+
+/// Validates a reward-policy fixture against `RewardBounds` before it is used.
+#[must_use]
+pub fn reward_policy_of(policy: &RewardPolicy) -> ValidatedRewardPolicy {
+    policy
+        .validate(&permissive_reward_bounds(), 1, 1, None)
+        .expect("the reward policy fixture must satisfy the acceptance rules")
+}
+
 /// The example parameters of `ledger.md#worked-example-of-the-derivation`.
 ///
 /// "The example is normative in form and not in values: every parameter below
@@ -341,7 +468,7 @@ pub fn worked_example_parameters() -> ValidatedConsensusParameters {
         validator_cooldown_epochs: 1,
         validator_min_capture_epochs: 1,
     };
-    consensus_parameters_of(&parameters)
+    ValidatedConsensusParameters::from_raw_for_testing(parameters)
 }
 
 /// Fixture `WSC-0`: the unsigned weak subjectivity checkpoint.

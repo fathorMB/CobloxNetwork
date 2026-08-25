@@ -1,20 +1,22 @@
-//! Governed parameters, the genesis election bounds, and their validity rules.
+//! Governed parameters, the genesis bounds, and their validity rules.
 //!
 //! **Nothing in this module is a compiled constant.** The launch values of
 //! every parameter below come from the economic simulator and the network
 //! operator's genesis decision, and they reach this crate as configuration that
 //! is validated against the constraint block of
-//! `ledger.md#rotation-the-cap-and-the-floor` and the genesis
-//! `ElectionBounds`. What *is* fixed here are the constraints, which the
-//! specification states are "not parameters and are fixed now".
+//! `ledger.md#rotation-the-cap-and-the-floor`, the genesis
+//! `ElectionBounds`, and the genesis `RewardBounds`. What *is* fixed here are
+//! the constraints, which the specification states are "not parameters and are
+//! fixed now".
 //!
 //! Validation is a recoverable [`crate::error::Error`], never a panic: in
 //! production these values arrive inside a document a validator quorum signed,
 //! and rejecting such a document is ordinary protocol operation.
 //!
 //! The type-level consequence is that the election derivation and the
-//! light-client checks accept only [`ValidatedConsensusParameters`], which has
-//! no public constructor other than [`ConsensusParameters::validate`].
+//! light-client checks accept only [`ValidatedConsensusParameters`] and
+//! [`ValidatedRewardPolicy`], which have no public constructors other than
+//! [`ConsensusParameters::validate`] and [`RewardPolicy::validate`].
 
 use crate::error::{Error, ParameterError, Result};
 use crate::hash::ChainId;
@@ -76,6 +78,90 @@ impl ElectionBounds {
         if self.election_parameter_min_activation_gap_blocks == 0 {
             return Err(ParameterError::Bounds {
                 rule: "election_parameter_min_activation_gap_blocks MUST be positive",
+            }
+            .into());
+        }
+        Ok(())
+    }
+}
+
+/// The reward-policy magnitudes fixed by the genesis trust anchor.
+///
+/// `RewardBounds` is configuration, not chain state. It ships inside the
+/// signed distribution and in no other channel, cannot be changed by any
+/// on-chain document, and must not be learned from a peer, a header, or a
+/// protocol document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RewardBounds {
+    /// Network identifier of the distribution that carried these bounds.
+    pub network_id: String,
+    /// Chain the bounds belong to; must equal the client's configured chain.
+    pub chain_id: ChainId,
+    /// Hard genesis ceiling on the per-epoch existence fund `F`.
+    pub existence_fund_microtokens_per_epoch_max: u64,
+    /// Floor under `reward_epoch_ms`.
+    pub reward_epoch_ms_min: u64,
+    /// Ceiling on `reward_epoch_ms`.
+    pub reward_epoch_ms_max: u64,
+    /// Ceiling on `publisher_reward_cap_numerator`.
+    pub publisher_reward_cap_numerator_max: u64,
+    /// Floor under `publisher_reward_cap_denominator`.
+    pub publisher_reward_cap_denominator_min: u64,
+    /// Floor under `validator_eligibility_threshold_units`.
+    pub validator_eligibility_threshold_units_min: u64,
+    /// Ceiling on `validator_eligibility_window_epochs`.
+    pub validator_eligibility_window_epochs_max: u64,
+    /// Floor under `validator_eligibility_min_issuers`.
+    pub validator_eligibility_min_issuers_min: u64,
+    /// Ceiling on `storage_units_per_contribution_unit`.
+    pub storage_units_per_contribution_unit_max: u64,
+    /// Ceiling on `compute_units_per_contribution_unit`.
+    pub compute_units_per_contribution_unit_max: u64,
+    /// Floor under `storage_microtokens_per_byte_epoch`.
+    pub storage_microtokens_per_byte_epoch_min: u64,
+    /// Floor under `compute_microtokens_per_million_fuel`.
+    pub compute_microtokens_per_million_fuel_min: u64,
+    /// Numerator of the per-change ratio; must exceed the denominator.
+    pub reward_parameter_change_numerator: u64,
+    /// Denominator of the per-change ratio; must be positive.
+    pub reward_parameter_change_denominator: u64,
+    /// Minimum chain-height spacing between consecutive reward-parameter activations.
+    pub reward_parameter_min_activation_gap_blocks: u64,
+}
+
+impl RewardBounds {
+    /// Checks the bounds object itself against the client's configured chain.
+    pub fn validate(&self, configured_chain_id: &ChainId) -> Result<()> {
+        if self.chain_id != *configured_chain_id {
+            return Err(ParameterError::ChainIdMismatch.into());
+        }
+        if self.reward_parameter_change_denominator == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "reward_parameter_change_denominator MUST be positive",
+            }
+            .into());
+        }
+        if self.reward_parameter_change_numerator <= self.reward_parameter_change_denominator {
+            return Err(ParameterError::Bounds {
+                rule: "reward_parameter_change_numerator MUST exceed reward_parameter_change_denominator",
+            }
+            .into());
+        }
+        if self.reward_parameter_min_activation_gap_blocks == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "reward_parameter_min_activation_gap_blocks MUST be positive",
+            }
+            .into());
+        }
+        if self.reward_epoch_ms_min == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "reward_epoch_ms_min MUST be positive",
+            }
+            .into());
+        }
+        if self.reward_epoch_ms_min > self.reward_epoch_ms_max {
+            return Err(ParameterError::Bounds {
+                rule: "reward_epoch_ms_min MUST NOT exceed reward_epoch_ms_max",
             }
             .into());
         }
@@ -269,6 +355,16 @@ impl ConsensusParameters {
         require(three_c < u128::from(v), "3 * c < V")?;
         let three_c_m = checked_mul_u128(three_c, u128::from(m), "3 * c * m")?;
         require(three_c_m <= u128::from(v), "3 * c * m <= V")?;
+        let three_min_set = checked_mul_u128(
+            3,
+            u128::from(self.validator_min_set_size),
+            "3 * validator_min_set_size",
+        )?;
+        let two_v = checked_mul_u128(2, u128::from(v), "2 * V")?;
+        require(
+            three_min_set >= two_v,
+            "3 * validator_min_set_size >= 2 * V",
+        )?;
         Ok(())
     }
 
@@ -345,6 +441,14 @@ impl ConsensusParameters {
 pub struct ValidatedConsensusParameters(ConsensusParameters);
 
 impl ValidatedConsensusParameters {
+    /// Constructs a `ValidatedConsensusParameters` directly without checking
+    /// the constraint block. For testing historic fixtures (like the worked example) only.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn from_raw_for_testing(parameters: ConsensusParameters) -> Self {
+        Self(parameters)
+    }
+
     /// The underlying values.
     #[must_use]
     pub const fn get(&self) -> &ConsensusParameters {
@@ -395,46 +499,214 @@ impl ValidatedConsensusParameters {
     }
 }
 
-/// The `reward_policy` document body, restricted to the fields whose
-/// acceptance-time validity the deterministic layer enforces.
+/// The `reward_policy` document body.
 ///
-/// The remaining fields of `RewardPolicyBody` are pure economic magnitudes with
-/// no constraint attached in v0; they are carried through as read from the
-/// document and are deliberately not mirrored here as constants.
+/// Field order follows `README.md#signed-protocol-documents`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RewardPolicyConstraints {
-    /// `publisher_reward_cap_numerator`.
+pub struct RewardPolicy {
+    /// Duration of a reward epoch in milliseconds.
+    pub reward_epoch_ms: u64,
+    /// Hard per-epoch cap on existence income fund emission.
+    pub existence_fund_microtokens_per_epoch: u64,
+    /// Availability tariff per unit; MUST be zero in v0 ([ADR-010]).
+    pub availability_microtokens_per_unit: u64,
+    /// Storage work reward rate.
+    pub storage_microtokens_per_byte_epoch: u64,
+    /// Compute work reward rate.
+    pub compute_microtokens_per_million_fuel: u64,
+    /// Publisher reward rate per active subscriber.
+    pub publisher_microtokens_per_active_subscriber: u64,
+    /// Creator reward cap numerator (`kn`).
     pub publisher_reward_cap_numerator: u64,
-    /// `publisher_reward_cap_denominator`.
+    /// Creator reward cap denominator (`kd`).
     pub publisher_reward_cap_denominator: u64,
-    /// `storage_units_per_contribution_unit`.
+    /// Contribution score divisor for storage work.
     pub storage_units_per_contribution_unit: u64,
-    /// `compute_units_per_contribution_unit`.
+    /// Contribution score divisor for compute work.
     pub compute_units_per_contribution_unit: u64,
-    /// `validator_eligibility_window_epochs`.
+    /// Minimum contribution units required for validator pool eligibility.
+    pub validator_eligibility_threshold_units: u64,
+    /// Reward epochs across which contribution units accumulate.
     pub validator_eligibility_window_epochs: u64,
-    /// `validator_eligibility_min_issuers`.
+    /// Minimum number of distinct challenge issuers required.
     pub validator_eligibility_min_issuers: u64,
 }
 
-impl RewardPolicyConstraints {
-    /// Reads the constrained fields of a `RewardPolicyBody`.
+/// Backward compatibility alias for [`RewardPolicy`].
+pub type RewardPolicyConstraints = RewardPolicy;
+
+/// The thirteen reward parameters the change ratio governs.
+type RewardParameterAccessor = (&'static str, fn(&RewardPolicy) -> u64);
+
+const REWARD_PARAMETERS: [RewardParameterAccessor; 13] = [
+    ("reward_epoch_ms", |p| p.reward_epoch_ms),
+    ("existence_fund_microtokens_per_epoch", |p| {
+        p.existence_fund_microtokens_per_epoch
+    }),
+    ("availability_microtokens_per_unit", |p| {
+        p.availability_microtokens_per_unit
+    }),
+    ("storage_microtokens_per_byte_epoch", |p| {
+        p.storage_microtokens_per_byte_epoch
+    }),
+    ("compute_microtokens_per_million_fuel", |p| {
+        p.compute_microtokens_per_million_fuel
+    }),
+    ("publisher_microtokens_per_active_subscriber", |p| {
+        p.publisher_microtokens_per_active_subscriber
+    }),
+    ("publisher_reward_cap_numerator", |p| {
+        p.publisher_reward_cap_numerator
+    }),
+    ("publisher_reward_cap_denominator", |p| {
+        p.publisher_reward_cap_denominator
+    }),
+    ("storage_units_per_contribution_unit", |p| {
+        p.storage_units_per_contribution_unit
+    }),
+    ("compute_units_per_contribution_unit", |p| {
+        p.compute_units_per_contribution_unit
+    }),
+    ("validator_eligibility_threshold_units", |p| {
+        p.validator_eligibility_threshold_units
+    }),
+    ("validator_eligibility_window_epochs", |p| {
+        p.validator_eligibility_window_epochs
+    }),
+    ("validator_eligibility_min_issuers", |p| {
+        p.validator_eligibility_min_issuers
+    }),
+];
+
+/// The currently active `reward_policy` document, for comparing a proposed
+/// document against it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ActiveRewardPolicyDocument {
+    /// `sequence` of the active document.
+    pub sequence: u64,
+    /// `activation_height` of the active document.
+    pub activation_height: u64,
+    /// Its parameters.
+    pub policy: RewardPolicy,
+}
+
+/// Alias for [`ActiveRewardPolicyDocument`].
+pub type ActiveRewardDocument = ActiveRewardPolicyDocument;
+
+/// Reward policy that passed acceptance-time validation against `RewardBounds`.
+///
+/// The only way to obtain one is [`RewardPolicy::validate`], so a consumer
+/// never has to re-check the rules, and an unvalidated policy cannot reach
+/// reward calculation by accident.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ValidatedRewardPolicy(RewardPolicy);
+
+impl ValidatedRewardPolicy {
+    /// The underlying values.
+    #[must_use]
+    pub const fn get(&self) -> &RewardPolicy {
+        &self.0
+    }
+
+    /// The creator-share cap: `amount * kd <= kn * counted_burn`.
+    ///
+    /// "Both products use checked `u128` intermediates; overflow rejects the
+    /// block." Boundary: `floor(kn * B / kd)` is valid and that value plus one
+    /// is invalid.
+    ///
+    /// This is a method on the *validated* policy, not on [`RewardPolicy`], for
+    /// the reason the election derivation is a method on
+    /// [`ValidatedConsensusParameters`]: a `kd` of zero or a `kn >= kd` would
+    /// make the cap meaningless, and the type is what guarantees those were
+    /// rejected before any reward is computed against it.
+    pub fn publisher_reward_within_cap(
+        &self,
+        amount_microtokens: u64,
+        counted_subscription_burn_microtokens: u64,
+    ) -> Result<bool> {
+        let left = checked_mul_u128(
+            u128::from(amount_microtokens),
+            u128::from(self.0.publisher_reward_cap_denominator),
+            "creator-share cap",
+        )?;
+        let right = checked_mul_u128(
+            u128::from(self.0.publisher_reward_cap_numerator),
+            u128::from(counted_subscription_burn_microtokens),
+            "creator-share cap",
+        )?;
+        Ok(left <= right)
+    }
+}
+
+impl RewardPolicy {
+    /// Reads a `RewardPolicyBody` object.
+    ///
+    /// Every field is required and no unknown field is tolerated.
     pub fn from_body(body: &JsonObject) -> Result<Self> {
+        body.reject_unknown_fields(&[
+            "reward_epoch_ms",
+            "existence_fund_microtokens_per_epoch",
+            "availability_microtokens_per_unit",
+            "storage_microtokens_per_byte_epoch",
+            "compute_microtokens_per_million_fuel",
+            "publisher_microtokens_per_active_subscriber",
+            "publisher_reward_cap_numerator",
+            "publisher_reward_cap_denominator",
+            "storage_units_per_contribution_unit",
+            "compute_units_per_contribution_unit",
+            "validator_eligibility_threshold_units",
+            "validator_eligibility_window_epochs",
+            "validator_eligibility_min_issuers",
+        ])?;
         Ok(Self {
+            reward_epoch_ms: body.uint("reward_epoch_ms")?,
+            existence_fund_microtokens_per_epoch: body
+                .uint("existence_fund_microtokens_per_epoch")?,
+            availability_microtokens_per_unit: body.uint("availability_microtokens_per_unit")?,
+            storage_microtokens_per_byte_epoch: body.uint("storage_microtokens_per_byte_epoch")?,
+            compute_microtokens_per_million_fuel: body
+                .uint("compute_microtokens_per_million_fuel")?,
+            publisher_microtokens_per_active_subscriber: body
+                .uint("publisher_microtokens_per_active_subscriber")?,
             publisher_reward_cap_numerator: body.uint("publisher_reward_cap_numerator")?,
             publisher_reward_cap_denominator: body.uint("publisher_reward_cap_denominator")?,
             storage_units_per_contribution_unit: body
                 .uint("storage_units_per_contribution_unit")?,
             compute_units_per_contribution_unit: body
                 .uint("compute_units_per_contribution_unit")?,
+            validator_eligibility_threshold_units: body
+                .uint("validator_eligibility_threshold_units")?,
             validator_eligibility_window_epochs: body
                 .uint("validator_eligibility_window_epochs")?,
             validator_eligibility_min_issuers: body.uint("validator_eligibility_min_issuers")?,
         })
     }
 
-    /// The acceptance-time rules a `reward_policy` document must satisfy.
-    pub fn validate(&self) -> Result<()> {
+    /// Applies internal validity rules and genesis magnitude bounds, plus
+    /// change ratio and activation gap when `active` is supplied.
+    pub fn validate(
+        &self,
+        bounds: &RewardBounds,
+        activation_height: u64,
+        sequence: u64,
+        active: Option<&ActiveRewardPolicyDocument>,
+    ) -> Result<ValidatedRewardPolicy> {
+        self.check_internal()?;
+        self.check_magnitudes(bounds)?;
+        if let Some(active) = active {
+            self.check_against_active(bounds, activation_height, sequence, active)?;
+        }
+        Ok(ValidatedRewardPolicy(*self))
+    }
+
+    /// The internal validity rules of `RewardPolicyBody` that do not depend on `RewardBounds`.
+    pub fn check_internal(&self) -> Result<()> {
+        if self.availability_microtokens_per_unit != 0 {
+            return Err(ParameterError::RewardPolicy {
+                rule: "availability_microtokens_per_unit == 0",
+            }
+            .into());
+        }
         if self.publisher_reward_cap_denominator == 0 {
             return Err(ParameterError::RewardPolicy {
                 rule: "publisher_reward_cap_denominator MUST be non-zero",
@@ -474,27 +746,145 @@ impl RewardPolicyConstraints {
         Ok(())
     }
 
-    /// The creator-share cap: `amount * kd <= kn * counted_burn`.
-    ///
-    /// "Both products use checked `u128` intermediates; overflow rejects the
-    /// block." Boundary: `floor(kn * B / kd)` is valid and that value plus one
-    /// is invalid.
-    pub fn publisher_reward_within_cap(
+    /// Magnitude bounds against genesis `RewardBounds`.
+    pub fn check_magnitudes(&self, bounds: &RewardBounds) -> Result<()> {
+        if self.existence_fund_microtokens_per_epoch
+            > bounds.existence_fund_microtokens_per_epoch_max
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "existence_fund_microtokens_per_epoch <= existence_fund_microtokens_per_epoch_max",
+            }
+            .into());
+        }
+        if self.reward_epoch_ms < bounds.reward_epoch_ms_min {
+            return Err(ParameterError::RewardPolicy {
+                rule: "reward_epoch_ms >= reward_epoch_ms_min",
+            }
+            .into());
+        }
+        if self.reward_epoch_ms > bounds.reward_epoch_ms_max {
+            return Err(ParameterError::RewardPolicy {
+                rule: "reward_epoch_ms <= reward_epoch_ms_max",
+            }
+            .into());
+        }
+        if self.publisher_reward_cap_numerator > bounds.publisher_reward_cap_numerator_max {
+            return Err(ParameterError::RewardPolicy {
+                rule: "publisher_reward_cap_numerator <= publisher_reward_cap_numerator_max",
+            }
+            .into());
+        }
+        if self.publisher_reward_cap_denominator < bounds.publisher_reward_cap_denominator_min {
+            return Err(ParameterError::RewardPolicy {
+                rule: "publisher_reward_cap_denominator >= publisher_reward_cap_denominator_min",
+            }
+            .into());
+        }
+        if self.validator_eligibility_threshold_units
+            < bounds.validator_eligibility_threshold_units_min
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "validator_eligibility_threshold_units >= validator_eligibility_threshold_units_min",
+            }
+            .into());
+        }
+        if self.validator_eligibility_window_epochs > bounds.validator_eligibility_window_epochs_max
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "validator_eligibility_window_epochs <= validator_eligibility_window_epochs_max",
+            }
+            .into());
+        }
+        if self.validator_eligibility_min_issuers < bounds.validator_eligibility_min_issuers_min {
+            return Err(ParameterError::RewardPolicy {
+                rule: "validator_eligibility_min_issuers >= validator_eligibility_min_issuers_min",
+            }
+            .into());
+        }
+        if self.storage_units_per_contribution_unit > bounds.storage_units_per_contribution_unit_max
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "storage_units_per_contribution_unit <= storage_units_per_contribution_unit_max",
+            }
+            .into());
+        }
+        if self.compute_units_per_contribution_unit > bounds.compute_units_per_contribution_unit_max
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "compute_units_per_contribution_unit <= compute_units_per_contribution_unit_max",
+            }
+            .into());
+        }
+        if self.storage_microtokens_per_byte_epoch < bounds.storage_microtokens_per_byte_epoch_min {
+            return Err(ParameterError::RewardPolicy {
+                rule: "storage_microtokens_per_byte_epoch >= storage_microtokens_per_byte_epoch_min",
+            }
+            .into());
+        }
+        if self.compute_microtokens_per_million_fuel
+            < bounds.compute_microtokens_per_million_fuel_min
+        {
+            return Err(ParameterError::RewardPolicy {
+                rule: "compute_microtokens_per_million_fuel >= compute_microtokens_per_million_fuel_min",
+            }
+            .into());
+        }
+        Ok(())
+    }
+
+    fn check_against_active(
         &self,
-        amount_microtokens: u64,
-        counted_subscription_burn_microtokens: u64,
-    ) -> Result<bool> {
-        let left = checked_mul_u128(
-            u128::from(amount_microtokens),
-            u128::from(self.publisher_reward_cap_denominator),
-            "creator-share cap",
-        )?;
-        let right = checked_mul_u128(
-            u128::from(self.publisher_reward_cap_numerator),
-            u128::from(counted_subscription_burn_microtokens),
-            "creator-share cap",
-        )?;
-        Ok(left <= right)
+        bounds: &RewardBounds,
+        activation_height: u64,
+        sequence: u64,
+        active: &ActiveRewardPolicyDocument,
+    ) -> Result<()> {
+        if sequence <= active.sequence {
+            return Err(ParameterError::SequenceNotIncreasing.into());
+        }
+        // A degenerate ratio makes both inequalities below true for every pair,
+        // which would disable the rate limit *silently* — the failure mode
+        // [REVIEW-017] RF-001 exhibits. `RewardBounds::validate` already rejects
+        // such an object, and `light_client::authenticate_reward_policy` calls
+        // it; this guard is the second line, so that a caller reaching
+        // `RewardPolicy::validate` directly cannot end up with a vacuous rule
+        // instead of an error.
+        if bounds.reward_parameter_change_denominator == 0
+            || bounds.reward_parameter_change_numerator
+                <= bounds.reward_parameter_change_denominator
+        {
+            return Err(ParameterError::Bounds {
+                rule: "reward_parameter_change_numerator MUST exceed reward_parameter_change_denominator",
+            }
+            .into());
+        }
+        if bounds.reward_parameter_min_activation_gap_blocks == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "reward_parameter_min_activation_gap_blocks MUST be positive",
+            }
+            .into());
+        }
+        let numerator = u128::from(bounds.reward_parameter_change_numerator);
+        let denominator = u128::from(bounds.reward_parameter_change_denominator);
+        for (name, read) in REWARD_PARAMETERS {
+            let new = u128::from(read(self));
+            let old = u128::from(read(&active.policy));
+            let new_bounded = checked_mul_u128(new, denominator, "change ratio")?
+                <= checked_mul_u128(old, numerator, "change ratio")?;
+            let old_bounded = checked_mul_u128(old, denominator, "change ratio")?
+                <= checked_mul_u128(new, numerator, "change ratio")?;
+            if !(new_bounded && old_bounded) {
+                return Err(ParameterError::ChangeRatio { parameter: name }.into());
+            }
+        }
+        let earliest = active
+            .activation_height
+            .checked_add(bounds.reward_parameter_min_activation_gap_blocks)
+            .ok_or(Error::Arithmetic("activation gap"))?;
+        if activation_height < earliest {
+            return Err(ParameterError::ActivationGap.into());
+        }
+        Ok(())
     }
 }
 

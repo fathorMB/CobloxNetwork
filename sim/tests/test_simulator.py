@@ -302,7 +302,10 @@ class TestLaunchRegime(unittest.TestCase):
         self.assertEqual(len(amounts), 1, "D = F * N/(N+H) contains no W")
 
     def test_usage_floor_is_where_the_band_becomes_holdable(self):
-        below = S.s11_at07_launch_regime(usage_fraction=0.25)
+        # With mature regime fund F_max = 15 882 352 941, alpha at 25% usage is 0.414 > 0.20 (REVIEW-011 RF-002)
+        below = S.s11_at07_launch_regime(
+            usage_fraction=0.25, fund_microtokens=15_882_352_941
+        )
         self.assertGreater(below.observed_alpha, R.ALPHA_SURVEILLANCE_BAND[1])
 
 

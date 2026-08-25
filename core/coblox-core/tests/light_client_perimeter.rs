@@ -16,13 +16,17 @@ use coblox_core::hash::{AccountKey, ChainId, Digest32};
 use coblox_core::json::JsonObject;
 use coblox_core::light_client::{self, CANNOT_ESTABLISH, TrustedTip};
 use coblox_core::merkle::{self, TaggedTree};
-use coblox_core::params::{ElectionBounds, ValidatedConsensusParameters};
+use coblox_core::params::{
+    ActiveRewardPolicyDocument, ElectionBounds, RewardBounds, RewardPolicy,
+    ValidatedConsensusParameters,
+};
 use coblox_core::registry::{self, DocumentKind};
 use coblox_core::validator_set::{ElectionRecord, ValidatorEntry, ValidatorSet};
 
 use common::{
     Pd0Kind, consensus_parameters_of, consensus_parameters_pd0, permissive_bounds,
-    protocol_document_pd0, zero_chain_id,
+    permissive_reward_bounds, protocol_document_pd0, reward_document_of, reward_policy_pd0,
+    zero_chain_id,
 };
 
 /// The `consensus_parameters_hash` of the PD-0 document, from the published
@@ -30,6 +34,11 @@ use common::{
 /// to a value that came from the specification.
 const PD0_CONSENSUS_PARAMETERS_HASH: &str =
     "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9";
+
+/// The `policy_hash` of the PD-0 reward document, from the same published
+/// table and quoted for the same reason.
+const PD0_REWARD_POLICY_HASH: &str =
+    "sha256:89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48";
 
 fn parameters() -> ValidatedConsensusParameters {
     consensus_parameters_of(&consensus_parameters_pd0())
@@ -324,6 +333,132 @@ fn check_10_authenticates_the_parameters_and_fails_closed() {
     assert!(
         registry::protocol_document_hash(DocumentKind::ConsensusParameters, &chain, &wrong_kind)
             .is_err()
+    );
+}
+
+/// [REVIEW-017] RF-001: the reward side has the composed entry point its twin
+/// has, and a degenerate `RewardBounds` is **rejected** instead of silently
+/// disabling the rule it carries.
+///
+/// The regression this pins down is not "a rule is wrong". It is "a rule is
+/// vacuous and nothing says so": with
+/// `reward_parameter_change_denominator = 0`, both halves of
+/// `new * den <= old * num` and `old * den <= new * num` hold for every pair,
+/// so the rate limit accepts any jump and returns `Ok`.
+#[test]
+fn the_reward_entry_point_validates_the_bounds_before_it_trusts_them() {
+    let chain = zero_chain_id();
+    let bounds = permissive_reward_bounds();
+    let document = protocol_document_pd0(Pd0Kind::Reward);
+    let policy_hash = Digest32::parse_prefixed(PD0_REWARD_POLICY_HASH).unwrap();
+
+    let policy =
+        light_client::authenticate_reward_policy(&chain, &policy_hash, &document, &bounds, None)
+            .expect("PD-0 hashes to its published policy_hash and is within the bounds");
+    assert_eq!(policy.get(), &reward_policy_pd0());
+
+    // A hash mismatch: the signed object names a different document.
+    assert!(
+        light_client::authenticate_reward_policy(
+            &chain,
+            &Digest32::repeated(0x01),
+            &document,
+            &bounds,
+            None
+        )
+        .is_err()
+    );
+
+    // Bounds for another chain are refused before anything else is read.
+    let foreign = RewardBounds {
+        chain_id: ChainId::from_digest(Digest32::repeated(0x01)),
+        ..bounds.clone()
+    };
+    assert_eq!(
+        light_client::authenticate_reward_policy(&chain, &policy_hash, &document, &foreign, None)
+            .unwrap_err(),
+        Error::Parameter(ParameterError::ChainIdMismatch)
+    );
+
+    // Out of bounds: a narrower ceiling rejects a document the network may well
+    // consider valid, and the client fails closed rather than proceeding.
+    let narrow = RewardBounds {
+        existence_fund_microtokens_per_epoch_max: 0,
+        ..bounds.clone()
+    };
+    assert!(
+        light_client::authenticate_reward_policy(&chain, &policy_hash, &document, &narrow, None)
+            .is_err()
+    );
+
+    // The finding itself: a bounds object whose change ratio is degenerate.
+    let degenerate = RewardBounds {
+        reward_parameter_change_denominator: 0,
+        reward_parameter_change_numerator: 0,
+        ..bounds.clone()
+    };
+    assert!(
+        degenerate.validate(&chain).is_err(),
+        "the object is invalid"
+    );
+
+    // A document that multiplies the existence fund by 100 000 in one step,
+    // against an active document that is otherwise identical.
+    let base = reward_policy_pd0();
+    let active = ActiveRewardPolicyDocument {
+        sequence: 1,
+        activation_height: 1,
+        policy: base,
+    };
+    let jump = RewardPolicy {
+        existence_fund_microtokens_per_epoch: base.existence_fund_microtokens_per_epoch * 100_000,
+        ..base
+    };
+    // Bounded by the genesis ceiling, so the magnitude rules do not object and
+    // the rate-of-change rule is the only thing standing between the jump and
+    // acceptance.
+    assert!(
+        jump.existence_fund_microtokens_per_epoch
+            <= bounds.existence_fund_microtokens_per_epoch_max
+    );
+
+    // The entry point refuses to use the anchor at all.
+    let jump_document = reward_document_of(&jump, 200_000, 2);
+    let jump_hash =
+        registry::protocol_document_hash(DocumentKind::RewardPolicy, &chain, &jump_document)
+            .unwrap();
+    assert_eq!(
+        light_client::authenticate_reward_policy(
+            &chain,
+            &jump_hash,
+            &jump_document,
+            &degenerate,
+            Some(&active)
+        )
+        .unwrap_err(),
+        Error::Parameter(ParameterError::Bounds {
+            rule: "reward_parameter_change_denominator MUST be positive",
+        })
+    );
+
+    // And the rule itself refuses to be vacuous, for a caller that reached
+    // `validate` without going through the entry point.
+    assert_eq!(
+        jump.validate(&degenerate, 200_000, 2, Some(&active))
+            .unwrap_err(),
+        Error::Parameter(ParameterError::Bounds {
+            rule: "reward_parameter_change_numerator MUST exceed reward_parameter_change_denominator",
+        })
+    );
+
+    // With a usable anchor the same document is rejected by the rule it was
+    // meant to evade, and named by the parameter that moved.
+    assert_eq!(
+        jump.validate(&bounds, 200_000, 2, Some(&active))
+            .unwrap_err(),
+        Error::Parameter(ParameterError::ChangeRatio {
+            parameter: "existence_fund_microtokens_per_epoch",
+        })
     );
 }
 

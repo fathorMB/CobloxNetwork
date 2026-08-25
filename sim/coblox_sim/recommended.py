@@ -36,7 +36,7 @@ CONSENSUS = ConsensusParameters(
 
 REWARD = RewardPolicy(
     reward_epoch_ms=86_400_000,  # 1 day
-    existence_fund_microtokens_per_epoch=15_882_352_941,  # alpha = 0.15 at reference usage
+    existence_fund_microtokens_per_epoch=300_000_000,  # 300 cr/epoch at launch (~200 nodes expected, ADR-011)
     availability_microtokens_per_unit=0,  # see the report: a non-zero value breaks ADR-007 (a)
     storage_units_per_contribution_unit=1_073_741_824,  # 1 unit per GiB-epoch proven
     compute_units_per_contribution_unit=1_000_000,  # 1 unit per million fuel re-executed

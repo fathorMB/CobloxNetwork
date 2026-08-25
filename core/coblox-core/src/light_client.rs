@@ -28,7 +28,10 @@ use crate::error::{Error, ParameterError, Result, SetError};
 use crate::hash::{AccountKey, ChainId, Digest32};
 use crate::json::JsonObject;
 use crate::merkle::TaggedTree;
-use crate::params::{ConsensusParameters, ElectionBounds, ValidatedConsensusParameters};
+use crate::params::{
+    ActiveRewardPolicyDocument, ConsensusParameters, ElectionBounds, RewardBounds, RewardPolicy,
+    ValidatedConsensusParameters, ValidatedRewardPolicy,
+};
 use crate::registry::{self, DocumentKind};
 use crate::validator_set::ValidatorSet;
 
@@ -142,6 +145,58 @@ pub fn authenticate_consensus_parameters(
         unsigned_document.uint("activation_height")?,
         unsigned_document.uint("sequence")?,
         None,
+    )
+}
+
+/// The reward-side twin of [`authenticate_consensus_parameters`]: obtain and
+/// authenticate a `reward_policy` document.
+///
+/// The election side has shipped its composed entry point since the beginning,
+/// and the reward side had none: [REVIEW-017] RF-001 observed that
+/// [`RewardBounds::validate`] was not called from anywhere in the crate, so a
+/// distribution carrying a degenerate bounds object — a
+/// `reward_parameter_change_denominator` of zero, an activation gap of zero, a
+/// `reward_epoch_ms_min` of zero — passed every check the reward path ran and
+/// disabled the rate limit *without an error*. This function is the point where
+/// the trust anchor is checked before it is trusted.
+///
+/// The binding differs from the election side in one way that is the
+/// specification's and not a shortcut. `consensus_parameters_hash` is a field of
+/// the block header, so the twin reads it from the trusted header. A
+/// `reward_policy` is instead referenced by the `policy_hash` carried in the
+/// signed `mint` transactions that apply it (`ledger.md#mint`), so the expected
+/// digest is the caller's input: it comes from the signed object that names the
+/// policy, never from the document being authenticated.
+///
+/// As with the twin, the quorum-signature verification of the document is the
+/// caller's step and is not folded in here: this crate ships no signature
+/// verifier.
+pub fn authenticate_reward_policy(
+    chain_id: &ChainId,
+    expected_policy_hash: &Digest32,
+    unsigned_document: &JsonObject,
+    bounds: &RewardBounds,
+    active: Option<&ActiveRewardPolicyDocument>,
+) -> Result<ValidatedRewardPolicy> {
+    bounds.validate(chain_id)?;
+    let recomputed =
+        registry::protocol_document_hash(DocumentKind::RewardPolicy, chain_id, unsigned_document)?;
+    if recomputed != *expected_policy_hash {
+        return Err(ParameterError::Constraint {
+            rule: "policy_hash MUST equal the hash of the reward_policy document",
+        }
+        .into());
+    }
+    let declared_chain = unsigned_document.digest("chain_id")?;
+    if declared_chain != *chain_id.as_digest() {
+        return Err(ParameterError::ChainIdMismatch.into());
+    }
+    let policy = RewardPolicy::from_body(unsigned_document.object("body")?)?;
+    policy.validate(
+        bounds,
+        unsigned_document.uint("activation_height")?,
+        unsigned_document.uint("sequence")?,
+        active,
     )
 }
 

@@ -50,12 +50,24 @@
 //! **Parameters are validated configuration, never compiled constants.** No
 //! launch value appears in this crate. Values arrive as
 //! [`params::ConsensusParameters`], [`params::ElectionBounds`],
-//! [`params::RewardPolicyConstraints`] and [`params::EnrollmentParameters`],
-//! and the election derivation accepts only
-//! [`params::ValidatedConsensusParameters`], which has no constructor other
-//! than validation against the constraint block. Validation failure is a
-//! recoverable error, because in production these values arrive inside a
-//! document a validator quorum signed and rejecting one is ordinary operation.
+//! [`params::RewardPolicy`], [`params::RewardBounds`] and
+//! [`params::EnrollmentParameters`], and the election derivation and the
+//! creator-share cap accept only [`params::ValidatedConsensusParameters`] and
+//! [`params::ValidatedRewardPolicy`], which have no constructors other
+//! than validation against the constraint block and genesis bounds.
+//! Validation failure is a recoverable error, because in production these
+//! values arrive inside a document a validator quorum signed and rejecting
+//! one is ordinary operation.
+//!
+//! **A trust anchor is checked before it is trusted.** Bounds objects are
+//! configuration, so nothing on-chain constrains them, and a degenerate one
+//! would disable the rule it is supposed to carry rather than fail. Both
+//! composed entry points therefore validate the anchor as their first act:
+//! [`light_client::authenticate_consensus_parameters`] for
+//! [`params::ElectionBounds`] and [`light_client::authenticate_reward_policy`]
+//! for [`params::RewardBounds`]. The rate-of-change rule additionally refuses a
+//! degenerate ratio in [`params::RewardPolicy::validate`] itself, so the rule
+//! cannot become vacuous on any path.
 //!
 //! # Declared limit: no signature verifier ships here
 //!

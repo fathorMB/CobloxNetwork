@@ -11,11 +11,10 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 
 ## Now — M-02, nell'ordine
 
-[SPEC-010] e `done` dal 2026-08-25. Le tre che seguono erano bloccate dalla sua dipendenza e sono in `ready`. Owner AGENT-001, tier `sol`.
+[SPEC-010] e [SPEC-011] sono `done` dal 2026-08-25. Le due che seguono sono in `ready` e non hanno dipendenze aperte. Owner AGENT-001, tier `sol`.
 
-1. **[SPEC-011] — `RewardBounds` e le regole di validita economiche in `coblox-core`.** Chiude il divario fra documenti e codice lasciato da [SPEC-009], che tocco `tests/` e non `src/`. Corregge anche il fondo di genesi in `recommended.py`, che oggi contraddice [ADR-011].
-2. **[SPEC-012] — Verificatore Ed25519 con i vettori speccheck come oracolo.** Isolata, parallelizzabile, **prima di qualunque devnet**.
-3. **[SPEC-013] — Separazione della chiave di trasporto**, attuazione di [ADR-015]. **Prima che la devnet emetta il primo certificato**: dopo e una migrazione, non una decisione.
+1. **[SPEC-012] — Verificatore Ed25519 con i vettori speccheck come oracolo.** Isolata, parallelizzabile, **prima di qualunque devnet**.
+2. **[SPEC-013] — Separazione della chiave di trasporto**, attuazione di [ADR-015]. **Prima che la devnet emetta il primo certificato**: dopo e una migrazione, non una decisione.
 
 Poi devnet BFT, light client con prove Merkle e mint & burn — dipendono dalle API fissate da [SPEC-008].
 
@@ -23,8 +22,11 @@ Poi devnet BFT, light client con prove Merkle e mint & burn — dipendono dalle 
 
 - [DEBT-013] Nessuna regola impone il passo di produzione dei blocchi — medium, owner AGENT-007, M-02.
 - [DEBT-014] `validator_set_hash` e l'unica preimmagine a dominio separato non legata a `chain_id` — medium, owner AGENT-007, M-02. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010].
+- [DEBT-015] I sotto-controlli della reward policy sono pubblici e invocabili al posto della validazione — low, owner AGENT-001, M-02. Cambiamento breaking, da raggruppare con altri.
 
-**Nessun debito `critical` ne `high` aperto.** Entrambi gli aperti hanno owner AGENT-007 e la stessa forma: un'osservazione che chi l'ha fatta non deve valutare da se.
+**Da portare in una spec, non ancora registrato come debito:** nessun artefatto propone un valore di genesi per `F_max`, per i due pavimenti tariffari o per `validator_eligibility_threshold_units_min` — `recommended.py` ha un `ElectionBounds` e nessun `RewardBounds`. E RF-004 di [REVIEW-017]. Inoltre l'oracolo Python **non copre il rapporto di variazione sul lato elezione**, quindi per quel gemello `GATE-TWO-ORACLES` si applica a vuoto.
+
+**Nessun debito `critical` ne `high` aperto.** I due `medium` hanno entrambi owner AGENT-007 e la stessa forma: un'osservazione che chi l'ha fatta non deve valutare da se.
 
 Differito: [DEBT-010] a M-07, con la dimostrazione del tetto di genesi come criterio di una spec di M-02.
 

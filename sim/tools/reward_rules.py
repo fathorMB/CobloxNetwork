@@ -280,6 +280,132 @@ RATE_CASES: list[tuple[str, dict, int, bool]] = [
     ("activation one block short", variant(), 120_959, False),
 ]
 
+# --------------------------------------------------------------------------
+# The rate of change, swept in both directions ([REVIEW-017] RF-002)
+#
+# The published tables carry one row that names a downward move, and that row is
+# rejected by the `reward_epoch_ms` floor before the ratio is ever reached. The
+# consequence measured in [REVIEW-017]: deleting `old * den <= new * num` from
+# this file and from `coblox-core` left both oracles fully green. Two oracles
+# written from the same table are independent in implementation and not in which
+# cases exist.
+#
+# These cases are therefore derived, not transcribed — and derived differently
+# from the Rust suite, which computes the two boundaries in closed form. Here the
+# flip point is *searched for*: the sweep asks the predicate itself where it
+# stops accepting, in each direction, and then checks that the answer is the one
+# the ratio implies and that the refusal names the rate rule. If a direction is
+# not enforced at all, the search runs to the end of the range and the case
+# fails, which is exactly what did not happen before.
+#
+# The bounds are wide on every magnitude on purpose: a rejection in this sweep
+# must come from the ratio and never from a floor or a ceiling.
+# --------------------------------------------------------------------------
+
+WIDE = RewardBounds(
+    existence_fund_microtokens_per_epoch_max=2**60,
+    reward_epoch_ms_min=1,
+    reward_epoch_ms_max=2**60,
+    publisher_reward_cap_numerator_max=2**60,
+    publisher_reward_cap_denominator_min=1,
+    validator_eligibility_threshold_units_min=1,
+    validator_eligibility_window_epochs_max=2**60,
+    validator_eligibility_min_issuers_min=2,
+    storage_units_per_contribution_unit_max=2**60,
+    compute_units_per_contribution_unit_max=2**60,
+    storage_microtokens_per_byte_epoch_min=1,
+    compute_microtokens_per_million_fuel_min=1,
+)
+
+# 5 000 divides by both 4 and 5, so both boundaries are exact integers and no
+# rounding hides a case. The creator-share denominator is larger so that kn < kd
+# holds at every point of its own sweep.
+SWEEP_V = 5_000
+SWEEP_BASE = {
+    "reward_epoch_ms": SWEEP_V,
+    "existence_fund_microtokens_per_epoch": SWEEP_V,
+    # Pinned at zero by [ADR-010]: 0 -> 0 satisfies both inequalities and any
+    # other value is refused before the ratio. Excluded from the sweep for that
+    # reason, not by oversight.
+    "availability_microtokens_per_unit": 0,
+    "storage_microtokens_per_byte_epoch": SWEEP_V,
+    "compute_microtokens_per_million_fuel": SWEEP_V,
+    "publisher_microtokens_per_active_subscriber": SWEEP_V,
+    "publisher_reward_cap_numerator": SWEEP_V,
+    "publisher_reward_cap_denominator": 100_000,
+    "storage_units_per_contribution_unit": SWEEP_V,
+    "compute_units_per_contribution_unit": SWEEP_V,
+    "validator_eligibility_threshold_units": SWEEP_V,
+    "validator_eligibility_window_epochs": SWEEP_V,
+    "validator_eligibility_min_issuers": SWEEP_V,
+}
+
+SWEEP_HEIGHT = WIDE.reward_parameter_min_activation_gap_blocks
+
+
+def sweep_accept(key: str, value: int) -> tuple[bool, str]:
+    body = dict(SWEEP_BASE)
+    body[key] = value
+    return accept_reward_policy(
+        body,
+        WIDE,
+        active=SWEEP_BASE,
+        active_activation_height=0,
+        activation_height=SWEEP_HEIGHT,
+    )
+
+
+def highest_accepted(key: str, old: int) -> int:
+    """The largest value of `key` the predicate still accepts, found by search."""
+
+    lo, hi = old, old * 4
+    assert not sweep_accept(key, hi)[0], f"{key}: the search range must end rejected"
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if sweep_accept(key, mid)[0]:
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
+
+def lowest_accepted(key: str, old: int) -> int:
+    """The smallest value of `key` the predicate still accepts, found by search."""
+
+    lo, hi = 0, old
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if sweep_accept(key, mid)[0]:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+def rate_sweep() -> list[tuple[str, bool, str]]:
+    """One result row per direction per governed parameter."""
+
+    num = WIDE.reward_parameter_change_numerator
+    den = WIDE.reward_parameter_change_denominator
+    rows: list[tuple[str, bool, str]] = []
+    for key, old in SWEEP_BASE.items():
+        if old == 0:
+            continue
+
+        found = highest_accepted(key, old)
+        expected = old * num // den
+        _, why = sweep_accept(key, found + 1)
+        ok = found == expected and why == f"rate of change exceeded on {key}"
+        rows.append((f"{key} upward", ok, f"stops accepting above {found:,} ({why})"))
+
+        found = lowest_accepted(key, old)
+        expected = -(-old * den // num)
+        _, why = sweep_accept(key, found - 1) if found > 0 else (True, "accepted")
+        ok = found == expected and why == f"rate of change exceeded on {key}"
+        rows.append((f"{key} downward", ok, f"stops accepting below {found:,} ({why})"))
+    return rows
+
+
 MIN_SET_CASES = [
     (12, 8, True),
     (12, 7, False),
@@ -320,6 +446,17 @@ def main() -> int:
         )
 
     print()
+    print("Rule 3 - both halves of the rate of change, per governed parameter")
+    print("  (boundaries searched for, not transcribed; [REVIEW-017] RF-002)")
+    sweep = rate_sweep()
+    for name, ok, detail in sweep:
+        failures += not ok
+        print(
+            f"  {name:<50} {'BOUND' if ok else 'UNBOUND':>9}  {detail}"
+            + ("   <-- MISMATCH" if not ok else "")
+        )
+
+    print()
     print("Relational rule on consensus_parameters - 3 * min_set >= 2 * V")
     for V, ms, expected in MIN_SET_CASES:
         ok, _ = accept_consensus_min_set(V, ms)
@@ -331,7 +468,7 @@ def main() -> int:
             + ("   <-- MISMATCH" if bad else "")
         )
 
-    total = len(CASES) + len(RATE_CASES) + len(MIN_SET_CASES)
+    total = len(CASES) + len(RATE_CASES) + len(sweep) + len(MIN_SET_CASES)
     print()
     print(f"cases: {total}, mismatches: {failures}")
     print(f"GATE-RULES-REJECT: {'PASS' if failures == 0 else 'FAIL'}")
