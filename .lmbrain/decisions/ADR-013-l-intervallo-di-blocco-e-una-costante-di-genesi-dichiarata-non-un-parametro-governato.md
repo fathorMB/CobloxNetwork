@@ -64,16 +64,53 @@ cui `reward_epoch_ms` ha un pavimento: un intervallo di blocco governabile
 sarebbe un denominatore che la governance puo muovere sotto ogni limite
 espresso in blocchi. Cambiarlo richiede una genesi nuova.
 
-**3. Cio che v0 dichiara non e cio che v0 impone, e va detto.** La dichiarazione
-fissa il significato dei parametri per chi implementa e per chi tara; **non
-esiste in v0 una regola di validita che imponga il passo di produzione dei
-blocchi**, perche il solo vincolo su `timestamp_ms` e la mediana degli undici
-precedenti. La conseguenza e nominata qui invece di essere lasciata scoprire, ed
-e registrata come debito separato: il set di validatori attivo determina di
-fatto la durata in tempo reale delle proprie epoche, quindi la propria
-incumbency. Le garanzie anti-cattura di [SPEC-006] sono denominate in epoche e
-restano vere in epoche; la loro traduzione in giorni dipende da chi le epoche le
-produce.
+**3. v0 non specifica la produzione dei blocchi, e nessuna regola interna alla
+catena potrebbe imporla.**
+
+> **Questa parte e stata riscritta il 2026-08-25**, non annotata, come le
+> *Review conditions* di questa ADR prevedono per il caso in cui il debito sul
+> passo di produzione si risolva. La formulazione precedente diceva che «cio che
+> v0 dichiara non e cio che v0 impone», il che descriveva una cadenza dichiarata
+> e non applicata. **Era una descrizione sbagliata di un fatto piu grande**, e
+> lasciava disponibile un rimedio che non rimedia. La versione precedente e
+> conservata nella storia di questo file; l'errore e chiamato errore.
+
+La dichiarazione fissa il significato dei parametri per chi implementa e per chi
+tara. Cio che manca **non e una regola sulla cadenza: e il livello di produzione
+dei blocchi per intero.** `docs/protocol/` non specifica ne la selezione del
+proposer ne la meccanica dei round, e il solo vincolo su `timestamp_ms` e la
+mediana degli undici precedenti, che impone monotonia e non passo.
+
+**La proposizione generale, che e la ragione per cui questa parte e una rinuncia
+e non una lacuna da colmare:** *nessuna regola di validita interna alla catena
+puo vincolare il tempo reale, perche ogni orologio della catena e scritto dai
+validatori.* Stabilita da AGENT-007 valutando [DEBT-013].
+
+**Un rimedio apparente e nominato qui perche non venga adottato.** Una regola di
+validita sulla distanza fra `timestamp_ms` consecutivi **non chiude nulla**:
+`timestamp_ms` e scritto dagli stessi validatori, quindi una simile regola li
+obbliga a **scrivere** timestamp vicini, non a **produrre** blocchi vicini.
+Adottarla darebbe una chiusura falsa al prezzo pieno di una passata di
+[ADR-012], e sarebbe la famiglia 3 di `.lmbrain/knowledge/recurring-defects.md`
+commessa dentro il rimedio: vincolata la grandezza nominata, non quella da cui
+la proprieta dipende. E registrata come primo esito ammissibile in [DEBT-013] ed
+e **respinta**.
+
+**Cio che v0 ha, ed e uno solo.** L'unico orologio esterno del protocollo e il
+**checkpoint di soggettivita debole**, che porta `height`, `timestamp_ms` e
+`issued_at_ms` firmati da una chiave che non appartiene a nessun validatore. Due
+checkpoint misurano la cadenza reale. La chiusura praticabile passa di li, e non
+**impedisce** il rallentamento: lo rende **misurabile e dichiarato**. Per un
+difetto la cui gravita e tutta nell'invisibilita e la parte che conta, e dire
+«chiuso» direbbe piu di quanto sara scritto.
+
+**Le conseguenze, nella forma accertata e non in quella supposta.** Il set
+attivo determina la durata in tempo reale delle proprie epoche, quindi la
+propria incumbency, e la soglia non e il quorum ma un **terzo bloccante**, con
+la catena viva e ogni blocco valido. Le garanzie anti-cattura di [SPEC-006] sono
+denominate in epoche e restano vere in epoche; la loro traduzione in giorni
+dipende da chi le epoche le produce. Il dettaglio, con i tre effetti valutati
+separatamente, e in [DEBT-013] e negli scenari del threat model che lo chiudono.
 
 ## Alternatives considered
 
@@ -105,10 +142,22 @@ produce.
 - La taratura di [SPEC-007] smette di poggiare su un'assunzione non versionata
   in `docs/`, e `BLOCK_INTERVAL_SECONDS` nel simulatore diventa una copia di un
   valore normativo invece che la sua unica sede.
-- Il debito sul passo di produzione non imposto va aperto nella stessa passata,
-  e va sottoposto a review adversariale invece che valutato dal Lead: e
-  un'osservazione sul potere del set attivo, cioe la superficie su cui questo
-  progetto ha gia sbagliato tre volte di seguito.
+- ~~Il debito sul passo di produzione non imposto va aperto nella stessa
+  passata, e va sottoposto a review adversariale invece che valutato dal Lead.~~
+  **Fatto**: aperto come [DEBT-013] e valutato da AGENT-007 il 2026-08-25. La
+  scelta di non farlo valutare al Lead si e rivelata quella giusta: la
+  valutazione ha corretto **due** affermazioni che il Lead aveva scritto nel
+  debito. Che la soglia fosse il quorum — e un **terzo bloccante**. E che
+  l'emissione non si muovesse perche denominata in millisecondi — si muove
+  **verso il basso**, perche la catena non ha altro orologio dei propri
+  `timestamp_ms`. La seconda correzione **aggrava**: il rallentamento ha un
+  costo, ma **esternalizzato**, perche si perde l'emissione di tutta la rete e
+  si conserva il seggio del solo cartello. Il movente e piu forte, non piu
+  debole.
+- **La chiusura di [DEBT-013] e lavoro di una spec e passa dal checkpoint di
+  soggettivita debole**, unico orologio esterno del protocollo. Quella spec
+  tocca lo stesso oggetto di [DEBT-014] e deve conoscerne la conclusione per non
+  riaprirla.
 - La disposizione di [DEBT-010] usa questi numeri: 63 e 84 giorni sono
   l'incumbency prima e dopo una spinta irreversibile del cricchetto.
 
@@ -116,8 +165,18 @@ produce.
 
 Rivedere se: le misure reali di una devnet mostrano che 5 secondi sono
 insostenibili per i nodi mobili, che e il rischio dichiarato di M-04 e l'unica
-evidenza che dovrebbe muovere questo valore; oppure se il debito sul passo di
+evidenza che dovrebbe muovere questo valore; ~~oppure se il debito sul passo di
 produzione non imposto si risolvesse con una regola di validita, nel qual caso
-la parte 3 di questa decisione va riscritta e non solo annotata. **Non
+la parte 3 di questa decisione va riscritta e non solo annotata~~ — **la parte 3
+e stata riscritta il 2026-08-25**, e non perche quel debito si sia risolto con
+una regola di validita ma perche la valutazione ha stabilito che **nessuna
+regola interna alla catena potrebbe esserlo**. La condizione era scritta
+prevedendo l'esito piu comodo; l'esito reale e stato l'opposto e ha comunque
+imposto la riscrittura.
+
+Rivedere inoltre se una revisione futura del protocollo specificasse la
+produzione dei blocchi — selezione del proposer e meccanica dei round — che oggi
+`docs/protocol/` non contiene affatto: quella e la premessa che rende vera la
+parte 3, e se cade va riesaminata per intero. **Non
 rivedere** per allineare Coblox alla cadenza di un'altra rete: il numero qui
 serve a dare significato ai parametri tarati, non a somigliare a qualcosa.
