@@ -20,7 +20,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const DIR = resolve(here, '../mockups');
 const tokens = JSON.parse(readFileSync(resolve(here, '../tokens/tokens.json'), 'utf8'));
 
-const UNIT = `<span class="cbx-unit cbx-unit--provisional" title="The name of the unit has not been decided yet: typographic placeholder">◇</span>`;
+/** Decided by ADR-009: the compact unit form, always posposed to the number
+    (measure grammar — "50 kg", not currency grammar — "$50"). The visual gap
+    is the existing `.cbx-unit` margin, matching how every other posposed unit
+    in this system (GB, ms) is set. */
+const UNIT = `<span class="cbx-unit">cr</span>`;
 
 function sparkPoints(seed, count = 48, width = 320, height = 44) {
   const raw = [];
@@ -915,7 +919,6 @@ function page(title, intro, artboards) {
             lavoro interne per il team e restano in italiano.
           </span>
         </div>
-        <p class="cbx-hint">Il segno <span class="cbx-unit cbx-unit--provisional">◇</span> è un segnaposto: il nome dell'unità non è ancora deciso.</p>
         <nav class="mock-toc" aria-label="Stati di questa schermata">
           ${toc}
         </nav>

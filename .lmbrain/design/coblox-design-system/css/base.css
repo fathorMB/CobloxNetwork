@@ -162,19 +162,16 @@ a {
   white-space: nowrap;
 }
 
-/* The unit of account has no agreed name yet (open question, SPEC-003).
-   The provisional marker is deliberately visible so nobody mistakes it for a
-   final brand decision. Replace this one class when the name is chosen. */
+/* The unit of account is "credit" / "credits", compact "cr" (ADR-009).
+   Posposed to the number, never before it: a symbol that PRECEDES the number
+   is the grammar of money ($50); one that FOLLOWS it is the grammar of a
+   measure (50 kg). The margin below is the only separator — no literal space
+   character is embedded in the value string. */
 .cbx-unit {
   font-family: var(--cbx-font-family-data);
   color: var(--cbx-color-text-muted);
   margin-inline-start: 0.35em;
   font-size: 0.8em;
-}
-
-.cbx-unit--provisional {
-  border-bottom: 1px dotted currentColor;
-  cursor: help;
 }
 
 /* ------------------------------------------------------------- layout util */

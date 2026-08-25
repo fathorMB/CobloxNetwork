@@ -26,7 +26,11 @@ const tokens = JSON.parse(readFileSync(resolve(here, '../tokens/tokens.json'), '
 
 /** Narrow no-break space: the group separator used everywhere in the system. */
 const NNBSP = '&#8239;';
-const UNIT = `<span class="cbx-unit cbx-unit--provisional" title="The name of the unit has not been decided yet: typographic placeholder">◇</span>`;
+/** Decided by ADR-009: the compact unit form, always posposed to the number
+    (measure grammar — "50 kg", not currency grammar — "$50"). The visual gap
+    is the existing `.cbx-unit` margin, matching how every other posposed unit
+    in this system (GB, ms) is set. */
+const UNIT = `<span class="cbx-unit">cr</span>`;
 
 /** Deterministic sparkline path so the artefact is byte-stable across builds. */
 function sparkPoints(seed, count = 40, width = 320, height = 44) {
@@ -133,7 +137,7 @@ ${section(
 ${section(
   `${theme}-cards`,
   'Card e blocchi metrica',
-  'La cifra è l\'elemento più grande del blocco: la domanda primaria è sempre “quanto mi ha usato la rete”. L\'unità è un segnaposto finché il nome non è deciso.',
+  'La cifra è l\'elemento più grande del blocco: la domanda primaria è sempre “quanto mi ha usato la rete”. L\'unità è credits, in forma compatta cr, sempre posposta al numero (ADR-009).',
   `
             <div class="cbx-grid cbx-grid--3">
               <div class="cbx-card cbx-card--accent">
@@ -493,14 +497,6 @@ const html = `<!doctype html>
             <strong>Lingua dell'interfaccia: inglese.</strong> Tutto il testo <em>dentro</em> i componenti è
             in inglese, perché è la lingua del prodotto. Le note esplicative <em>attorno</em> ai componenti
             sono note di lavoro interne per il team e restano in italiano.
-          </span>
-        </div>
-        <div class="cbx-notice" role="note">
-          <span class="cbx-notice__icon" aria-hidden="true">◇</span>
-          <span>
-            Il nome dell'unità di conto <strong>non è ancora deciso</strong>. Ovunque compaia il segno
-            <span class="cbx-unit cbx-unit--provisional">◇</span> si legge “token Coblox”: è un segnaposto
-            tipografico, non un simbolo definitivo.
           </span>
         </div>
       </header>

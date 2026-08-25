@@ -90,8 +90,9 @@ Un errore ricorrente da evitare: mettere in monospace un intero paragrafo perch�
 contiene un numero. Va in monospace **il numero**, non il paragrafo.
 
 Font: la famiglia è dichiarata in `font.family.mono` con una catena di fallback
-di sistema. **La scelta del monospace definitivo è una decisione aperta** —
-vedi §10.
+di sistema. **Il monospace definitivo è deciso: JetBrains Mono** ([ADR-009]) —
+vedi §10. Resta aperta solo l'incorporazione dei file del font nel bundle
+Tauri, che è lavoro di un'altra spec.
 
 ---
 
@@ -99,13 +100,33 @@ vedi §10.
 
 ### 4.1 Unità
 
-Il nome dell'unità **non è ancora deciso**. Fino ad allora:
+Deciso da [ADR-009]. Il nome dell'unità è **`credit`**, al plurale **`credits`**;
+forma compatta **`cr`**. Resa: classe `.cbx-unit`, senza modificatori.
 
-- forma scritta: **"Coblox token"** (minuscolo, mai un acronimo inventato);
-- segno tipografico: **`◇`**, reso dalla classe `.cbx-unit .cbx-unit--provisional`,
-  che lo sottolinea tratteggiato per dichiararlo provvisorio;
-- non introdurre mai un simbolo alternativo, un ticker o un'abbreviazione:
-  quando il nome sarà deciso, si sostituisce **una sola classe**.
+**L'unità è sempre posposta al numero, mai anteposta, e non è mai resa come
+glifo o simbolo isolato.** Non è un dettaglio tipografico: è il portatore del
+vincolo permanente di [[PROJECT]] per cui il token non deve poter acquisire
+valore monetario neanche di fatto. Un segno che **precede** il numero — `$50`,
+`€50` — è la grammatica del denaro. Un'abbreviazione che lo **segue** — `50 kg`,
+`340 ms`, `128.40 cr` — è la grammatica della misura. Ogni schermata che scrive
+un importo ripete quel vincolo tipograficamente, invece di contraddirlo.
+
+**Questa non è una regola nuova: è la fine dell'unica eccezione.** §7.3 impone
+già lo spazio unificatore fra numero e unità per ogni altra unità del prodotto
+(`512 GB`, `340 ms`) — il token, reso finora con un glifo segnaposto, era
+l'unico valore trattato diversamente. Con [ADR-009] non fa più eccezione: si
+scrive `credit`/`credits` per esteso o `cr` in forma compatta, sempre dopo il
+numero, esattamente come ogni altra unità del sistema.
+
+**Forma estesa o compatta.** La densità da terminale (§2, leva 1) è una delle
+quattro leve dell'identità visiva, e la forma compatta `cr` la serve meglio
+della forma estesa in ogni superficie di prodotto — card, tabelle, log,
+didascalie: si usa **`cr`** ovunque compare un valore numerico di token. La
+forma estesa **`credits`** resta per la prosa discorsiva (frasi che non
+riportano una cifra accanto all'unità) e per la documentazione. Se test con
+utenti reali mostrassero che `cr` posposto non viene compreso come unità, la
+forma estesa va preferita anche a costo di densità ([ADR-009], *Review
+conditions*) — non per ragioni di gusto o di brand.
 
 ### 4.2 Formato
 
@@ -336,8 +357,8 @@ Non sono un livello di rifinitura: sono un criterio di accettazione.
 
 | Tema | Stato | Nota |
 | --- | --- | --- |
-| Nome dell'unità di conto | **Aperto** (operatore) | Segnaposto `◇` + "token Coblox". Alla decisione si aggiorna `$meta.unitNamePlaceholder` e la classe `.cbx-unit--provisional`. |
-| Font monospace definitivo | **Proposta della specialista: JetBrains Mono** | Licenza Apache 2.0 (ridistribuibile con l'app), zero barrato, altezza-x generosa, ottima distinzione `1/l/I` e `0/O` — decisive su hash e id. Alternative valide: IBM Plex Mono (SIL OFL, più sobrio), Fira Code (SIL OFL, ma le legature vanno disattivate: falsano la lettura dei dati). Da confermare con l'operatore prima di incorporare i file. |
+| Nome dell'unità di conto | **Deciso** ([ADR-009]) | `credit`/`credits`, forma compatta `cr`, sempre posposta al numero. Reso da `$meta.unit` e dalla classe `.cbx-unit` (senza modificatori). |
+| Font monospace definitivo | **Deciso: JetBrains Mono** ([ADR-009]) | Licenza **SIL OFL 1.1** per il carattere (non Apache-2.0: quella copre solo il codice sorgente del repository, dato corretto da [ADR-009]). Zero barrato, altezza-x generosa, ottima distinzione `1/l/I` e `0/O` — decisive su hash e id. Alternative scartate: IBM Plex Mono (SIL OFL, più sobrio), Fira Code (SIL OFL, ma le legature vanno disattivate: falsano la lettura dei dati). |
 | Font sans definitivo | **Proposta: Inter** (SIL OFL) | Fallback di sistema già dichiarato; oggi la pagina non scarica nulla dalla rete. |
 | Incorporare i font nell'app | **Aperto** | Oggi le famiglie sono dichiarate con fallback di sistema, quindi le proporzioni variano fra macchine. Per un rendering identico su Windows/Linux i file vanno incorporati nel bundle Tauri: è lavoro di un'altra spec. |
 | Mapping Compose per Android | **Fuori scope** | Spec dedicata. La nomenclatura semantica è già predisposta. |
