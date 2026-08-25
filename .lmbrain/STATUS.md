@@ -53,6 +53,14 @@ Il criterio che ha ordinato tutto il lavoro finora, e che vale ancora per l'ulti
 
 ## Ready for handoff
 
+**Due spec redatte il 2026-08-26, in `backlog`, in attesa della tua approvazione.** Chiudono cinque debiti fra quelli che devono precedere la devnet, e sono divise per **agente e per superficie**, non per dimensione.
+
+- **[SPEC-016] — Gli orologi della catena.** AGENT-002, `sol`/`extended`. Chiude [DEBT-013], [DEBT-019] e [DEBT-014]. Le prime due si chiudono nella stessa forma perché hanno la stessa causa: *nessuna regola interna alla catena può vincolare il tempo reale, perché ogni orologio della catena è scritto dai validatori.* La terza è due paragrafi ed è lì perché lavora sullo **stesso oggetto** — il checkpoint di soggettività debole — e chi scrive la prima deve conoscerne la conclusione per non riaprirla.
+- **[SPEC-017] — Il legame di catena dove oggi è ambiguo o assente.** AGENT-001, `sol`/`standard`. Chiude [DEBT-020] e [DEBT-021]: alla genesi `chain_id` è **ambiguo** perché la sua derivazione è circolare e nessuna regola dice come si rompe; nel verificatore è **assente**, perché `SigningPreimage` garantisce da dove vengono i byte e non quale contesto rappresentino.
+
+**Tre debiti non sono ancora scrivibili come spec** e sono di AGENT-007: [DEBT-022], [DEBT-017], [DEBT-018]. Scriverne una adesso significherebbe decidere prima di sapere — su [DEBT-022], per esempio, se l'omissione di *«unrevoked»* sia deliberata.
+
+
 **[SPEC-014]** — i due cambiamenti breaking dell'API di `coblox-core`. **`ready` dal 2026-08-25**, approvata dall'operatore, che la dispaccia lui. `sol`/`standard` → AGENT-001. Chiude [DEBT-016] e [DEBT-015] insieme perché sono due cambiamenti della stessa API, e **prima del primo chiamante del verificatore**: oggi non ne esiste alcuno, quindi non rompe nulla e non costerà mai meno di adesso.
 
 Il rischio dominante è nominato dentro la spec: **la scorciatoia che sembra la chiusura.** La suite `ed25519-speccheck` verifica firme su messaggi arbitrari, quindi una via ai byte grezzi deve restare — e il criterio non è che non esista, ma che **non sia utilizzabile per sbaglio su un percorso di consenso**. Un costruttore generico e senza nome soddisfa ogni criterio meccanico e non chiude niente.
