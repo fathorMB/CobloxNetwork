@@ -1,7 +1,7 @@
 ---
 id: DEBT-015
 title: "I sotto-controlli della reward policy sono pubblici e invocabili al posto della validazione"
-status: open
+status: resolved
 category: "design"
 severity: "low"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-017"]
 related_decisions: ["ADR-010"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-014","REVIEW-022","REVIEW-023"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
 updated: 2026-08-25
 tags: ["rust","api","conformance"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-25
+    action: "resolved: Risolto da SPEC-014 insieme a DEBT-016, come i criteri di risoluzione di questo debito prevedevano esplicitamente. Chiuso prima che esistano consumatori dell'API, quindi senza rompere nulla."
 debt_events:
   - schema_version: "1"
     id: "DEBT-015-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Aperto dal Lead alla chiusura di SPEC-011, su segnalazione dell'implementatore che ha scelto di riportarlo invece di chiuderlo. Registrato come debito e non come remediation perche l'argomento sul raggruppamento dei cambiamenti breaking e corretto, e perche chiuderlo nella stessa passata avrebbe esteso una spec gia in review per la seconda volta. Owner AGENT-001 perche e l'autore dell'API e conosce i chiamanti nei test."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-015-EVENT-002"
+    timestamp: "2026-08-25T23:57:54.106582800+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Risolto da SPEC-014 insieme a DEBT-016, come i criteri di risoluzione di questo debito prevedevano esplicitamente. Chiuso prima che esistano consumatori dell'API, quindi senza rompere nulla."
+    evidence_refs: ["SPEC-014", "REVIEW-022", "REVIEW-023"]
 ---
 # I sotto-controlli della reward policy sono pubblici e invocabili al posto della validazione
 
@@ -65,3 +77,10 @@ I sotto-controlli della reward policy tornano privati come i gemelli del lato co
 
 ## Resolution evidence
 
+RewardPolicy::check_internal e check_magnitudes sono ora privati, con la stessa visibilita dei gemelli del lato consenso su ConsensusParameters. La porta laterale attorno alla disciplina dei tipi validati non esiste piu.
+
+I tre chiamanti diretti nei test sono riscritti sull'API pubblica e passano per la validazione completa. La riscrittura e migliore dell'originale e non solo equivalente: la riga che asserisce l'ammissibilita della policy base sotto gli stessi bound produce un argomento differenziale che prima non c'era, cioe che il rifiuto viene dal campo mutato e non da un controllo che scatta prima. Le asserzioni originali non nominavano la variante di errore, quindi non c'era precisione da perdere.
+
+Una correzione di AGENT-007 al lavoro di verifica del Lead, verificata: check_magnitudes e stato privatizzato insieme a check_internal ma non aveva alcun chiamante nei test su HEAD, quindi privatizzarlo non poteva costare copertura. I tre chiamanti erano tutti su check_internal.
+
+Il raggruppamento con DEBT-016 in una sola passata, che i criteri di risoluzione di questo debito prescrivevano, e stato rispettato: un solo cambiamento breaking per gli stessi consumatori invece di due.

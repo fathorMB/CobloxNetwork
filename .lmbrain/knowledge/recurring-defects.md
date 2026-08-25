@@ -51,7 +51,7 @@ Le famiglie hanno **un tratto comune** che è la cosa più utile di questa pagin
 
 ## Famiglia 3 — La grandezza vincolata non è quella da cui la proprietà dipende
 
-**Quattro occorrenze in due spec.** Le prime tre in [SPEC-009], trovate tutte da AGENT-007 in [REVIEW-014] che ne ha dato la diagnosi:
+**Sei occorrenze in quattro spec**, e le ultime due sono di natura diversa: colpiscono una **gate** invece di una regola, e sono del Lead. Le prime quattro in due spec. Le prime tre in [SPEC-009], trovate tutte da AGENT-007 in [REVIEW-014] che ne ha dato la diagnosi:
 
 > È stata vincolata la grandezza nominata dall'ADR, non la grandezza da cui la proprietà dipende.
 
@@ -69,6 +69,17 @@ Le famiglie hanno **un tratto comune** che è la cosa più utile di questa pagin
 2. **In quale unità è espressa?** Un pavimento denominato in un'unità che qualcun altro definisce non è un pavimento.
 
 E una terza che AGENT-007 giudica il punto in cui l'errore sarebbe **facile e invisibile**: **in quale direzione sta il pericolo?** Tetti dove il pericolo è verso l'alto, **pavimenti** dove è verso il basso. In [SPEC-009] tre dei sette limiti nuovi vanno nella direzione opposta a quella che l'intuizione suggerisce.
+
+### La stessa famiglia colpisce anche le gate, e lì è del Lead
+
+**Due occorrenze in un giorno, entrambe del Lead, entrambe nel lavoro di verifica e non in una regola.** Vale la pena tenerle separate perché cambiano chi deve porsi la domanda: non chi scrive una regola, ma chi scrive lo strumento che dovrebbe accorgersene.
+
+- **[SPEC-013], `GATE-NO-PUBLISHED-LINK`.** La gate misurava che `libp2p_peer_id` non comparisse più in alcun oggetto pubblicato, e restava **verde** mentre il difetto era aperto: il legame non era pubblicato, era **ricalcolabile** dalla chiave che il certificato pubblica. La proprietà da difendere era che il legame non fosse *ottenibile*; la gate misurava l'assenza di un campo.
+- **[SPEC-014], [REVIEW-022].** Il Lead ha giudicato `pub(crate)` una garanzia «nominale proprio dentro il confine in cui nasceranno i chiamanti di consenso». È il contrario: `coblox-node` e `coblox-ffi` sono membri distinti del workspace, quindi per loro quel confine è **esterno** e reale. Il difetto vero era un livello sopra e stava in una parola — il costruttore della via d'uscita era `pub`, senza alcuna feature, quindi raggiungibile in build di produzione. L'ha trovato AGENT-007 **contando i crate del workspace**.
+
+**La domanda che le intercetta è la famiglia 3 rivolta a sé stessi:** *questa gate misura la proprietà, o misura una cosa correlata alla proprietà?* Assenza di un campo non è impossibilità di ottenere il dato. Un confine di visibilità non è un confine di raggiungibilità.
+
+**E una regola di metodo che ne discende.** In entrambi i casi il difetto era **già scritto in albero** — la derivazione del Peer ID è pubblicata per esteso in `identity.md`, e la parola `pub` era sul costruttore — e il Lead lo aveva **letto senza vederlo**: nel secondo caso aveva persino citato le otto chiamate della suite di conformità come rassicurazione, mentre quelle chiamate provano che la via è raggiungibile **da un crate esterno**. La stessa evidenza letta con la domanda giusta dice il contrario.
 
 ## Famiglia 4 — La clausola normativa che nessun oracolo esercita
 

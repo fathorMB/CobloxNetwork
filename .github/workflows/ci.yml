@@ -73,6 +73,21 @@ jobs:
       # committed fixture and the generator disagree by a single byte.
       - name: Ed25519 Coblox extension vectors reproduce
         run: python3 sim/tools/ed25519_coblox_extension_vectors.py
+      # [REVIEW-023] RF-001. The first gate in this pipeline over the source
+      # tree rather than over docs/protocol/. The primary containment of the
+      # non-consensus signing-preimage constructor is a compilation boundary --
+      # the non-default `conformance-testing` feature -- and `cargo build
+      # --workspace` in the `rust` job is what fails when a dependant calls it
+      # from code a plain build compiles. This is the second half: cargo
+      # unifies features across a single invocation, so under `cargo test
+      # --workspace` the feature is on for the whole graph and a call in
+      # another crate's *test* code would still compile. It also catches the
+      # containment being undone by one line in a manifest, which no build
+      # would notice. It is a lint, not a boundary, and says so.
+      - name: The non-consensus escape hatch stays contained
+        run: python3 sim/tools/non_consensus_containment.py
+      - name: That containment proved in the negative, three defect classes
+        run: python3 sim/tools/non_consensus_containment.py --negative
 
   android:
     name: Android arm64 + Kotlin bindings

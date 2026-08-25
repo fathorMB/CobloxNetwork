@@ -311,6 +311,69 @@ pub fn dht_namespace_key(genesis_block_id: &Digest32) -> Digest32 {
         .finish()
 }
 
+/// An assembled signature preimage.
+///
+/// Under protocol rules, every consensus signature signs a chain-bound,
+/// domain-separated preimage produced by [`signing_preimage`] (or one of its
+/// specialized wrappers like [`block_vote_preimage`] or
+/// [`transport_key_attestation_signing_preimage`]).
+///
+/// This type enforces at compile time that callers pass a complete preimage
+/// rather than a `Digest32` or an arbitrary byte slice to signature verifiers.
+///
+/// # Raw byte construction (non-consensus)
+///
+/// Upstream conformance test suites (such as `ed25519-speccheck`) verify raw
+/// non-Coblox messages. To support testing and verification tooling without
+/// weakening consensus paths, `SigningPreimage::from_raw_bytes_non_consensus`
+/// permits constructing an instance from arbitrary bytes. It MUST NOT be used
+/// on consensus-critical paths.
+///
+/// That rule is held by a compilation boundary and not only by this sentence.
+/// The constructor exists only under the non-default `conformance-testing`
+/// feature, which nothing but this crate's own dev-dependency on itself enables
+/// (`core/coblox-core/Cargo.toml`, which also states the limit of the guarantee),
+/// so it is not compiled into a production build of `coblox-node`, `coblox-ffi`
+/// or the desktop shell. A second, textual check lives in
+/// `sim/tools/non_consensus_containment.py` and runs in CI: it fails if the
+/// constructor is named anywhere outside this file and
+/// `core/coblox-core/tests/`. [REVIEW-023] RF-001.
+///
+/// The wrapped `Vec<u8>` is private, not `pub(crate)`: no module of this crate
+/// can build a preimage around the constructors below, nor mutate one that has
+/// already been built. [REVIEW-023] RF-003.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SigningPreimage(Vec<u8>);
+
+impl SigningPreimage {
+    /// Returns the underlying preimage bytes as a slice.
+    #[must_use]
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    /// Explicitly creates a `SigningPreimage` from raw bytes for non-consensus
+    /// conformance tests and test vectors (e.g. `ed25519-speccheck`).
+    ///
+    /// # Warning
+    ///
+    /// This constructor MUST NOT be used on consensus paths. Consensus-critical
+    /// signatures must always construct preimages via [`signing_preimage`]:
+    /// bytes taken straight from the wire carry no `domain || 0x00 || chain_id`
+    /// prefix, so a signature verified over them is bound to neither the domain
+    /// nor the chain.
+    ///
+    /// It is behind the non-default `conformance-testing` feature so that the
+    /// rule above is enforced by the compiler for every dependant crate rather
+    /// than by review alone. See `core/coblox-core/Cargo.toml` for what that
+    /// boundary does and does not guarantee.
+    #[cfg(feature = "conformance-testing")]
+    #[must_use]
+    pub fn from_raw_bytes_non_consensus(bytes: &[u8]) -> Self {
+        Self(bytes.to_vec())
+    }
+}
+
 /// The global chain-bound signature preimage.
 ///
 /// "Every Coblox signature input is the ASCII domain shown by the schema, one
@@ -318,14 +381,14 @@ pub fn dht_namespace_key(genesis_block_id: &Digest32) -> Digest32 {
 /// value is the **message**, not a digest: Ed25519 hashes it internally, and
 /// pre-hashing it would be a different signature scheme.
 #[must_use]
-pub fn signing_preimage(domain: Domain, chain_id: &ChainId, payload: &[u8]) -> Vec<u8> {
+pub fn signing_preimage(domain: Domain, chain_id: &ChainId, payload: &[u8]) -> SigningPreimage {
     let domain_bytes = domain.as_str().as_bytes();
     let mut out = Vec::with_capacity(domain_bytes.len() + 1 + 32 + payload.len());
     out.extend_from_slice(domain_bytes);
     out.push(0);
     out.extend_from_slice(chain_id.as_digest().as_bytes());
     out.extend_from_slice(payload);
-    out
+    SigningPreimage(out)
 }
 
 /// The exact bytes a finality vote signs.
@@ -335,7 +398,7 @@ pub fn block_vote_preimage(
     height: u64,
     round: u64,
     block_id: &Digest32,
-) -> Vec<u8> {
+) -> SigningPreimage {
     let mut payload = Vec::with_capacity(8 + 8 + 32);
     payload.extend_from_slice(&height.to_be_bytes());
     payload.extend_from_slice(&round.to_be_bytes());
@@ -348,7 +411,7 @@ pub fn block_vote_preimage(
 pub fn transport_key_attestation_signing_preimage(
     chain_id: &ChainId,
     unsigned_attestation: &JsonObject,
-) -> Vec<u8> {
+) -> SigningPreimage {
     signing_preimage(
         Domain::SIG_TRANSPORT_KEY_ATTESTATION,
         chain_id,

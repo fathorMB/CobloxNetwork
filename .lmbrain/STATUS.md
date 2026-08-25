@@ -67,6 +67,11 @@ Nessuna. **Tredici spec redatte, tredici `done`.**
 
 ## Done
 
+- [SPEC-014] I due cambiamenti breaking dell'API di `coblox-core` → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-022] e con `GATE-SECREVIEW` attestato su [REVIEW-023]. Chiude [DEBT-016] e [DEBT-015] **prima che esista un chiamante del verificatore**, quindi senza rompere nulla. Passare un `Digest32` o byte grezzi a uno dei due punti d'ingresso **non compila**.
+
+  **Il finding di AGENT-007 ha invertito un ragionamento del Lead e ne ha trovato uno migliore.** La via non-consensus era **nominata ma non contenuta**: `registry` è un `pub mod`, il costruttore era `pub`, e il crate non aveva alcuna sezione `[features]` — quindi raggiungibile da `coblox-node`, `coblox-ffi` e dalla shell Tauri **in build di produzione**. La prova era già in albero e il Lead l'aveva **citata come rassicurazione**: la suite di conformità è un test di integrazione, cioè un crate esterno, e le sue otto chiamate provano la raggiungibilità dall'esterno, non l'assenza di chiamanti.
+
+  Chiusa con **entrambe** le strade proposte, con ruoli distinti — feature non-default come confine di compilazione, strumento versionato come guardia d'albero — più una classe che **nessuna delle due opzioni nominava**: un dipendente che abilita la feature per sé con una riga in un manifesto. Il limite di *feature unification* è stato **misurato e dichiarato**, non taciuto. Apre [DEBT-021].
 - [SPEC-013] Separazione della chiave di trasporto dalla chiave di identità → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-020] e con `GATE-SECREVIEW` attestato su [REVIEW-021], dopo un giro di remediation e **sei finding, due `high` bloccanti**. Attua [ADR-015]: il legame fra identità di ledger e indirizzo di rete non è più un fatto di dominio pubblico.
 
   **Il finding portante smonta la spec che lo contiene, e la gate del Lead non lo vedeva.** `identity.md` diceva *«uses a distinct Ed25519 key pair»* come **frase descrittiva** — nessun MUST, nessuna regola, nessun confronto nel codice — e **la fixture canonica usava la stessa chiave per i due ruoli**. Il Lead ha ricalcolato il corollario: dalla sola chiave pubblicata sul ledger si ottiene il Peer ID pubblicato in `identity.md`, quindi TM-28 nella forma originale, gratis e retroattivo. `GATE-NO-PUBLISHED-LINK` restava verde perché **misurava l'assenza di un campo, non la proprietà che quel campo doveva togliere**: il legame non era pubblicato, era **ricalcolabile**. Settima occorrenza della famiglia 1, e la più grave — la fixture insegnava la forma che annulla la spec.
@@ -103,12 +108,15 @@ Nessuna. **Tredici spec redatte, tredici `done`.**
 | --- | --- | --- | --- |
 | [DEBT-013] | medium | AGENT-007 | Nessuna regola impone il passo di produzione dei blocchi: il set attivo decide la durata reale delle proprie epoche, quindi la propria incumbency. Aperto con [ADR-013]. |
 | [DEBT-014] | medium | AGENT-007 | `validator_set_hash` è **l'unica preimmagine a dominio separato non legata a `chain_id`**: un set identico su due catene produce lo stesso hash. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010]. |
+| [DEBT-021] | medium | AGENT-001 | `SigningPreimage` non trasporta dominio né `chain_id`: un valore **ben tipato può essere semanticamente falso**. Stessa domanda di [DEBT-016] un livello sopra, stessa scadenza. |
+| [DEBT-019] | high | AGENT-002 | `reward_epoch` non ha una regola di derivazione dal tempo: il pavimento di [SPEC-009] vincola la durata dichiarata, non la velocità con cui gli indici avanzano. |
+| [DEBT-020] | medium | AGENT-001 | La circolarità di `chain_id` alla genesi non è risolta da alcuna regola: due implementazioni possono derivarne due diversi. |
 | [DEBT-017] | medium | AGENT-007 | La finestra reale di accettazione dell'attestazione è **tolleranza + durata**, e solo la durata è limitata. Famiglia 3. Segnalata dall'implementatore fermandosi. |
 | [DEBT-018] | medium | AGENT-007 | Nella matrice del threat model l'argomento *«non può scrivere, quindi `n/a`»* confonde falsificazione e perdita. La cella `A-04` poggia sullo stesso argomento appena caduto. |
 | [DEBT-016] | medium | AGENT-001 | Il verificatore accetta `message: &[u8]` dove il contratto impone la preimmagine: un chiamante che passasse un digest **compilerebbe e passerebbe ogni test**. Nessun chiamante esiste ancora, quindi il primo fissa la convenzione. Da chiudere con [DEBT-015] in una sola passata. |
 | [DEBT-015] | low | AGENT-001 | I sotto-controlli della reward policy sono `pub` mentre i gemelli del lato consenso sono privati: un chiamante può invocarne uno solo e credere di aver validato. Secondo cambiamento breaking, da raggruppare. |
 
-**Nessun debito `critical` né `high` aperto**: [DEBT-012] e [DEBT-008] sono chiusi da [SPEC-010]. Entrambi i debiti aperti hanno owner AGENT-007 e la stessa forma — un'osservazione che chi l'ha fatta non deve valutare da sé.
+**Nessun debito `critical` aperto.** Uno `high`, [DEBT-019]: [DEBT-012] e [DEBT-008] sono chiusi da [SPEC-010]. Entrambi i debiti aperti hanno owner AGENT-007 e la stessa forma — un'osservazione che chi l'ha fatta non deve valutare da sé.
 
 **Differito:** [DEBT-010] a M-07, il 2026-08-25. Non chiuso come rischio accettato benché i numeri lo suggeriscano — con il blocco a 5 s una spinta irreversibile porta l'incumbency massima da 63 a 84 giorni e il pavimento di ricambio non si muove, perché `ceil(27/9)` e `ceil(27/12)` valgono entrambi 3. **Ma è aritmetica del Lead, non la dimostrazione che il debito pone come condizione**, e accettare un rischio su un'affermazione non dimostrata è la famiglia 2 di `recurring-defects.md`. La dimostrazione è ora un criterio della spec di M-02 che tocca i parametri di consenso.
 

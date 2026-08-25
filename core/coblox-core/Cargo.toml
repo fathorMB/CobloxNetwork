@@ -39,7 +39,54 @@ curve25519-dalek = { version = "5.0.0", default-features = false, features = ["d
 # See the audit-coverage note above: 0.11.0 is a new major as well.
 sha2 = { version = "0.11.0", default-features = false }
 
+[features]
+# Not in `default`, and nothing in the workspace enables it: this feature is the
+# compilation boundary around `SigningPreimage::from_raw_bytes_non_consensus`,
+# the one constructor that builds a signing preimage out of arbitrary bytes and
+# therefore without the `domain || 0x00 || chain_id` prefix.
+#
+# [REVIEW-023] RF-001. Before this section existed the escape hatch was `pub` in
+# a `pub mod` behind no gate at all, so `coblox-node`, `coblox-ffi` and the Tauri
+# shell could reach it in a **production** build; what stopped a consensus caller
+# from taking the shortest conversion that compiles was the name, the comment and
+# the review, and none of those can fail a build. The named risk is concrete: a
+# preimage built from bytes off the wire verifies a signature bound to neither
+# the domain nor the chain, so a vote gathered on a devnet verifies on mainnet.
+# That is not an error, it is an acceptance.
+#
+# The feature is enabled for exactly one consumer: the dev-dependency below,
+# which `coblox-core` declares on itself so that its own integration tests --
+# which are separate crates and therefore see the crate from the outside, like
+# any dependant -- can drive the upstream `ed25519-speccheck` vectors, whose
+# messages are raw non-Coblox bytes by construction.
+#
+# **The limit that remains, stated rather than implied.** This is a guarantee
+# about production builds, not an absolute prohibition:
+#
+#   - `cargo build [--release] -p coblox-node` (and `--workspace`, and the Tauri
+#     shell) does not build dev-dependencies, so the feature is off and a call
+#     from a dependant fails to compile. This is the case that matters and the
+#     one proved in the negative in the SPEC-014 evidence.
+#   - `cargo test --workspace` **does** build dev-dependencies, and cargo unifies
+#     features across a single invocation, so the feature is on for the whole
+#     graph during that command. A call written in the *test* code of another
+#     crate would therefore compile. CI still catches it, because `cargo build
+#     --locked --workspace` runs before `cargo test`, but only if the call is in
+#     code that a plain build compiles.
+#   - The residual of the residual -- a call in a dependant's test-only code --
+#     is covered textually, not by the compiler, by
+#     `sim/tools/non_consensus_containment.py`, which CI runs and which fails if
+#     the constructor is named anywhere outside `core/coblox-core/src/registry.rs`
+#     and `core/coblox-core/tests/`. That tool is a lint, not a boundary; it is
+#     the second half of the answer, not a substitute for the first.
+conformance-testing = []
+
 [dev-dependencies]
+# `coblox-core` on itself, at the same path, purely to turn on the
+# `conformance-testing` feature for its own test targets. This is the whole
+# mechanism by which the escape hatch exists for the conformance suite and does
+# not exist for anything a user of this library builds.
+coblox-core = { path = ".", features = ["conformance-testing"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["alloc"] }
 
 [lints]

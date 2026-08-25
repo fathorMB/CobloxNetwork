@@ -1,7 +1,7 @@
 ---
 id: DEBT-016
 title: "Il verificatore consensus-critical accetta una fetta di byte dove il contratto impone un messaggio"
-status: open
+status: resolved
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-019"]
 related_decisions: ["ADR-003"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-014","REVIEW-022","REVIEW-023"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
 updated: 2026-08-25
 tags: ["rust","api","security","conformance"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-25
+    action: "resolved: Risolto da SPEC-014, accettata con REVIEW-022 e con GATE-SECREVIEW attestato su REVIEW-023. Chiuso prima del primo chiamante del verificatore, che era la scadenza reale del debito e la ragione per cui e stato raggruppato con DEBT-015 invece di essere rimandato."
 debt_events:
   - schema_version: "1"
     id: "DEBT-016-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Aperto dal Lead alla chiusura di SPEC-012. Registrato come debito e non chiuso in remediation perche la chiusura richiede di modificare verifier.rs, che il Lead aveva escluso dal perimetro, e perche estendere una terza volta una spec gia passata per due giri di review e il modo in cui una spec non chiude mai. AGENT-001 si e fermato e ha riportato invece di forzare, che e il comportamento corretto e va registrato come tale. Owner AGENT-001 perche e l'autore della cucitura e del crate."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-016-EVENT-002"
+    timestamp: "2026-08-25T23:57:40.381897900+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Risolto da SPEC-014, accettata con REVIEW-022 e con GATE-SECREVIEW attestato su REVIEW-023. Chiuso prima del primo chiamante del verificatore, che era la scadenza reale del debito e la ragione per cui e stato raggruppato con DEBT-015 invece di essere rimandato."
+    evidence_refs: ["SPEC-014", "REVIEW-022", "REVIEW-023"]
 ---
 # Il verificatore consensus-critical accetta una fetta di byte dove il contratto impone un messaggio
 
@@ -69,3 +81,12 @@ Va chiuso insieme a DEBT-015, che chiede l'altro cambiamento breaking dell'API p
 
 ## Resolution evidence
 
+Il tipo SigningPreimage compare ora nella firma sia di SignatureVerifier::verify sia di verify_consensus_ed25519, e passare un Digest32 o una fetta di byte arbitraria non compila. Verificato dal Lead con una sonda: due errori E0308, expected &amp;SigningPreimage, su entrambi i punti d'ingresso.
+
+Il criterio che il debito poneva, cioe che il tipo non sia costruibile da byte arbitrari se non attraverso una via nominata, e soddisfatto in forma piu forte di come era stato scritto. Il campo e privato, e la via nominata from_raw_bytes_non_consensus e sotto una feature non-default abilitata dalla sola dev-dependency che il crate dichiara su se stesso: non e quindi solo nominata, e inaccessibile alle build di produzione dei crate dipendenti. Verificato dal Lead con una sonda dentro coblox-node, che fallisce con E0599 in build di produzione.
+
+Il limite residuo e dichiarato e misurato, non taciuto: la feature unification riabilita la via sotto cargo test --workspace, verificato dal Lead compilando la stessa sonda in quel profilo. E coperto da una guardia d'albero versionata, sim/tools/non_consensus_containment.py, eseguita dalla CI e provata in negativo su quattro classi, fra cui un dipendente che abilita la feature per se con una riga in un manifesto.
+
+La conversione e completa: tutte e quattro le produttrici di preimmagini dell'albero restituiscono SigningPreimage e nessuna resta a Vec di byte. E la proprieta che rende la chiusura reale, perche una sola lasciata indietro avrebbe costretto il primo chiamante di consenso a usare la via d'uscita per fare il ponte.
+
+Chiusa anche OSS-001 di REVIEW-019, che il debito comprendeva: la locuzione audited primitive crate in verifier.rs non c'e piu e rimanda a Cargo.toml per la provenienza degli audit.
