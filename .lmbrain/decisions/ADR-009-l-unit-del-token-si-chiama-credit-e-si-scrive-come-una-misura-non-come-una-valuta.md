@@ -35,11 +35,11 @@ Il Lead ha osservato che quel vincolo ha una conseguenza sul naming che il rifle
 
 ## Decision
 
-**L'unità si chiama `credit`, al plurale `credits`.** Forma estesa nelle interfacce: `1,240 credits`.
+**L'unità si chiama `credit`, al plurale `credits`.** Forma estesa nelle interfacce: `1 240 credits`.
 
-**La forma compatta è `cr`, posposta al numero:** `1,240 cr`. Il glifo `◇` e la classe `.cbx-unit--provisional` sono ritirati.
+**La forma compatta è `cr`, posposta al numero:** `1 240 cr`. Il glifo `◇` e la classe `.cbx-unit--provisional` sono ritirati.
 
-La posizione non è un dettaglio tipografico ma il portatore del significato. Un glifo che precede il numero — `$50`, `€50`, `◇50` — è la grammatica del denaro. Un'abbreviazione che segue il numero — `50 kg`, `50 ms`, `1240 cr` — è la grammatica della misura. Adottando la seconda, la tipografia lavora **a favore** del vincolo di non convertibilità a ogni schermata, invece di contraddirlo mille volte al giorno mentre il documento di progetto lo afferma una volta sola.
+La posizione non è un dettaglio tipografico ma il portatore del significato. Un glifo che precede il numero — `$50`, `€50`, `◇50` — è la grammatica del denaro. Un'abbreviazione che segue il numero — `50 kg`, `50 ms`, `1 240 cr` — è la grammatica della misura. Adottando la seconda, la tipografia lavora **a favore** del vincolo di non convertibilità a ogni schermata, invece di contraddirlo mille volte al giorno mentre il documento di progetto lo afferma una volta sola.
 
 **Font monospace per dati, numeri e identificativi: JetBrains Mono**, con lo stack di fallback già dichiarato in `tokens.json`. La motivazione è di leggibilità e non di gusto: zero barrato, distinzione netta fra `1`, `l` e `I` e fra `0` e `O`, altezza-x generosa. Su un'interfaccia densa di hash, chiavi pubbliche e identificativi di nodo, quella distinzione è la differenza fra leggere un identificativo e sbagliarlo.
 
@@ -57,6 +57,8 @@ La posizione non è un dettaglio tipografico ma il portatore del significato. Un
 ## Consequences
 
 - Il pacchetto di design in `.lmbrain/design/coblox-design-system/` va aggiornato: ritiro di `.cbx-unit--provisional` e del glifo `◇` da `css/base.css`, dai tre mockup e dalla pagina di anteprima, dove compaiono anche i paragrafi di avvertenza «il nome dell'unità non è ancora deciso», e aggiornamento di `$meta` in `tokens.json`. È lavoro di AGENT-006, non del Lead.
+- **La decisione non introduce una regola nuova: toglie al token la sua eccezione.** `PRINCIPLES.md` §7 impone già l'unità posposta con spazio unificatore per ogni altra unità (`512 GB`, `340 ms`), e il token era l'unico caso trattato con un glifo anteposto. Verificato in fase di applicazione, dopo la stesura di questa ADR.
+- **Il formato numerico segue `PRINCIPLES.md` §4.2**, non l'uso anglosassone: separatore delle migliaia **spazio stretto unificatore** (U+202F), mai la virgola, con separatore decimale il punto. Gli esempi di questa ADR sono stati corretti di conseguenza: si scrive `1 240 cr`, non `1,240 cr`. La regola esiste perché regge la traduzione in lingue dove punto e virgola si scambiano di ruolo.
 - `PRINCIPLES.md` deve dire come si formattano i numeri di credit, e in particolare che l'unità è **posposta** e mai anteposta, con la ragione: senza la ragione scritta, la regola verrà infranta dalla prima persona che troverà più bello il glifo davanti.
 - La lingua di prodotto è l'inglese ([[PROJECT]]), quindi `credit`/`credits` è la forma canonica anche nella documentazione pubblica. Le avvertenze in italiano rimaste nei mockup sono debito di quella stessa passata.
 - Incorporare i file del font nel bundle Tauri resta lavoro di un'altra spec, come [SPEC-003] già annotava: serve per un rendering identico su Windows e Linux. Con OFL 1.1 andrà inclusa la licenza del font accanto all'`Apache-2.0` del progetto.
