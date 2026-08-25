@@ -85,6 +85,92 @@ impl ElectionBounds {
     }
 }
 
+/// The declared block interval and the cadence band, fixed by the genesis
+/// trust anchor.
+///
+/// `CadenceBand` is the third object of its kind, alongside [`ElectionBounds`]
+/// and [`RewardBounds`], and it is configuration for the same reason they are:
+/// a band a sitting quorum could widen would be a tolerance underneath the only
+/// measurement the protocol has of that quorum's own behaviour.
+///
+/// It differs from the other two in what it governs. They bound the values a
+/// signed document may carry; this one bounds nothing a document carries at
+/// all. `block_interval_ms` is a genesis constant
+/// (`README.md#genesis-constants`) and appears in no signed document, and the
+/// band is the tolerance a client and a checkpoint release process apply to a
+/// **measurement**, never to a field. **No validity rule of the chain compares
+/// anything to this object**, and that is deliberate: a rule internal to the
+/// chain could only compare a chain-written clock to a chain-written clock.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CadenceBand {
+    /// Network identifier of the distribution that carried this band.
+    pub network_id: String,
+    /// Chain the band belongs to; must equal the client's configured chain.
+    pub chain_id: ChainId,
+    /// The declared target block interval, in milliseconds. `README.md` fixes
+    /// it at 5 000 ms for Coblox v0 ([ADR-013]); it is carried here rather than
+    /// compiled in, because this crate holds no launch value.
+    pub block_interval_ms: u64,
+    /// Fastest real production rate the chain may run at before a light client
+    /// fails closed. Smaller means faster.
+    pub min_ms_per_block: u64,
+    /// Slowest real production rate the chain may run at before the checkpoint
+    /// release process refuses to publish. Larger means slower.
+    pub max_ms_per_block: u64,
+    /// Blocks an interval must span before a measurement over it is made at
+    /// all. A ratio over a handful of blocks is noise, and a guard that
+    /// pronounces on noise is one nobody keeps running.
+    pub min_measured_blocks: u64,
+}
+
+impl CadenceBand {
+    /// Checks the band object itself against the client's configured chain.
+    ///
+    /// The relational rule — the declared interval lies inside the band — is
+    /// the one that makes the object mean what its name says. A band that
+    /// excludes the interval the protocol declares would put a conformant chain
+    /// permanently out of band, which is a guard that fires on everything and
+    /// therefore on nothing.
+    pub fn validate(&self, configured_chain_id: &ChainId) -> Result<()> {
+        if self.chain_id != *configured_chain_id {
+            return Err(ParameterError::ChainIdMismatch.into());
+        }
+        if self.block_interval_ms == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "block_interval_ms MUST be positive",
+            }
+            .into());
+        }
+        if self.min_ms_per_block == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "min_ms_per_block MUST be positive",
+            }
+            .into());
+        }
+        if self.min_ms_per_block > self.max_ms_per_block {
+            return Err(ParameterError::Bounds {
+                rule: "min_ms_per_block MUST NOT exceed max_ms_per_block",
+            }
+            .into());
+        }
+        if self.min_ms_per_block > self.block_interval_ms
+            || self.block_interval_ms > self.max_ms_per_block
+        {
+            return Err(ParameterError::Bounds {
+                rule: "min_ms_per_block <= block_interval_ms <= max_ms_per_block",
+            }
+            .into());
+        }
+        if self.min_measured_blocks == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "min_measured_blocks MUST be positive",
+            }
+            .into());
+        }
+        Ok(())
+    }
+}
+
 /// The reward-policy magnitudes fixed by the genesis trust anchor.
 ///
 /// `RewardBounds` is configuration, not chain state. It ships inside the

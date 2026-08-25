@@ -107,10 +107,22 @@ previous eleven finalized blocks and not run ahead of the receiver's clock by
 more than the active maximum drift — monotonicity and a ceiling, not a step.
 See [ledger.md](ledger.md#block-format) for the consequence: the active
 validator set determines the real-time duration of its own epochs, and
-therefore of its own incumbency, without breaking any rule. That gap is
-recorded as [DEBT-013] and is deliberately not closed in v0. It is stated here
+therefore of its own incumbency, without breaking any rule. It is stated here
 because the alternative — publishing a cadence and letting a reader assume it
 is checked — is the failure this specification is written to avoid.
+
+**No rule of this protocol prevents that, and none can.** Every clock the chain
+carries is written by the validators, so a validity rule that compared one of
+them to another would oblige a set to *write* a cadence, not to *produce* one —
+which is why a rule on the distance between consecutive `timestamp_ms` values is
+**rejected** rather than merely absent ([ADR-013]). What v0 does instead is make
+the real rate **measurable**, using the one clock no validator writes: the
+`issued_at_ms` of a weak subjectivity checkpoint. The tolerance is the
+[cadence band](#cadence-band) of the genesis trust anchor, and the measurement
+is step 4b of the
+[light-client algorithm](ledger.md#light-client-balance-verification). The
+distinction is the whole of what is claimed: the slowdown is not prevented, it
+is made visible and given a declared threshold.
 
 It is not a governed parameter for the same reason the reward epoch has a
 floor: an interval a sitting quorum could shorten or lengthen would be a
@@ -285,6 +297,45 @@ weak_subjectivity_checkpoint_hash =
                             || chain_id_32
                             || JCS(UnsignedWeakSubjectivityCheckpoint))
 ```
+
+**`validator_set_hash` does not bind `chain_id`, and the omission is
+deliberate.** Its formula is in
+[ledger.md](ledger.md#validator-set-continuity) rather than in the list above,
+and every preimage in the list above carries `chain_id_32`. The exception is
+written here because an undeclared exception reads as an oversight, and a reader
+who assumed an oversight would close it and change every published value that
+depends on it for no reason.
+
+The claim is stated with its class, because the unqualified version is false and
+was checked rather than assumed. Six other preimages of this protocol also omit
+`chain_id`, and each omits it for a reason of its own: `chain_id` itself, which
+cannot bind its own output; `node_id` and the `account_key` derivations, which
+are keys rather than references to a chain object; `object_id` and `input_hash`,
+which are content addresses and are **required** to be chain-independent so the
+same bytes have one name everywhere; and `dht_namespace_key`, which binds the
+genesis block ID, the chain ID's own input. What `validator_set_hash` is the
+exception to is the narrower class it belongs to: **a preimage over a
+chain-specific consensus object that other consensus objects reference by
+hash.** Every other member of that class — `tx_id`, `block_id`,
+`consensus_parameters_hash`, `policy_hash`, `parameter_set_hash`,
+`hosting_rate_card_hash`, `weak_subjectivity_checkpoint_hash`,
+`enrollment_request_hash`, `request_hash`, `response_hash`,
+`issuer_commitment`, `challenge_randomness`, `election_entropy`,
+`election_seed`, `election_ticket`, `admission_tag`, `enrollment_pow_salt` and
+`message_id` — carries `chain_id_32`.
+
+The reason it needs no binding is that a `ValidatorSet` is already bound to its
+chain **by its own bytes**, three times over, and every object that names a set
+by hash is one whose contents differ between chains: `election.election_seed`
+and each `election_ticket` are derived through `chain_id_32`
+([ledger.md](ledger.md#the-derivation)), and every `key_binding_signature` in
+the set is taken over the global chain-bound signature procedure. Two chains
+therefore cannot produce the same `validator_set_hash` unless every one of those
+also coincides — which for the seed means the same entropy block IDs, and those
+are block IDs, which are chain-bound. The genesis set, the only set without an
+`election` record, still carries the key bindings. Adding `chain_id_32` to this
+preimage would restate a binding that is already there, at the cost of
+recomputing every published value that depends on it.
 
 `ChallengeRequestWithoutIdOrSignature` is the challenge request with both
 `challenge_id` and `issuer_signature` removed; `challenge_id` MUST equal
@@ -702,7 +753,8 @@ gossiped onward.
 
 A signed network distribution MUST ship the network ID, genesis block ID,
 derived chain ID, genesis validator set, initial protocol documents, the
-election bounds and reward bounds below, and a weak subjectivity checkpoint. A fresh client MUST refuse
+election bounds, reward bounds and cadence band below, and a weak subjectivity
+checkpoint. A fresh client MUST refuse
 genesis-only synchronization when the checkpoint is missing, invalid, or stale;
 it requires a newer distribution obtained through an authenticated release
 channel. These values are trust anchors, not discoverable security facts. Network
@@ -957,6 +1009,90 @@ The table is normative in form and not in values: the magnitudes come from the
 genesis distribution, and a conformance suite substitutes its own before using
 it, exactly as it does for the consensus-parameters fixtures.
 
+### Cadence band
+
+`block_interval_seconds` is declared and not enforced, and
+[genesis constants](#genesis-constants) says why no validity rule could enforce
+it. The cadence band is the other half of that statement: the tolerance against
+which the real production rate is **measured**, by the two parties that hold a
+clock no validator wrote — a light client, and the process that releases
+checkpoints.
+
+`CadenceBand` is **configuration, not chain state**, for the same reason as the
+two bounds objects above. It ships inside the signed network distribution and in
+no other channel, cannot be changed by any on-chain document, and MUST NOT be
+learned from a peer, a header, or a protocol document. A band a sitting quorum
+could widen would be a tolerance underneath the only measurement this protocol
+has of that quorum's own behaviour.
+
+```text
+CadenceBand = {
+  "schema_version":"0.1",
+  "network_id":string,
+  "chain_id":sha256-string,
+  "block_interval_ms":u64-string,
+  "min_ms_per_block":u64-string,
+  "max_ms_per_block":u64-string,
+  "min_measured_blocks":u64-string
+}
+```
+
+`chain_id` MUST equal the client's configured chain ID; `block_interval_ms`,
+`min_ms_per_block` and `min_measured_blocks` MUST be positive; and
+`min_ms_per_block <= block_interval_ms <= max_ms_per_block` MUST hold. The last
+relation is what makes the object mean its name: a band that excluded the
+interval the protocol declares would put every conformant chain permanently out
+of band, and a guard that fires on everything fires on nothing.
+`min_measured_blocks` is the denominator's own floor — a ratio over a handful of
+blocks is noise, and a measurement below it is **not made**, which is reported
+as such and never as a pass.
+
+**How the band differs from the two bounds objects, and it is not a detail.**
+`ElectionBounds` and `RewardBounds` bound values that a signed document carries,
+so a document outside them is rejected on acceptance. The cadence band bounds
+**nothing any document carries**. It is applied to a measurement whose two
+endpoints are outside the chain, and **no validity rule of this protocol
+compares anything to it**. A chain running outside its band is not invalid; it
+is *observably* outside its band, which is the strongest true statement
+available and is the one made here.
+
+**Where it is applied**, and the two applications are deliberately asymmetric:
+
+- a **light client** measures from the checkpoint it holds to the header it has
+  authenticated, at step 4b of the
+  [light-client algorithm](ledger.md#light-client-balance-verification). It
+  fails closed above the band and **reports** below it. A client that has not
+  caught up counts fewer blocks than the chain produced, so its reading is
+  biased downwards and only downwards: too-slow is not soundly attributable to
+  the chain from that vantage point, and too-fast is, because sync lag cannot
+  manufacture blocks;
+- the **checkpoint release process** measures between two consecutive
+  checkpoints it has itself signed, and MUST NOT issue a checkpoint for a chain
+  whose measurement is outside the band **in either direction**, or whose
+  interval is too short to measure. It has neither sync lag nor a chain clock in
+  its inputs, so it is the party entitled to fail closed both ways — and it can
+  wait, which a light client asking for a balance cannot.
+
+`timestamp_ms` is not an input to either measurement, and MUST NOT become one.
+Both endpoints of both measurements are external to the chain by construction:
+the `issued_at_ms` of a checkpoint, signed by the release key, and the wall
+clock of the party doing the measuring. Using the header's own timestamp would
+be measuring the validators with the validators' own clock.
+
+Values are a genesis decision of the network operator, are deliberately not
+fixed in this document, and are listed with the rest in
+[DRAFT: governance-selected launch parameters](#draft-governance-selected-launch-parameters).
+What is fixed is that the band exists, that it lies outside on-chain
+governance, that the declared interval lies inside it, and that a network which
+ships no `CadenceBand` is not a conformant Coblox network.
+
+**Declared limit.** The band's trustworthiness is the release channel's, exactly
+as for `ElectionBounds` and the trust key. And the measurement is a measurement:
+it says at what rate blocks arrived, never why. An honest network under a
+partition and a cartel stretching its own incumbency produce the same reading,
+and the protocol does not distinguish them. What the band removes is not the
+manoeuvre; it is the manoeuvre's invisibility.
+
 ### Weak subjectivity checkpoint
 
 The checkpoint is the light client's only anchor against the long-range attack,
@@ -1028,6 +1164,23 @@ light client following it passes every other check. The rule is stated with the
 verification algorithm at
 [ledger.md](ledger.md#light-client-balance-verification).
 
+**Release procedure: a checkpoint is not issued for a chain outside its band.**
+Before signing a checkpoint at `height` with `issued_at_ms`, the release process
+MUST measure the cadence against the last checkpoint it signed for the same
+chain — `(height - previous.height)` blocks over
+`(issued_at_ms - previous.issued_at_ms)` real milliseconds — and MUST NOT issue
+the checkpoint when that measurement falls outside the
+[cadence band](#cadence-band) in either direction, or when it spans fewer than
+`min_measured_blocks` blocks. The first checkpoint of a chain has no
+predecessor and is exempt, which is stated rather than left to be inferred.
+
+This is a **procedure, not a validity rule**, and the distinction is the same
+one the band itself rests on. Withholding a checkpoint does not stop a chain and
+is not meant to: it withdraws the external clock from a chain that is not
+running at the declared rate, so a client that fails closed on checkpoint
+staleness fails closed on that chain too. The effect is real and it is indirect,
+and calling it enforcement would overstate it.
+
 ### The network-release trust key
 
 The trust key is an Ed25519 key held by the network's release process, not by
@@ -1084,6 +1237,21 @@ not economic facts and remain open:
   [election bounds](#election-bounds) of the genesis trust anchor, is rejected on
   acceptance. The simulator therefore chooses inside a feasible region that the
   chain's own governance cannot widen.
+
+- the [cadence band](#cadence-band): `min_ms_per_block`, `max_ms_per_block` and
+  `min_measured_blocks`. The **algorithm** is not open — the measurement, its two
+  external endpoints, and the asymmetry between the client and the release
+  process are fixed above. What is open is the tolerance, and it is a genesis
+  decision of the operator for the same reason `α` and the launch population
+  are. The two sides do not trade off against the same thing. The slow side is
+  the incumbency question: a band of `2 × block_interval_ms` calls a network
+  out of band during an ordinary partition, and one of `20 ×` lets a set double
+  its terms in real time before anything says so. The fast side is the issuance
+  question, and it became one only when `reward_epoch` was paced by height
+  ([ledger.md](ledger.md#reward_epoch-is-derived-from-height)): a band of
+  `block_interval_ms / 4` permits four times the intended real issuance rate
+  before the measurement objects. `min_measured_blocks` is the noise floor, and
+  its cost is latency — a band measured over a day sees a day late.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select

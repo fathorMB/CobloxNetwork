@@ -19,8 +19,8 @@ documents** and fails when the two disagree, in either direction.
     python sim/tools/published_artifacts.py            # run every check
     python sim/tools/published_artifacts.py --uncovered # the DEBT-012 answer
 
-Ten defect classes are checked. Each one is reachable: reintroduce the defect
-and the tool exits non-zero naming it.
+Eleven defect classes are checked. Each one is reachable: reintroduce the
+defect and the tool exits non-zero naming it.
 
     C1  DOMAIN         a `coblox-*-v0` domain string in the documents is not in
                        the manifest
@@ -38,6 +38,9 @@ and the tool exits non-zero naming it.
     C9  EXAMPLE        an inline example violates an equality the specification
                        states between its own fields
     C10 PROBE          a normative passage the manifest pins is no longer there
+    C11 CLAIMDOC       a claim document grew a mechanical artifact, so the
+                       probe-only treatment it is given has stopped being
+                       the right one
 
 **What this tool does not cover**, stated because a guard whose limits are not
 written is read as covering everything (`meta.not_covered` in the manifest
@@ -47,6 +50,15 @@ carries the same list, and C6 keeps the two honest):
     literal, domain string, tag byte or fixture identifier, is invisible to the
     mechanical sweep. Where such a passage matters it is pinned by hand as a C10
     probe, and the probe list is not claimed to be complete.
+  - the *contents* of a claim document beyond its pinned probes. `SECURITY.md`
+    is published — GitHub serves it from the Security tab, and it is the first
+    thing an outside researcher reads — but it carries no digest, domain, tag
+    byte or fixture identifier, so the five discovery classes have nothing to
+    find in it. It is therefore swept for C10 probes only, and C11 exists so
+    that the day it *does* grow a mechanical artifact the tool says so instead
+    of continuing to sweep the smaller set. Until [SPEC-016] the document was
+    outside the sweep entirely: the guard had measured the wrong set, which is
+    family 3 of `recurring-defects.md` applied to a guard.
   - base64url presentations other than the 43-character (32-byte) and
     22-character (16-byte) unpadded forms.
   - semantic correctness of any digest. This tool checks that the same value
@@ -73,6 +85,9 @@ REPO = pathlib.Path(
     os.environ.get("COBLOX_REPO") or pathlib.Path(__file__).resolve().parents[2]
 )
 DOCS = REPO / "docs" / "protocol"
+# Published documents that carry *claims* rather than artifacts. They live
+# outside docs/protocol/ and are swept for C10 probes only; see C11.
+CLAIM_DOCS = ("SECURITY.md",)
 MANIFEST = REPO / "sim" / "tools" / "published_artifacts.toml"
 
 MANIFEST_NOT_COVERED: list[str] = []
@@ -110,6 +125,10 @@ def _is_word(token: str) -> bool:
 
 def documents() -> dict[str, str]:
     return {p.name: p.read_text(encoding="utf-8") for p in sorted(DOCS.glob("*.md"))}
+
+
+def claim_documents() -> dict[str, str]:
+    return {name: (REPO / name).read_text(encoding="utf-8") for name in CLAIM_DOCS}
 
 
 def discover(docs: dict[str, str]) -> dict[str, dict[str, set[str]]]:
@@ -420,6 +439,91 @@ def check_example_invariants(manifest: dict, docs: dict[str, str], report: Repor
     report.note("C9-EXAMPLE", checked)
 
 
+def check_claim_documents(
+    manifest: dict, claims: dict[str, str], report: Report
+) -> None:
+    """C11: a claim document is swept for probes only, and must stay eligible.
+
+    The five discovery classes are not run over these documents, because the
+    tokens they look for are not there and a `DEBT-013` in backticks would be
+    reported as an undeclared conformance fixture — a false positive, which
+    [ADR-012] precision 3 records as the way a guard stops being believed and
+    therefore stops being run.
+
+    That decision is only honest while it stays true. If a claim document ever
+    carries a digest literal, a domain-separation string or a tree tag byte, it
+    has become an artifact document and the narrower treatment is exactly the
+    defect this class exists to prevent: a guard measuring the smaller set.
+    """
+    declared = set(manifest["meta"].get("claim_documents", []))
+    if declared != set(claims):
+        report.fail(
+            "C11-CLAIMDOC",
+            f"claim documents on disk {sorted(claims)} differ from the "
+            f"manifest's {sorted(declared)}",
+        )
+    for name, text in claims.items():
+        for label, pattern in (
+            ("digest literal", RE_DIGEST),
+            ("domain-separation string", RE_DOMAIN),
+            ("tree tag byte", RE_TAG),
+        ):
+            hit = pattern.search(text)
+            if hit is not None:
+                report.fail(
+                    "C11-CLAIMDOC",
+                    f"{name} now carries a {label} ({hit.group(0)!r}). It is "
+                    f"swept for C10 probes only, which was right while it "
+                    f"carried claims and no artifacts. Promote it to "
+                    f"meta.documents and to the five discovery classes, or "
+                    f"remove the artifact.",
+                )
+    checked_claims = len(claims)
+
+    # The derived counts. A number transcribed by hand into a published
+    # document is the defect [SPEC-012] closed by extracting the table from the
+    # document instead of copying it, and `SECURITY.md` had two of them wrong:
+    # 36 scenarios where the threat model carried 39, and 24 security
+    # requirements where it carried 26. Pinning the corrected numbers as probes
+    # would have bought one edit of grace, so they are recomputed from the
+    # source instead.
+    for row in entries(manifest, "claim_count"):
+        text = claims.get(row["site"])
+        if text is None:
+            report.fail(
+                "C11-CLAIMDOC",
+                f"claim count {row['id']!r} names unknown claim document "
+                f"{row['site']!r}",
+            )
+            continue
+        hit = re.search(row["pattern"], text)
+        if hit is None:
+            report.fail(
+                "C11-CLAIMDOC",
+                f"claim count {row['id']!r} found no match of "
+                f"{row['pattern']!r} in {row['site']}. {row['why']}",
+            )
+            continue
+        source = REPO / row["source"]
+        if not source.is_file():
+            report.fail(
+                "C11-CLAIMDOC",
+                f"claim count {row['id']!r} names source {row['source']!r}, "
+                f"which is not a file",
+            )
+            continue
+        actual = len(set(re.findall(row["token"], source.read_text(encoding="utf-8"))))
+        claimed = int(hit.group(1))
+        if claimed != actual:
+            report.fail(
+                "C11-CLAIMDOC",
+                f"claim count {row['id']!r}: {row['site']} claims {claimed} "
+                f"but {row['source']} carries {actual} distinct "
+                f"{row['token']!r}. {row['why']}",
+            )
+    report.note("C11-CLAIMDOC", checked_claims + len(entries(manifest, "claim_count")))
+
+
 def check_probes(manifest: dict, docs: dict[str, str], report: Report) -> None:
     """C10: hand-pinned normative passages that carry no mechanical token."""
     for row in entries(manifest, "probe"):
@@ -510,6 +614,8 @@ def main(argv: list[str] | None = None) -> int:
               f"differ from the manifest's {sorted(expected_docs)}")
         return 1
 
+    claims = claim_documents()
+
     found = discover(docs)
     report = Report()
     check_symbol_classes(manifest, found, report)
@@ -517,7 +623,8 @@ def main(argv: list[str] | None = None) -> int:
     check_mirrors(manifest, report)
     check_preimages(manifest, docs, report)
     check_example_invariants(manifest, docs, report)
-    check_probes(manifest, docs, report)
+    check_claim_documents(manifest, claims, report)
+    check_probes(manifest, {**docs, **claims}, report)
 
     for code in (
         "C1-DOMAIN",
@@ -529,6 +636,7 @@ def main(argv: list[str] | None = None) -> int:
         "C8-ENCODING",
         "C9-EXAMPLE",
         "C10-PROBE",
+        "C11-CLAIMDOC",
     ):
         print(f"  {code:<15} {report.counts.get(code, 0):>4} candidate(s) checked")
     print()

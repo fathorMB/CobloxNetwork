@@ -126,6 +126,66 @@ unique and sorted bytewise. The reward function in the signed `policy_hash`
 deterministically yields the amount; validators recompute it. Evidence cannot be
 consumed by two mints.
 
+#### `reward_epoch` is derived from height
+
+`reward_epoch` is an index that appears in every mint, in three Merkle leaves,
+and in three uniqueness rules. Until this section nothing derived it, and the
+consequence was that `reward_epoch_ms_min` — the floor
+[reward bounds](README.md#reward-bounds) places under the **declared** duration
+of an epoch — bounded a number in a signed document and not the speed at which
+the index advances. A conforming quorum that incremented `reward_epoch` at every
+block violated nothing, and multiplied real issuance by the ratio between a
+block and an epoch.
+
+The derivation binds the index to `height`, which is the one quantity of this
+chain a validator cannot write freely: `height` is `previous + 1`, and any
+observer can recheck that from headers alone, at any time, forever. Let
+`reward_epoch_ms` be the value carried by the `reward_policy` document the mint
+names through its own `policy_hash`, and `block_interval_ms` the genesis
+constant of [README.md](README.md#genesis-constants):
+
+```text
+reward_epoch_blocks = ceil(reward_epoch_ms / block_interval_ms)
+```
+
+> A `mint` naming `reward_epoch` `e` is valid only in a finalized block at
+> height `h` satisfying `(e + 1) * reward_epoch_blocks <= h`. A block containing
+> a mint that violates this is invalid.
+
+The ceiling and not the floor: the quantity is a lower bound on how much chain
+must pass before an epoch may be settled, so rounding it down would widen the
+permission. It is a settlement **floor** and not an equality, because a mint for
+an epoch is finalized after that epoch has ended and no rule can say how long
+after. A quorum may settle late, and may settle a backlog at once.
+
+**What the rule bounds, stated as narrowly as it is true.** Cumulative existence
+emission through height `h` is at most `floor(h / reward_epoch_blocks) * F`,
+since epoch `e` is unmintable below its floor and at most `F` is mintable within
+one epoch. That is a bound **per block**. It is **not** a bound per unit of real
+time, and must not be read as one: how many real milliseconds a block takes is
+the gap of [block format](#block-format), which this protocol measures and does
+not constrain. The two halves are one closure — the index is paced by the chain,
+and the chain's own pace is measured from outside — and neither half is
+sufficient alone. The derivation is what gives the fast side of the
+[cadence band](README.md#cadence-band) something to protect.
+
+**The opposite direction is not closed by a rule, and cannot be.** An index that
+does not advance freezes existence income without violating anything, and it is
+the twin of the case [reward bounds](README.md#reward-bounds) already declares
+invalid for a `reward_epoch_ms` above its ceiling. No validity rule internal to
+this chain can compel a quorum to mint — a rule can reject an act, never require
+one — so this direction is closed in the same shape as the cadence: it is made
+**computable**. The highest index the floor already permits at height `h` is
+`floor(h / reward_epoch_blocks) - 1`, so the number of epochs whose floor has
+passed unsettled is a quantity any full node or auditor recomputes from the
+headers and the finalized mints, without trusting anyone's account of it.
+
+A settlement **deadline** — an epoch becoming permanently unmintable after some
+window — was considered and is deliberately not adopted. It would not compel a
+quorum to mint either, and it would convert an honest outage into permanently
+lost income, while the cumulative bound above already holds whether or not a
+backlog is settled at once.
+
 #### Existence income is a share of a capped fund
 
 Existence income is **not** a fixed amount per node. Per [ADR-007] it is a fund
@@ -569,11 +629,32 @@ consecutive `timestamp_ms` values.** The two constraints above impose
 monotonicity against the median of eleven and an upper bound against the
 receiver's clock; neither imposes a step. A set of validators that produces blocks more slowly
 therefore lengthens, in real time, every quantity denominated in blocks —
-including its own terms — without violating anything and without a light client
-being able to say it was deliberate. The consequence is recorded as
-[DEBT-013] and is **not** closed by this document; it is named here rather than
-left for a reader to discover, because a declared cadence reads like an
+including its own terms — without violating anything. It is named here rather
+than left for a reader to discover, because a declared cadence reads like an
 enforced one unless the difference is written down.
+
+**No rule here will ever impose it, and the reason is general.** Every clock
+this chain carries is written by the validators, so a validity rule can only
+compare a validator-written number to a validator-written number. In particular
+a rule on the distance between consecutive `timestamp_ms` values is **rejected**
+and not merely absent: it would oblige a set to *write* a cadence, not to
+*produce* one, and would buy a false closure at the full price of a
+specification change ([ADR-013]).
+
+**What this document does instead is remove the last clause of the paragraph
+above** — *without a light client being able to say it was deliberate*. The real
+production rate is now **measured**, against the one clock no validator writes:
+the `issued_at_ms` of a weak subjectivity checkpoint. The measurement is step 4b
+of [light-client balance verification](#light-client-balance-verification), its
+tolerance is the [cadence band](README.md#cadence-band) of the genesis trust
+anchor, and the checkpoint release procedure applies the same band before it
+signs. The slowdown is not prevented. It is made visible, and given a threshold
+that was declared before anyone had a reason to argue about it.
+
+The two directions are not symmetric in what they cost. Slowdown stretches
+incumbency and every revocation delay; acceleration multiplies real issuance,
+because [`reward_epoch` is derived from height](#reward_epoch-is-derived-from-height).
+The band is two-sided for that reason and not for tidiness.
 `transactions_root` is recomputed in the canonical execution order defined
 below. `state_root` is the result
 after all transactions execute atomically.
@@ -627,6 +708,22 @@ ValidatorSet = {
 }
 validator_set_hash = H("coblox-validator-set-v0\0" || JCS(ValidatorSet))
 ```
+
+**This preimage carries no `chain_id`, unlike every other preimage over a
+chain-specific consensus object referenced by hash, and the asymmetry is
+deliberate.** The set is already bound to its chain by its own bytes, three
+times over: `election.election_seed` and every `election_ticket` behind the
+derivation are computed through `chain_id_32`
+([the derivation](#the-derivation)), and every `key_binding_signature` in
+`validators` is taken over the global chain-bound signature procedure. The
+genesis set, which is the only set without an `election` record, still carries
+the key bindings. Two chains cannot share a `validator_set_hash` without also
+sharing all of those, and the seed's inputs are block IDs, which are chain-bound
+in turn. Binding `chain_id` here would restate a binding the bytes already
+carry, and would change every published value that depends on this hash. The
+full statement of the exception, with the six preimages that omit `chain_id` for
+other reasons, is in
+[README.md](README.md#hash-preimage-registry).
 
 Validators are sorted by ID, unique, enrolled and unrevoked; voting power is
 positive and its sum cannot overflow `u64`. Genesis embeds the first trusted
@@ -2347,6 +2444,54 @@ quorum certificate, and one `AccountProof`:
    it — including the set inherited from the checkpoint. Without this the client
    would follow a chain signed by keys the network has already revoked; see
    [revocation forces a validator set transition](#revocation-forces-a-validator-set-transition).
+4b. **Measure the real cadence.** Load the `CadenceBand` from the configured
+   network distribution, exactly as step 5 loads `ElectionBounds` — it is a
+   trust anchor and MUST NOT be learned from a peer, a header, or a chain
+   document — and require its `chain_id` to equal the configured chain ID and
+   its own constraints to hold. A band whose `min_ms_per_block` or
+   `min_measured_blocks` is zero does not fail: it silently admits every rate,
+   so it is **rejected before it is used** rather than applied. Then, once step
+   4 has authenticated a header the client is treating as the chain's finalized
+   tip, compute
+   `blocks = tip.height - checkpoint.height` and
+   `elapsed_ms = now - checkpoint.issued_at_ms`, and compare against the
+   [cadence band](README.md#cadence-band) of the genesis trust anchor exactly:
+   the chain is **faster than the band** when
+   `elapsed_ms < blocks * min_ms_per_block` and **slower** when
+   `elapsed_ms > blocks * max_ms_per_block`. Compute the comparison without
+   dividing; a client that divides first will report a chain just outside the
+   band as inside it. When `blocks < min_measured_blocks` the measurement is
+   **not made**, and that is reported as its own outcome and never as a pass.
+
+   The client MUST fail closed when the chain is faster than the band, and MUST
+   report — not reject — when it is slower. The asymmetry is the point of the
+   step. Both readings use only clocks outside the chain: `issued_at_ms` is
+   signed by a release key that belongs to no validator, and `now` is the
+   client's own, the same one step 1 already uses. But a client that has not
+   caught up counts fewer blocks than the chain produced, so its reading is
+   biased downwards and only downwards: a slow reading may be the client's own
+   lag and is not soundly attributable to the chain, while a fast reading cannot
+   be manufactured by lag. Rejecting on the reading a client's own lag produces
+   would be a guard that cries wolf, and a guard nobody believes is a guard
+   nobody runs.
+
+   `timestamp_ms` is **not** an input to this step and MUST NOT be used in it,
+   here or in any implementation of it. It is written by the same validators
+   whose production rate is being measured; a client that reached for it would
+   be timing the validators with the validators' own clock, and would get
+   whatever answer they chose to write. This is the same reason a validity rule
+   on the distance between consecutive `timestamp_ms` values is rejected
+   ([ADR-013] and [block format](#block-format)).
+
+   **What this step establishes, and what it does not.** It establishes the rate
+   at which blocks arrived between two external points in time. It establishes
+   nothing about *why*: an honest network under a partition and a set stretching
+   its own incumbency produce the same reading, and no client of any kind can
+   separate them. It belongs with the eight facts of
+   [what a light client can establish](#what-a-light-client-can-establish-about-set-composition)
+   in that respect — a quantity the client can compute, not a verdict it can
+   reach.
+
 5. **Obtain and authenticate the election parameters, then check that the set is
    lawfully shaped and lawfully rotating.** The checks below compare against
    election parameters, so the client MUST first establish where those values

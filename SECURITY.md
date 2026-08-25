@@ -83,13 +83,32 @@ selectively, drive a lawful contraction, and reach a quorum from roughly **four
 ninths** of the set. The gain over the naive threshold is real and is claimed
 for what it is, not for more.
 
-**How fast the chain runs is not enforced by any rule.** Every clock inside the
+**How fast the chain runs is measured, not enforced.** Every clock inside the
 chain is written by the validators themselves, so no internal validity rule can
-bound real time. Block timestamps are constrained only to increase. A blocking
-third can therefore stretch the real-time length of an election epoch — and with
-it validator incumbency and the effective delay of a revocation — while the
-chain stays live and every block stays valid. The only external clock the
-protocol has is the signed weak-subjectivity checkpoint. Tracked as `DEBT-013`.
+bound real time — and a rule on the distance between consecutive block
+timestamps is rejected rather than merely absent, because it would oblige a set
+to *write* a cadence and not to *produce* one. Block timestamps are constrained
+only to increase and not to run ahead of the receiver's clock. A blocking third
+can therefore move the real production rate in either direction while the chain
+stays live and every block stays valid.
+
+The two directions cost different things and do not substitute for each other.
+**Stretching** lengthens, in real time, everything the protocol denominates in
+blocks: validator incumbency, and the effective delay of a revocation.
+**Compressing** multiplies real issuance, because the reward-epoch index is
+derived from block height — an epoch that may be settled after a fixed number of
+blocks is settled sooner in real time when blocks arrive sooner.
+
+What v0 has is a measurement, not a prohibition. The only external clock the
+protocol has is the signed weak-subjectivity checkpoint, whose `issued_at_ms` no
+validator writes; a light client and the checkpoint release process each compare
+the observed rate against a two-sided band fixed in the genesis distribution, and
+each fails closed where its own vantage point makes the reading sound. The
+manoeuvre is not prevented. It is made visible, against a threshold declared
+before anyone had a reason to argue about it — which for a defect whose severity
+is its invisibility is the part that counts, and is less than the word
+"prevented" would claim. The analysis is recorded as `DEBT-013`, and the
+specification is `docs/protocol/README.md` and `docs/protocol/ledger.md`.
 
 **Some dependency advisories are knowingly derogated.** The desktop shell
 depends on Tauri, which on Linux sits on the unmaintained GTK3 stack. Those
@@ -110,7 +129,7 @@ dependency graphs -- the workspace and the desktop shell -- are gated by
 ## Threat model
 
 The project maintains a threat model at
-`.lmbrain/knowledge/threat-model.md`: 36 scenarios, 24 numbered security
+`.lmbrain/knowledge/threat-model.md`: 39 scenarios, 26 numbered security
 requirements mapped to milestones, and 15 attack tests. If you are looking
 for where the sharp edges are, start there rather than here. It is written in
 Italian, the project's internal working language.

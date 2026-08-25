@@ -23,6 +23,28 @@ review_events:
     evidence_refs: ["SPEC-016", "ADR-012", "ADR-013", "DEBT-013", "DEBT-014", "DEBT-019"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-025-EVENT-002"
+    timestamp: "2026-08-26T01:23:48.625624600+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Remediation di RF-001 consegnata da AGENT-002. SECURITY.md entra nell'inventario come classe propria, meta.claim_documents, e non fra meta.documents: porta pretese e non artefatti, e farvi girare sopra le cinque classi di scoperta produrrebbe falsi positivi il primo giorno perche' ADR-007 e DEBT-013 corrispondono alla regex degli identificatori di fixture. Sette probe nuove sulle sue dichiarazioni portanti.\n\nPerche' quella scelta non decada in un'altra volta in cui la gate misura l'insieme piu' piccolo, e' stata aggiunta la classe C11-CLAIMDOC, che fallisce se un documento di pretese acquista un digest o un dominio dicendo di promuoverlo, e verifica nei due versi che l'insieme su disco coincida con quello dichiarato.\n\nL'implementatrice ha inoltre chiuso, senza che fosse chiesto, lo stesso difetto un livello sopra: la prova in negativo copriva una probe su 91 e dimostrava che una C10 puo' fallire, nulla sulle altre novanta. Ora cancella da ciascun documento il passaggio che la sua probe dichiara di pinnare ed esige che il tool fallisca nominandola per id, su tutte e 98.\n\nTrovate altre due imprecisioni fuori dal paragrafo della cadenza: SECURITY.md dichiarava 36 scenari e 24 requisiti contro 39 e 26 reali. Corrette, e i tre conteggi sono ora ricalcolati dalla fonte a ogni esecuzione invece che pinnati, perche' il difetto e' la trascrizione a mano e non il numero.\n\nDa verificare dal Lead prima della verifica formale."
+    evidence_refs: ["SPEC-016", "ADR-012"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-025-EVENT-003"
+    timestamp: "2026-08-26T01:24:05.099550500+02:00"
+    action: "remediation-verification"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "RF-001 verificata dal Lead rieseguendo, non letta dall'evidenza. published_artifacts.py: 98 candidati C10-PROBE e 4 C11-CLAIMDOC. published_artifacts_negative.py: PASS, 12 mutazioni su 11 classi piu' ogni probe individualmente, e la riga che conta e' \"every one of the 98 probes was observed failing\". 147 test, clippy zero warning, fmt pulito, protocol_hashes.py PASS con nessun valore pubblicato mosso.\n\nIl conteggio degli scenari che il Lead ha rifatto a mano ha dato 42 contro i 39 che SECURITY.md dichiara, e la prima esecuzione della gate era passata. Non e' un difetto della remediation: e' AGENT-007 che ha aggiunto TM-40, TM-41 e TM-42 su SPEC-018 fra le due esecuzioni del Lead, e C11-CLAIMDOC ha preso la deriva da sola, nominando la fonte e il numero. La guardia costruita per chiudere una deriva ne ha catturata una reale entro pochi minuti dall'esistere, causata da un altro agente sullo stesso albero. E' la dimostrazione che vincola, e vale piu' della prova in negativo che l'accompagnava.\n\nNe discende un obbligo di sequenza registrato qui: SECURITY.md dovra' dire 42 quando SPEC-018 atterra, e non e' il Lead a doverselo ricordare perche' la gate fallira' finche' non lo dice.\n\nL'implementatrice ha inoltre lasciato al Lead invece di agire una cosa che poteva fare: il paragrafo anti-Sybil e' oggi piu' debole di quanto le regole sostengano, perche' ADR-010 registra che chiuse le tre disposizioni di SPEC-009 la proprieta' passa da vera-a-condizione a vera-per-regola, e le tre sono in albero. Rendere piu' forte una pretesa di sicurezza non e' lavoro che un implementatore faccia da solo. Va ad AGENT-007 in GATE-SECREVIEW."
+    evidence_refs: ["SPEC-016", "ADR-012"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: []
 created: 2026-08-26
 updated: 2026-08-26
@@ -32,6 +54,10 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-26
+    action: "recorded review remediation"
+  - date: 2026-08-26
+    action: "recorded review remediation-verification"
 ---
 # Review
 

@@ -10,12 +10,21 @@ Precision 3 of [ADR-012]:
 
 The proof is versioned rather than pasted into a transcript once, because a
 transcript proves the guard failed on the day somebody ran it and this proves
-it every time. For each of the ten defect classes the harness copies the tree
-to a temporary directory, reintroduces exactly one defect there, runs the tool
-against the copy, and requires that it exit non-zero **naming that class**. It
-then runs the unmutated copy and requires a clean pass, which is the other half
-and the one [SPEC-009] paid for: a guard that fails on everything is as useless
-as one that fails on nothing.
+it every time. For each of the eleven defect classes the harness copies the
+tree to a temporary directory, reintroduces exactly one defect there, runs the
+tool against the copy, and requires that it exit non-zero **naming that class**.
+It then runs the unmutated copy and requires a clean pass, which is the other
+half and the one [SPEC-009] paid for: a guard that fails on everything is as
+useless as one that fails on nothing.
+
+**The class-level proof is not enough for C10, and [SPEC-016] added the rest.**
+Proving that *one* probe can fail says nothing about the other ninety-seven: a
+pattern written against text that has since been rewritten still parses, still
+runs, and still passes — it has simply stopped pinning anything. So
+`prove_every_probe` deletes each probe's own pinned passage from its own
+document and requires the tool to fail **naming that probe by id**. A probe
+that survives the deletion of what it claims to pin is reported as
+`UNREACHABLE`, because it is a calculation wearing a guard's name.
 
     python sim/tools/published_artifacts_negative.py
 
@@ -31,9 +40,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 COPIED = ("docs/protocol", "sim/tools", "core/coblox-core/tests")
+# Single files, copied alongside the trees above. `SECURITY.md` is a claim
+# document (C11) and `.lmbrain/knowledge/threat-model.md` is the source the
+# derived counts are recomputed from, so both must exist in the copy.
+COPIED_FILES = ("SECURITY.md", ".lmbrain/knowledge/threat-model.md")
 
 Mutation = tuple[str, str, str]  # code, description, target path relative to repo
 
@@ -161,6 +175,31 @@ MUTATIONS: list[tuple[str, str, callable]] = [
             "The block interval is 5 seconds.",
         ),
     ),
+    (
+        "C11-CLAIMDOC",
+        "SECURITY.md grows a digest literal, so the probe-only treatment it is "
+        "given has stopped being the right one and the sweep would otherwise "
+        "keep measuring the smaller set - [SPEC-016] RF-001 exactly",
+        lambda root: _sub(
+            root,
+            "SECURITY.md",
+            "## Supply chain",
+            "Digest: sha256:"
+            "993b24bf6115fbf5651d615ca57a1baa825baf304b1dcc4d52debbc7fa3bd6d8 "
+            "## Supply chain",
+        ),
+    ),
+    (
+        "C11-CLAIMDOC",
+        "a count SECURITY.md transcribes from the threat model drifts away "
+        "from it, which is how it came to claim 36 scenarios against 39",
+        lambda root: _sub(
+            root,
+            ".lmbrain/knowledge/threat-model.md",
+            "TM-39",
+            "TM-41",
+        ),
+    ),
 ]
 
 
@@ -168,6 +207,10 @@ def make_copy(tmp: pathlib.Path) -> pathlib.Path:
     root = tmp / "tree"
     for rel in COPIED:
         shutil.copytree(REPO / rel, root / rel, dirs_exist_ok=True)
+    for rel in COPIED_FILES:
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO / rel, target)
     return root
 
 
@@ -180,6 +223,70 @@ def run_tool(root: pathlib.Path) -> subprocess.CompletedProcess[str]:
         check=False,
     )
 
+
+
+
+def prove_every_probe(failures: list[str]) -> None:
+    """The second half of the negative proof, and the one [SPEC-016] added.
+
+    The class-level mutation above proves that *a* C10 probe can fail. It says
+    nothing about the other ninety-seven, and a probe that has never been seen
+    to fail is a calculation: its pattern may have been written against text
+    that no longer exists in that shape, or may match something incidental that
+    the passage it claims to pin does not control.
+
+    So each probe is proved individually. The passage its own pattern matches is
+    deleted from its own document, and the tool must exit non-zero **naming that
+    probe by id**. One tree copy is made and the mutated file is restored after
+    each case, because ninety-eight copies of the tree cost more than the proof
+    is worth.
+    """
+    manifest_path = REPO / "sim/tools/published_artifacts.toml"
+    with manifest_path.open("rb") as handle:
+        manifest = tomllib.load(handle)
+    probes = manifest.get("probe", [])
+    claim_docs = set(manifest["meta"].get("claim_documents", []))
+
+    def path_of(site: str) -> str:
+        # Claim documents are named by their path from the repository root;
+        # protocol documents by their bare name inside docs/protocol/.
+        return site if site in claim_docs else f"docs/protocol/{site}"
+
+    print("=== C10-PROBE, every probe individually ===")
+    print(
+        f"deleting each probe's own pinned passage from its own document, "
+        f"{len(probes)} case(s)"
+    )
+    unreachable: list[str] = []
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = make_copy(pathlib.Path(tmpdir) / "probes")
+        for row in probes:
+            target = root / path_of(row["site"])
+            original = target.read_text(encoding="utf-8")
+            mutated, removed = re.subn(row["pattern"], "", original)
+            if removed == 0:
+                unreachable.append(
+                    f"{row['id']}: its own pattern matches nothing in "
+                    f"{row['site']}, so the probe cannot be proved"
+                )
+                continue
+            target.write_text(mutated, encoding="utf-8")
+            try:
+                result = run_tool(root)
+            finally:
+                target.write_text(original, encoding="utf-8")
+            if result.returncode == 0 or f"probe {row['id']!r}" not in result.stdout:
+                unreachable.append(
+                    f"{row['id']}: deleting its pinned passage did not make the "
+                    f"tool fail naming it (exit={result.returncode})"
+                )
+    if unreachable:
+        for line in unreachable:
+            print(f"  UNREACHABLE {line}")
+        failures.extend(unreachable)
+    else:
+        print(f"  every one of the {len(probes)} probes was observed failing")
+    print()
 
 def main() -> int:
     failures: list[str] = []
@@ -195,6 +302,8 @@ def main() -> int:
                 "false positive [ADR-012] was written about"
             )
         print()
+
+    prove_every_probe(failures)
 
     for code, description, mutate in MUTATIONS:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,7 +332,11 @@ def main() -> int:
         for line in failures:
             print(f"  {line}")
         return 1
-    print(f"negative proof: PASS - {len(MUTATIONS)} defect classes, each observed failing")
+    classes = len({code for code, _, _ in MUTATIONS})
+    print(
+        f"negative proof: PASS - {len(MUTATIONS)} mutations across {classes} "
+        f"defect classes, plus every probe individually, each observed failing"
+    )
     return 0
 
 

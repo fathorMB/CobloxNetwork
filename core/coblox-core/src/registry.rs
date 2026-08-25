@@ -267,9 +267,19 @@ pub fn weak_subjectivity_checkpoint_hash(chain_id: &ChainId, unsigned: &JsonObje
 
 /// `validator_set_hash = H("coblox-validator-set-v0\0" || JCS(ValidatorSet))`.
 ///
-/// This preimage carries **no** chain binding. That is what the specification
-/// says, and it is repeated here because every neighbouring formula does carry
-/// one and the omission looks like an oversight until it is checked.
+/// This preimage carries **no** chain binding, and the reason is now written
+/// where the formula is: `ledger.md#validator-set-continuity` and
+/// `README.md#hash-preimage-registry`. The bytes of a `ValidatorSet` bind it to
+/// its chain three times already — `election_seed` and every `election_ticket`
+/// are derived through `chain_id_32`, and every `key_binding_signature` is taken
+/// over the global chain-bound signature procedure — so adding `chain_id` here
+/// would restate a binding that is present and would change every published
+/// value that depends on this hash.
+///
+/// It is repeated here because every neighbouring formula does carry a chain
+/// binding and the omission looks like an oversight until it is checked; an
+/// exception without its reason is read as a mistake, and the reader who
+/// "fixes" it pays for a migration that buys nothing.
 #[must_use]
 pub fn validator_set_hash(set: &JsonObject) -> Digest32 {
     PreimageWriter::new(Domain::VALIDATOR_SET).jcs(set).finish()

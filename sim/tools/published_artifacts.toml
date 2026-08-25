@@ -11,6 +11,9 @@
 [meta]
 schema_version = "1"
 documents = ["README.md", "identity.md", "ledger.md", "wire.md", "app-manifest.md"]
+# Published documents that carry claims and no mechanical artifacts. Swept for
+# C10 probes and the derived counts only; C11 fails if one grows an artifact.
+claim_documents = ["SECURITY.md"]
 not_covered = [
   "Prose. A rule or value stated only in running text carries no domain string, tag byte, fixture identifier or digest literal and is invisible to the mechanical sweep. The C10 probe list pins the passages that matter today and is not claimed to be exhaustive.",
   "base64url presentations outside the 43-character (32-byte) and 22-character (16-byte) unpadded forms, including the 86-character signature placeholders.",
@@ -1350,11 +1353,61 @@ count = 1
 why = "[ADR-013] part 3 is a renunciation, and a declared cadence reads as an enforced one unless the difference is written."
 
 [[probe]]
-id = "block-interval-debt-link"
+id = "block-interval-no-rule-can-impose-it"
 site = "README.md"
-pattern = "\\[DEBT-013\\]"
+pattern = '\*\*No rule of this protocol prevents that, and none can\.\*\*'
 count = 1
-why = "The unenforced cadence must stay linked to the debt that owns it; SPEC-010 was not permitted to close it."
+why = "Replaces the probe that pinned the [DEBT-013] link, which SPEC-016 closes. What must stay pinned is the renunciation itself: a reader who finds the cadence measured and does not find this sentence will read the measurement as enforcement."
+
+[[probe]]
+id = "cadence-band-object"
+site = "README.md"
+pattern = '"min_measured_blocks":u64-string'
+count = 1
+why = "The cadence band is a genesis trust anchor alongside ElectionBounds and RewardBounds, and its noise floor is part of the object: a network that ships no CadenceBand is not conformant."
+
+[[probe]]
+id = "cadence-timestamp-is-not-an-input-readme"
+site = "README.md"
+pattern = '`timestamp_ms` is not an input to either measurement, and MUST NOT become one\.'
+count = 1
+why = "[ADR-013] rejects a validity rule on the distance between consecutive timestamp_ms values. The measurement that replaces it must say that it does not reach for the same quantity by another door, because that is the remedy that looks obvious."
+
+[[probe]]
+id = "cadence-timestamp-is-not-an-input-ledger"
+site = "ledger.md"
+pattern = '`timestamp_ms` is \*\*not\*\* an input to this step and MUST NOT be used in it'
+count = 1
+why = "The same prohibition where an implementer of the light client reads, which is not where the trust anchors are described."
+
+[[probe]]
+id = "cadence-light-client-step"
+site = "ledger.md"
+pattern = '4b\. \*\*Measure the real cadence\.\*\*'
+count = 1
+why = "The measurement is a step of the light-client algorithm and not an optional diagnostic. Numbered 4b so the existing references to steps 1, 5 and 6 keep their targets."
+
+[[probe]]
+id = "reward-epoch-settlement-floor"
+site = "ledger.md"
+pattern = 'height `h` satisfying `\(e \+ 1\) \* reward_epoch_blocks <= h`'
+count = 1
+why = "The derivation [DEBT-019] asked for. Without it reward_epoch_ms_min bounds a number in a signed document and not the speed at which the index advances."
+
+[[probe]]
+id = "reward-epoch-bound-is-per-block"
+site = "ledger.md"
+pattern = 'That is a bound \*\*per block\*\*\. It is \*\*not\*\* a bound per unit of real'
+count = 1
+why = "Family 3 of recurring-defects.md: the rule constrains blocks per index, while the property depends also on real milliseconds per block. The document must not claim the larger of the two."
+
+[[probe]]
+id = "validator-set-hash-exception-declared"
+site = "ledger.md"
+pattern = '\*\*This preimage carries no `chain_id`'
+count = 1
+why = "[DEBT-014]: the exception is deliberate and must be declared beside the formula, because an undeclared exception reads as an oversight and the reader who closes it pays for a migration that buys nothing."
+
 
 [[probe]]
 id = "block-interval-in-ledger"
@@ -2000,3 +2053,88 @@ pattern = "\\*\\*Enforce non-regression\\.\\*\\*"
 count = 1
 claims = "it will not accept a lower height than the highest it has already trusted, nor a different block at a height it has already seen"
 why = "Non-regression is what stops a device being walked backwards onto a different history. The guide describes both halves because the rule states both."
+
+# --- SECURITY.md, the claim document ----------------------------------------
+#
+# Published by GitHub from the repository's Security tab, which makes it the
+# first artifact an outside researcher reads. It was outside this inventory
+# until [SPEC-016], and the omission is the reason the sweep could pass green
+# while its cadence paragraph named one of two directions: the guard had
+# measured the wrong set.
+#
+# It carries claims and not artifacts — no digest, no domain string, no tag
+# byte, no fixture identifier — so it is swept for C10 probes only. C11 keeps
+# that decision honest by failing the day it grows one of those.
+
+[[probe]]
+id = "security-sybil-not-cryptographic"
+site = "SECURITY.md"
+pattern = '\*\*The network is not cryptographically Sybil-resistant\.\*\*'
+count = 1
+why = "The load-bearing claim of the whole file, and the one [ADR-007] exists to keep honest. It is robust against forgery and does not distinguish N emulated nodes from N devices; a researcher who does not read this sentence will report the gap as a vulnerability, and a maintainer who deletes it is claiming a resistance the protocol does not have."
+
+[[probe]]
+id = "security-sybil-is-economic-not-cryptographic"
+site = "SECURITY.md"
+pattern = 'Sybil\nresistance is treated as an economic property'
+count = 1
+why = "The half of the claim that says what replaces the cryptographic guarantee. Without it the sentence above reads as an unmitigated hole rather than as a stated design position."
+
+[[probe]]
+id = "security-quorum-four-ninths"
+site = "SECURITY.md"
+pattern = 'reach a quorum from roughly \*\*four\nninths\*\* of the set'
+count = 1
+why = "[ADR-010] and [REVIEW-014]: the relational rule prevents a coalition below two thirds from *owning* the set, not from obtaining its *quorum*. This is the corrected figure, and the third occurrence of family 2 in recurring-defects.md is the same claim being reclaimed at two thirds after a rule change. If it softens back, that occurrence has repeated."
+
+[[probe]]
+id = "security-owning-is-not-controlling"
+site = "SECURITY.md"
+pattern = 'prevents a coalition below two thirds from\n\*owning\* the set, not from obtaining its \*quorum\*'
+count = 1
+why = "The distinction the four-ninths figure rests on. Stating the figure without the distinction leaves a reader unable to check it."
+
+[[probe]]
+id = "security-cadence-is-measured-not-enforced"
+site = "SECURITY.md"
+pattern = '\*\*How fast the chain runs is measured, not enforced\.\*\*'
+count = 1
+why = "[SPEC-016] and [ADR-013] part 3: the measurement is not a prohibition, and the heading is where a reader decides which of the two this project claims. 'Enforced' would be the family 2 defect written into the document an outside researcher reads first."
+
+[[probe]]
+id = "security-cadence-both-directions"
+site = "SECURITY.md"
+pattern = '\*\*Compressing\*\* multiplies real issuance'
+count = 1
+why = "The direction the paragraph named for months and the earlier text did not. It became a harm only when the reward-epoch index was derived from height in [SPEC-016]; a limitation stated in one direction reads as complete."
+
+[[probe]]
+id = "security-cadence-not-prevented"
+site = "SECURITY.md"
+pattern = 'manoeuvre is not prevented\.'
+count = 1
+why = "The sentence that stops the paragraph from promising more than the code contains, which is the risk [SPEC-016] names as dominant. A measurement described without it is read as enforcement."
+
+[[claim_count]]
+id = "threat-model-scenarios"
+site = "SECURITY.md"
+pattern = '`\.lmbrain/knowledge/threat-model\.md`: (\d+) scenarios'
+source = ".lmbrain/knowledge/threat-model.md"
+token = '\bTM-\d+\b'
+why = "The count was transcribed once and drifted: the file said 36 while the threat model carried 39. A number copied by hand into a published document is the shape of defect [SPEC-012] closed by extracting the table instead of transcribing it, so this one is recomputed from the source rather than pinned."
+
+[[claim_count]]
+id = "threat-model-security-requirements"
+site = "SECURITY.md"
+pattern = 'scenarios, (\d+) numbered security'
+source = ".lmbrain/knowledge/threat-model.md"
+token = '\bSEC-REQ-\d+\b'
+why = "Same defect, same file, same sentence: it said 24 while the threat model carried 26."
+
+[[claim_count]]
+id = "threat-model-attack-tests"
+site = "SECURITY.md"
+pattern = 'and (\d+) attack tests'
+source = ".lmbrain/knowledge/threat-model.md"
+token = '\bAT-\d+\b'
+why = "The third number in the same sentence. It happened to be right, which is why it is checked: a claim that is correct today and unproven is one edit away from being the next stale one."

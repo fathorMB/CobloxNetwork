@@ -135,7 +135,9 @@ impl Domain {
     pub const ENROLLMENT_ADMISSION: Self = Self("coblox-enrollment-admission-v0");
     /// `weak_subjectivity_checkpoint_hash`.
     pub const WEAK_SUBJECTIVITY_CHECKPOINT: Self = Self("coblox-weak-subjectivity-checkpoint-v0");
-    /// `validator_set_hash`. Note that this preimage carries **no** chain ID.
+    /// `validator_set_hash`. This preimage carries **no** chain ID, deliberately:
+    /// the set's own bytes carry the chain binding three times. See
+    /// [`crate::registry::validator_set_hash`] for the reason.
     pub const VALIDATOR_SET: Self = Self("coblox-validator-set-v0");
     /// Enrollment proof-of-work password prefix.
     pub const ENROLLMENT_POW: Self = Self("coblox-enrollment-pow-v0");

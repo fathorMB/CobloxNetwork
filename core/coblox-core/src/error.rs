@@ -36,8 +36,65 @@ pub enum Error {
     /// The election derivation produced no valid set, or its inputs were
     /// inconsistent with the finalized data they claim to summarize.
     Election(ElectionError),
+    /// A measured cadence left the genesis band, or a reward-epoch index ran
+    /// ahead of the chain that has to pay for it.
+    Cadence(CadenceError),
     /// A checked `u128` intermediate overflowed, or a total power was zero.
     Arithmetic(&'static str),
+}
+
+/// Reasons a cadence measurement or a reward-epoch index is rejected.
+///
+/// Every variant here is about a clock **outside** the chain, or about `height`,
+/// which is the one chain quantity a validator cannot write freely. None of them
+/// is about `timestamp_ms`, and that omission is the substance of [ADR-013]
+/// part 3 rather than an accident of this enumeration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum CadenceError {
+    /// Blocks arrived faster than `min_ms_per_block` permits.
+    FasterThanBand {
+        /// Blocks produced across the measured interval.
+        blocks: u64,
+        /// Real milliseconds the interval spans.
+        elapsed_ms: u64,
+        /// `elapsed_ms / blocks`, truncated; a diagnostic, not the comparison.
+        observed_ms_per_block: u64,
+    },
+    /// Blocks arrived more slowly than `max_ms_per_block` permits.
+    SlowerThanBand {
+        /// Blocks produced across the measured interval.
+        blocks: u64,
+        /// Real milliseconds the interval spans.
+        elapsed_ms: u64,
+        /// `elapsed_ms / blocks`, truncated; a diagnostic, not the comparison.
+        observed_ms_per_block: u64,
+    },
+    /// The interval carried fewer blocks than the genesis band requires before
+    /// a measurement means anything.
+    Inconclusive {
+        /// Blocks produced across the measured interval.
+        blocks: u64,
+        /// The genesis minimum this measurement did not reach.
+        min_measured_blocks: u64,
+    },
+    /// The later height was below the earlier one.
+    HeightRegression,
+    /// The later external timestamp was below the earlier one.
+    ClockRegression,
+    /// `block_interval_ms` was zero, which would make every quantity
+    /// denominated in blocks meaningless rather than merely unenforced.
+    DegenerateInterval,
+    /// `reward_epoch_ms` was zero.
+    DegenerateEpoch,
+    /// A `mint` named a `reward_epoch` whose settlement floor the including
+    /// height has not reached.
+    RewardEpochAhead {
+        /// The index the mint named.
+        reward_epoch: u64,
+        /// The height of the block the mint was to be included in.
+        height: u64,
+    },
 }
 
 /// Reasons a JSON document is not an acceptable Coblox object.
@@ -264,12 +321,19 @@ impl fmt::Display for Error {
             Self::Parameter(e) => write!(f, "parameter validation failed: {e:?}"),
             Self::ValidatorSet(e) => write!(f, "validator set rejected: {e:?}"),
             Self::Election(e) => write!(f, "no valid election result: {e:?}"),
+            Self::Cadence(e) => write!(f, "chain cadence rejected: {e:?}"),
             Self::Arithmetic(ctx) => write!(f, "checked arithmetic failed in {ctx}"),
         }
     }
 }
 
 impl core::error::Error for Error {}
+
+impl From<CadenceError> for Error {
+    fn from(value: CadenceError) -> Self {
+        Self::Cadence(value)
+    }
+}
 
 impl From<AttestationError> for Error {
     fn from(value: AttestationError) -> Self {

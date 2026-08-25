@@ -24,6 +24,7 @@
 //! | [`params`] | signed protocol documents, election bounds, the constraint block |
 //! | [`quorum`] | quorum predicate |
 //! | [`block`] | block format, validator-set continuity |
+//! | [`cadence`] | the measured cadence, the reward-epoch derivation |
 //! | [`validator_set`] | validator-set continuity, revocation transitions |
 //! | [`election`] | validator election and rotation |
 //! | [`light_client`] | light-client balance verification, set composition |
@@ -103,6 +104,7 @@
 )]
 
 pub mod block;
+pub mod cadence;
 pub mod election;
 pub mod encoding;
 pub mod error;
