@@ -53,7 +53,7 @@ Il criterio che ha ordinato tutto il lavoro finora, e che vale ancora per l'ulti
 
 ## Ready for handoff
 
-**[SPEC-014]** — i due cambiamenti breaking dell'API di `coblox-core`, in `backlog` e in attesa della tua approvazione. `sol`/`standard`, AGENT-001. Chiude [DEBT-016] e [DEBT-015] insieme perché sono due cambiamenti della stessa API, e **prima del primo chiamante del verificatore**: oggi non ne esiste alcuno, quindi non rompe nulla e non costerà mai meno di adesso.
+**[SPEC-014]** — i due cambiamenti breaking dell'API di `coblox-core`. **`ready` dal 2026-08-25**, approvata dall'operatore, che la dispaccia lui. `sol`/`standard` → AGENT-001. Chiude [DEBT-016] e [DEBT-015] insieme perché sono due cambiamenti della stessa API, e **prima del primo chiamante del verificatore**: oggi non ne esiste alcuno, quindi non rompe nulla e non costerà mai meno di adesso.
 
 Il rischio dominante è nominato dentro la spec: **la scorciatoia che sembra la chiusura.** La suite `ed25519-speccheck` verifica firme su messaggi arbitrari, quindi una via ai byte grezzi deve restare — e il criterio non è che non esista, ma che **non sia utilizzabile per sbaglio su un percorso di consenso**. Un costruttore generico e senza nome soddisfa ogni criterio meccanico e non chiude niente.
 

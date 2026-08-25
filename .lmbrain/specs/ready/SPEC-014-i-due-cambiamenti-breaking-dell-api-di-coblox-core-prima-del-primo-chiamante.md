@@ -2,7 +2,7 @@
 id: SPEC-014
 # Note: Quote the title if it contains a colon
 title: "I due cambiamenti breaking dell'API di coblox-core, prima del primo chiamante"
-status: backlog
+status: ready
 kind: refactor
 priority: high
 area: core
@@ -22,8 +22,10 @@ links: []
 created: 2026-08-25
 updated: 2026-08-25
 tags: [rust, api, security]
+activity:
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
-
 # I due cambiamenti breaking dell'API di coblox-core, prima del primo chiamante
 
 ## Objective
