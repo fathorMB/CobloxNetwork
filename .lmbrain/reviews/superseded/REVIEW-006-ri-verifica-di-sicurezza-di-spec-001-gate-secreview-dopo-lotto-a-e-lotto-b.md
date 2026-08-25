@@ -2,7 +2,7 @@
 id: REVIEW-006
 # Note: Quote the title if it contains a colon
 title: "Ri-verifica di sicurezza di SPEC-001 — GATE-SECREVIEW dopo Lotto A e Lotto B"
-status: changes-requested
+status: superseded
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-001
 reviewer: AGENT-007
@@ -44,6 +44,16 @@ review_events:
     evidence_refs: ["SPEC-001", "REVIEW-006", "ADR-007", "docs/protocol/README.md", "docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/wire.md", "docs/protocol/app-manifest.md"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-006-EVENT-004"
+    timestamp: "2026-08-25T15:00:51.067989600+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    reason: "Superata da REVIEW-007, che ha eseguito la verifica finale dello stesso GATE-SECREVIEW su SPEC-001 dopo la terza remediation e lo ha attestato come superato. REVIEW-007 registra che tutti i finding di questa review sono stati chiusi, e che in un caso la forma alternativa scelta dall'implementatore e migliore di quella indicata qui: la reviewer dichiara che una propria condizione di chiusura era sbagliata e che applicarla alla lettera avrebbe peggiorato il risultato. Questa review non e quindi mai arrivata all'accettazione, e il suo contenuto resta valido come snapshot del secondo giro. Disposizione emessa il 2026-08-25 dal Lead entrante, per la stessa ragione registrata su REVIEW-002."
+    evidence_refs: ["REVIEW-007", "SPEC-001"]
+    implementation_agent: "AGENT-001"
 links: []
 created: 2026-08-25
 updated: 2026-08-25
@@ -55,6 +65,8 @@ activity:
     action: "transitioned pending -> changes-requested"
   - date: 2026-08-25
     action: "recorded review remediation"
+  - date: 2026-08-25
+    action: "transitioned changes-requested -> superseded"
 ---
 # Review
 

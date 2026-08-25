@@ -2,7 +2,7 @@
 id: REVIEW-002
 # Note: Quote the title if it contains a colon
 title: "Security review di SPEC-001 — identità, enrollment, verifica light client"
-status: changes-requested
+status: superseded
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-001
 reviewer: AGENT-007
@@ -88,6 +88,16 @@ review_events:
     evidence_refs: ["docs/protocol/identity.md", "docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "docs/protocol/README.md", "ADR-007"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-002-EVENT-008"
+    timestamp: "2026-08-25T15:00:40.780726500+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    reason: "Superata da REVIEW-006, che ha rivisto lo stesso GATE-SECREVIEW su SPEC-001 dopo il Lotto A e il Lotto B di remediation. REVIEW-006 dichiara 15 dei 18 finding di questa review chiusi bene, e sette di quelle chiusure migliori di quanto fosse stato chiesto, ma rileva un residuo in tre di esse piu un quarto finding introdotto dalle scelte di giudizio indipendente dell'implementatore. Questa review non e quindi mai arrivata all'accettazione e registrarla come accettata riscriverebbe la storia in meglio. Il verdetto finale sul gate e in REVIEW-007, accettata. Disposizione emessa il 2026-08-25 dal Lead entrante, che ha trovato la review ferma in changes-requested su una spec gia done: la sessione precedente creava una review nuova a ogni giro invece di ri-esprimere il verdetto su quella esistente, lasciando appese le precedenti."
+    evidence_refs: ["REVIEW-006", "REVIEW-007", "SPEC-001"]
+    implementation_agent: "AGENT-001"
 links: []
 created: 2026-08-25
 updated: 2026-08-25
@@ -107,6 +117,8 @@ activity:
     action: "recorded review remediation"
   - date: 2026-08-25
     action: "recorded review remediation-verification"
+  - date: 2026-08-25
+    action: "transitioned changes-requested -> superseded"
 ---
 # Review
 

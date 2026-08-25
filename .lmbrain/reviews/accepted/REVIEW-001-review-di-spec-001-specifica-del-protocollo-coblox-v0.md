@@ -2,7 +2,7 @@
 id: REVIEW-001
 # Note: Quote the title if it contains a colon
 title: "Review di SPEC-001 — Specifica del protocollo Coblox v0"
-status: changes-requested
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-001
 reviewer: AGENT-LEAD
@@ -66,6 +66,16 @@ review_events:
     evidence_refs: ["docs/protocol/ledger.md", "docs/protocol/app-manifest.md", "ADR-006"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-001-EVENT-006"
+    timestamp: "2026-08-25T15:00:29.300417400+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Verdetto finale mai emesso al momento della chiusura di SPEC-001, emesso ora. I tre finding di questa review non erano difetti di esecuzione ma scope aggiunto da ADR-006, accettata dopo l'avvio del lavoro, e risultano tutti chiusi e verificati: l'evento di remediation-verification del 2026-08-25 registra la verifica indipendente del Lead sui documenti aggiornati, con RF-001 chiuso sul publisher_reward nel MintBody, RF-002 su desired_replicas obbligatorio, RF-003 sul vincolo di rate_source al literal protocol, piu la riesecuzione delle verifiche automatiche con 17 esempi JSON canonici e 11 link interni risolti. Accettata e non superata perche i suoi finding furono effettivamente chiusi e verificati, non scavalcati da una review successiva: e l'unica review di Lead su SPEC-001."
+    evidence_refs: ["SPEC-001", "ADR-006"]
+    implementation_agent: "AGENT-001"
 links: []
 created: 2026-08-25
 updated: 2026-08-25
@@ -81,6 +91,8 @@ activity:
     action: "recorded review remediation"
   - date: 2026-08-25
     action: "recorded review remediation-verification"
+  - date: 2026-08-25
+    action: "transitioned changes-requested -> accepted"
 ---
 # Review
 

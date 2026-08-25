@@ -109,6 +109,10 @@ Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Qu
 
 **Tutte le voci rilevate al passaggio a pubblico sono chiuse.** Restano solo due limiti dichiarati: `secret_scanning_non_provider_patterns` non disponibile sul piano attuale, e i percorsi di macchina nelle trascrizioni di [SPEC-002], severità bassa.
 
+## Igiene del brain
+
+- 2026-08-25 — **Tre review erano ferme in `changes-requested` su una spec già `done`** ([SPEC-001]): rilievo dell'operatore dalla board. Nessuna era sbagliata nel merito; mancava solo il verdetto finale, perché a ogni giro di remediation veniva creata una review nuova invece di ri-esprimere il verdetto su quella esistente. Disposizione caso per caso e non in blocco: [REVIEW-001] **accettata**, perché i suoi tre finding risultano chiusi e verificati; [REVIEW-002] e [REVIEW-006] **superate**, perché rimpiazzate da review successive sullo stesso gate senza mai arrivare all'accettazione — registrarle come accettate avrebbe cancellato proprio l'informazione che rende leggibile la catena. **Il difetto era invisibile agli strumenti**: `spec_done` verifica i gate e non lo stato delle review, e `lmbrain_validate` non lo segnala. La regola e il controllo da fare prima di `spec_done` sono in `.lmbrain/knowledge/review-lifecycle-discipline.md`.
+
 ## Strategia di branching
 
 Dichiarata dall'operatore il 2026-08-25 e registrata in `.lmbrain/BRANCHING.json` via `branching_strategy_set`: topologia **main-only**, nessun branch di feature. Gli specialisti lavorano sul working tree e **non fanno mai commit né push**; il Project Lead è l'unico autorizzato, e committa e pusha su `main` **al passaggio di una spec a `done`**. Vincolo aggiuntivo: **nessuna produzione di installer o release lato GitHub per ora** — la CI di [SPEC-002] è già conforme (Tauri con `--bundles none`, nessun job di release).
