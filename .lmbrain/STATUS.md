@@ -37,12 +37,13 @@ Nessuna. Non ci sono spec in `ready`: quelle di M-02 vanno ancora redatte.
 
 ## In progress
 
-Nessuna spec in lavorazione. **M-01 è completa** e M-02 è aperta.
+Nessuna. Le prime due spec di M-02 sono chiuse.
 
-[SPEC-006] — regola di elezione e rotazione del set di validatori — è in `backlog` e **attende la tua approvazione** per passare a `ready`. Chiude [DEBT-005], l'unico debito `critical`. `sol`/`extended`, raccomandata ad AGENT-002.
+**Il prossimo lavoro va redatto:** simulatore economico con `α` ([DEBT-007]), da cui dipendono i valori di ogni parametro che [SPEC-006] ha lasciato simbolico e il valore `X` di [ADR-007]; poi devnet BFT, light client con prove Merkle e mint & burn.
 
 ## Done
 
+- [SPEC-006] Regola di elezione dei validatori → AGENT-002. **`done` il 2026-08-25**, accettata con [REVIEW-009] e con `GATE-SECREVIEW` attestato su [REVIEW-010]. **Chiude [DEBT-005], l'unico debito `critical` del progetto.** Quattro giri di review adversariale con AGENT-007, tredici finding fra cui tre `critical`. **Due dei finding erano arresti certi della catena introdotti dalle correzioni precedenti**, e nessuno dei due era visibile prima che la correzione precedente esistesse: la genesi con mandati sincronizzati, e i timbri di scadenza che collidono se e solo se il limite di mandato decresce — quest'ultimo innescabile da un operatore onesto che accorci i mandati, senza alcun avversario. Scoperto per strada che **il fixture `PD-0` del progetto era esso stesso inammissibile** (`T=3`, mentre la soddisfacibilità congiunta impone `T ≥ 4`). L'architettura portante — due strati che falliscono in modo diverso, con l'invariante anti-cattura confinato in quello che un light client verifica — non è stata toccata da nessuno dei tredici finding. AGENT-007 chiude dichiarando il claim difendibile **senza dichiarazioni accanto**.
 - [SPEC-005] Applicazione di [ADR-009] al design system → AGENT-006 (Lia Wireframe). **`done` il 2026-08-25**, accettata con [REVIEW-008] senza alcun finding. Nove criteri su nove, con ogni gate rieseguita dal Lead in modo indipendente invece che presa dall'evidenza: zero residui del segnaposto, zero virgole come separatore delle migliaia, i tre generatori in `--check` confermano che gli artefatti non sono stati modificati a mano, 130 coppie di contrasto su 130 conformi a WCAG AA. L'implementatrice ha distinto il glifo del marchio da quello del segnaposto, simili a vista, che una sostituzione frettolosa avrebbe confuso. Una sua segnalazione sui titoli italiani delle pagine di mockup è stata valutata e **respinta nel merito**: sono la cornice di documentazione attorno agli artboard, non superficie di prodotto.
 - [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **`done` il 2026-08-25**, ultima spec di M-01. Accettata tecnicamente con [REVIEW-004] — sette criteri su sette verificati, un solo finding di severità bassa non bloccante — ed è rimasta ferma sul solo `GATE-OPERATOR-LOOK` finché l'operatore non ha attestato di aver visto i mockup. Il gate ha funzionato come doveva: il sistema ha rifiutato `spec_done` al tentativo del Lead, e nessuno ha attestato al posto dell'operatore un giudizio estetico che spettava a lui. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`.
 - [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
@@ -61,12 +62,14 @@ Nessuna spec in lavorazione. **M-01 è completa** e M-02 è aperta.
 
 | ID | Severità | Owner | Questione |
 | --- | --- | --- | --- |
-| [DEBT-005] | critical | AGENT-002 | Il set di validatori è auto-perpetuante: manca la regola di elezione. Nessuna devnet deve accumulare storia conservabile prima che sia scritta. |
+| [DEBT-010] | medium | AGENT-002 | La monotonicità del limite di mandato è un cricchetto spingibile da un avversario e non tirabile indietro da nessuno. Sorveglianza, non lavoro: il presidio è il tetto di genesi, che M-02 deve tarare stretto. |
 | [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
 | [DEBT-007] | high | AGENT-002 | La forma del reddito di esistenza non è decisa e determina `α`, il parametro più importante dell'economia. |
 | [DEBT-008] | low | AGENT-001 | Due frasi della specifica del protocollo promettono poco più di quanto le regole impongano. Una riga ciascuna, M-02. |
 
-Risolti, entrambi il 2026-08-25: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
+**Nessun debito `critical` aperto.** [DEBT-005] era l'unico ed è chiuso.
+
+Risolti, tutti il 2026-08-25: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop; e **[DEBT-005] con [SPEC-006]**, dopo quattro giri di review adversariale di sicurezza e tredici finding. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
 
 ## Next recommended actions
 

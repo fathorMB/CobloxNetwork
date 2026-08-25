@@ -14,7 +14,8 @@ defined here.
 - [P2P wire protocol](wire.md): libp2p transports, discovery, NAT traversal,
   signed envelopes, gossip topics, challenge messages, and ledger sync.
 - [Ledger](ledger.md): blocks, quorum certificates, transactions, validator-set
-  commitments, state tree, and light-client balance proofs.
+  commitments, validator election and rotation, state tree, and light-client
+  balance proofs.
 - [App manifest and package](app-manifest.md): WASM capabilities, limits,
   pricing, publisher signatures, and the deterministic `.cobloxapp` container.
 
@@ -156,6 +157,17 @@ challenge_randomness    = H("coblox-challenge-randomness-v0\0"
                             || raw_32_bytes(beacon_block_id)
                             || raw_32_bytes(issuer_commitment) || issuer_secret_32
                             || u32be(len(subject_node_id_utf8)) || subject_node_id_utf8)
+election_entropy        = H("coblox-election-entropy-v0\0"
+                            || chain_id_32 || u64be(election_epoch)
+                            || u64be(election_entropy_blocks)
+                            || raw_32_bytes(block_id[first]) || ...
+                            || raw_32_bytes(block_id[last]))
+election_seed           = H("coblox-election-seed-v0\0"
+                            || chain_id_32 || u64be(election_epoch)
+                            || raw_32_bytes(election_entropy))
+election_ticket         = H("coblox-election-ticket-v0\0"
+                            || chain_id_32 || raw_32_bytes(election_seed)
+                            || account_key_32)
 enrollment_pow_salt     = first 16 bytes of
                           H("coblox-enrollment-pow-salt-v0\0"
                             || chain_id_32 || public_key_32
@@ -204,7 +216,33 @@ and a 64-zero-byte base64url signature. Each `PD-0` has common fields
 enrollment body's algorithm/difficulty/cost values listed above with
 `tag_length_bytes:"32"`, and the reward body's
 `publisher_reward_cap_denominator:"2"` (the cap must be strictly below one, so
-`"1"/"1"` would not be a structurally valid fixture). `CMT-0` is the issuer
+`"1"/"1"` would not be a structurally valid fixture) and
+`validator_eligibility_min_issuers:"2"` (a single-issuer score does not qualify,
+so `"1"` would not be structurally valid either). The consensus body needs a
+second group of exceptions for the same reason — the election constraint block of
+[ledger.md](ledger.md#rotation-the-cap-and-the-floor) rejects an all-`"1"`
+document — so it uses `election_entropy_blocks:"2"`,
+`candidacy_close_blocks:"3"`, `election_epoch_blocks:"4"`,
+`validator_target_set_size:"12"`, `validator_max_set_size:"12"`,
+`validator_churn_cap_seats:"3"` and `validator_max_consecutive_terms:"4"`, with
+`validator_min_set_size`, `validator_cooldown_epochs` and
+`validator_min_capture_epochs` at `"1"`. Two facts about those numbers are worth
+stating, because a fixture teaches a shape whether or not it means to.
+
+The block requires `ceil(V/T) <= c < V/3`, which is **unsatisfiable for `T <= 3`
+at any `V`**, so a fixture at `T:"3"` would encode a state no conformant network
+can reach; `V:"3"` is impossible for the same kind of reason, since `3c < 3`
+cannot hold for any `c >= 1`. Both are proved by exhausting the parameter space
+rather than argued.
+
+This fixture also takes `c > 1` on purpose. With `c:"1"` a cohort is a single
+seat, so the entry cap is never exercised, and neither is the interaction between
+the cap, the term stagger and the contraction floor that the constraints exist to
+keep consistent. `V:"12"`, `T:"4"`, `c:"3"` satisfies that and is convenient; it
+is **not** claimed to be the smallest such instance, and no minimality is claimed
+for it. Smaller ones with `c > 1` exist — `V:"7"`, `T:"4"`, `c:"2"`, `m:"1"` is
+one. A superlative in a normative document has to be proved or not written, and
+this one buys nothing that would justify proving it. `CMT-0` is the issuer
 commitment for issuer `cblx1issuerfixture`, `commitment_epoch` 1, and an issuer
 secret of `44` repeated 32 bytes. `RND-0` is the challenge randomness derived
 from `CMT-0`, beacon height 1, beacon block ID `55` repeated 32 bytes, and
@@ -217,6 +255,14 @@ hash `33` repeated 32 bytes, and one zero response byte. `ADM-0` uses zero
 `chain_id`, `admission_nonce` `88` repeated 16 bytes (`iIiIiIiIiIiIiIiIiIiIiA`
 as unpadded base64url), the identity fixture public key of
 [identity.md](identity.md#node-identifier), and `admission_solution` `"0"`.
+`ELEC-0` is the epoch-3 election of the worked example in
+[ledger.md](ledger.md#worked-example-of-the-derivation): `election_epoch` 3,
+`election_entropy_blocks` 3, and entropy block IDs `aa`, `bb` and `cc` each
+repeated 32 bytes in that order. The seed derives from those alone —
+`candidate_root` and `candidate_count` are bound by validity and are deliberately
+not in the preimage, for the reason given in
+[ledger.md](ledger.md#the-second-lever-the-pool-itself-and-what-is-honestly-claimable-about-it).
+Its `election_ticket` row uses the account key `05` repeated 32 bytes.
 `WSC-0` is the unsigned
 weak subjectivity checkpoint of [Trust anchors](#trust-anchors) with
 `schema_version:"0.1"`, `network_id:"fixture"`, zero `chain_id`, `height:"1"`,
@@ -230,9 +276,9 @@ exact after JCS; no omitted/default fields are implied.
 | --- | --- | --- |
 | `enrollment_request_hash` | `ER-0` | `sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f` |
 | `parameter_set_hash` | enrollment `PD-0` | `sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63` |
-| `policy_hash` | reward `PD-0` | `sha256:1a4139ed0204a94efd654d324a859af913a351dea191a6c6839f8fddeee17075` |
+| `policy_hash` | reward `PD-0` | `sha256:fbc7493ae6da64e92d935f35ecb9c2703c005df960e18e7cb609606838132f0d` |
 | `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
-| `consensus_parameters_hash` | consensus `PD-0` | `sha256:1a947f60bada6a4974ae55411f404216ffd4093ebf5add0ed34cb95ba20c6a92` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:840dd6a980a6350b4879c60f8581466165125408a62839d67468c32ca3f0c33f` |
 | `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
 | `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
 | `issuer_commitment` | `CMT-0` | `sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5` |
@@ -240,6 +286,9 @@ exact after JCS; no omitted/default fields are implied.
 | `request_hash` | `REQ-0` | `sha256:8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360` |
 | `response_hash` | `RESP-0` | `sha256:cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41` |
 | `admission_tag` | `ADM-0` | `sha256:457915b8cd8816c5fe76651bdda0578983f8e393c7e4fe0b24376ca0bca22628` |
+| `election_entropy` | `ELEC-0` | `sha256:29a63c10926e75ed418c6f3c7670b0edfeb0b021868d1342b788327f53767e42` |
+| `election_seed` | `ELEC-0` | `sha256:9e2aa2621f957279e4bdf1c4ccea5629ce429892ac3f9af10c9456a3c78dad85` |
+| `election_ticket` | `ELEC-0` | `sha256:a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21` |
 | `weak_subjectivity_checkpoint_hash` | `WSC-0` | `sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e` |
 
 `challenge_randomness` is carried on the wire as the unpadded base64url of those
@@ -247,6 +296,18 @@ exact after JCS; no omitted/default fields are implied.
 
 Conformance suites MUST reconstruct every preimage from these definitions and
 compare all 32 digest bytes; checking only presentation strings is insufficient.
+
+**Parameter fixtures are not free choices.** A conformance suite that builds a
+`consensus_parameters` document picks values that the constraint block of
+[ledger.md](ledger.md#rotation-the-cap-and-the-floor) may forbid outright, and
+some forbidden combinations look entirely ordinary — `validator_max_consecutive_terms`
+of 3 is the clearest example, and it is inadmissible at **every** set size. A test
+case built on one of those is not testing a different value: it is asserting
+behaviour for a state no conformant network can be in, and it will either pass
+vacuously or fail for reasons the implementation cannot fix. Suites MUST
+therefore validate their own parameter fixtures against the constraint block
+before using them, and a case that fails validation is removed rather than
+adjusted.
 
 ### Signed protocol documents
 
@@ -291,7 +352,12 @@ RewardPolicyBody = {
   "compute_microtokens_per_million_fuel":u64-string,
   "publisher_microtokens_per_active_subscriber":u64-string,
   "publisher_reward_cap_numerator":u64-string,
-  "publisher_reward_cap_denominator":u64-string
+  "publisher_reward_cap_denominator":u64-string,
+  "storage_units_per_contribution_unit":u64-string,
+  "compute_units_per_contribution_unit":u64-string,
+  "validator_eligibility_threshold_units":u64-string,
+  "validator_eligibility_window_epochs":u64-string,
+  "validator_eligibility_min_issuers":u64-string
 }
 HostingRateCardBody = {
   "billing_epoch_ms":u64-string, "minimum_billable_epochs":u64-string,
@@ -307,7 +373,17 @@ ConsensusParametersBody = {
   "max_weak_subjectivity_age_ms":u64-string,
   "max_current_balance_age_ms":u64-string,
   "app_suspension_notice_epochs":u64-string,
-  "min_revocation_effective_delay_blocks":u64-string
+  "min_revocation_effective_delay_blocks":u64-string,
+  "election_epoch_blocks":u64-string,
+  "candidacy_close_blocks":u64-string,
+  "election_entropy_blocks":u64-string,
+  "validator_min_set_size":u64-string,
+  "validator_target_set_size":u64-string,
+  "validator_max_set_size":u64-string,
+  "validator_churn_cap_seats":u64-string,
+  "validator_max_consecutive_terms":u64-string,
+  "validator_cooldown_epochs":u64-string,
+  "validator_min_capture_epochs":u64-string
 }
 ```
 
@@ -420,12 +496,79 @@ gossiped onward.
 ## Trust anchors
 
 A signed network distribution MUST ship the network ID, genesis block ID,
-derived chain ID, genesis validator set, initial protocol documents, and a weak
-subjectivity checkpoint. A fresh client MUST refuse genesis-only
-synchronization when the checkpoint is missing, invalid, or stale; it requires a
-newer distribution obtained through an authenticated release channel. These
-values are trust anchors, not discoverable security facts. Network peers cannot
-replace that external trust.
+derived chain ID, genesis validator set, initial protocol documents, the election
+bounds below, and a weak subjectivity checkpoint. A fresh client MUST refuse
+genesis-only synchronization when the checkpoint is missing, invalid, or stale;
+it requires a newer distribution obtained through an authenticated release
+channel. These values are trust anchors, not discoverable security facts. Network
+peers cannot replace that external trust.
+
+### Election bounds
+
+The election rule of
+[ledger.md](ledger.md#validator-election-and-rotation) is defined by parameters
+that live in the `consensus_parameters` document — and that document is signed by
+a validator quorum, which is to say by the sitting validator set. Constraining
+those parameters only against **each other** would therefore leave the invariant
+switchable off by the very set it constrains: an epoch length or a term limit
+large enough that no boundary and no expiry ever arrives satisfies every
+relational constraint while freezing the set for ever, on a chain that stays
+valid at every height. This is the same failure the enrollment cost floor was
+made a validity rule to prevent, and it is answered the same way, one level
+further out.
+
+`ElectionBounds` is therefore **configuration, not chain state**. It ships inside
+the signed distribution and in no other channel, cannot be changed by any on-chain
+document, and MUST NOT be learned from a peer, a header, or a protocol document.
+Changing it is a new authenticated release and a chain-level decision, exactly
+like rotating a trust key.
+
+```text
+ElectionBounds = {
+  "schema_version":"0.1",
+  "network_id":string,
+  "chain_id":sha256-string,
+  "election_epoch_blocks_max":u64-string,
+  "validator_max_consecutive_terms_max":u64-string,
+  "validator_max_set_size_max":u64-string,
+  "validator_min_set_size_min":u64-string,
+  "validator_min_capture_epochs_min":u64-string,
+  "election_parameter_change_numerator":u64-string,
+  "election_parameter_change_denominator":u64-string,
+  "election_parameter_min_activation_gap_blocks":u64-string
+}
+```
+
+`chain_id` MUST equal the client's configured chain ID,
+`election_parameter_change_numerator` MUST exceed
+`election_parameter_change_denominator`, which MUST be positive, and
+`election_parameter_min_activation_gap_blocks` MUST be positive. The gap is what
+makes the change ratio a limit **per unit of chain** rather than per document:
+`sequence` need only increase, so without it a quorum publishes a document per
+block and walks a parameter to its genesis ceiling in as many blocks as the ratio
+needs steps. The ceiling still holds either way; the gap is what leaves anyone
+time to notice the walk. A
+`consensus_parameters` document whose election parameters fall outside these
+bounds, or which moves any of them by more than the permitted ratio against the
+currently active document, is **rejected on acceptance** — the full constraint
+block is in
+[ledger.md](ledger.md#magnitudes-not-only-relations-the-bounds-are-fixed-at-genesis).
+A light client applies the same bounds at step 5 of the light-client algorithm
+and fails closed rather than proceeding with unbounded values.
+
+Values are a genesis decision of the network operator rather than a simulator
+output, and are deliberately not fixed in this document. What is fixed is that
+they exist, that they are outside on-chain governance, and that a network which
+ships no `ElectionBounds` is not a conformant Coblox network.
+
+**Declared limit.** A client's bounds are only as trustworthy as the release
+channel that delivered them, which is the same footing as the trust key below. A
+client running an older distribution enforces older bounds: narrower than the
+network's, and it fails closed on chains the network considers valid; wider, and
+it is more permissive than the network, which will not produce the sets it would
+have wrongly accepted. Neither direction lets an attacker widen the bounds a
+given client enforces, and that is the property being claimed — not that the
+bounds are unforgeable in general.
 
 ### Weak subjectivity checkpoint
 
@@ -543,13 +686,20 @@ not economic facts and remain open:
   the expected number of evaluations are independent knobs;
 - the per-epoch existence fund, work reward curves, hosting prices, and
   subscription minimums: simulator output vs conservative bootstrap values;
-- validator rotation and election: the algorithm is open, but eligibility is
-  not. Eligibility MUST be anchored to finalized, hard-to-forge work evidence
-  and MUST NOT rest on uptime or availability alone.
+- the validator election parameters — epoch length, candidacy close, entropy
+  window, set sizes, churn cap, term limit, cooldown, declared capture horizon,
+  the eligibility threshold with its window, and the minimum number of distinct
+  issuers behind a contribution score. The **algorithm** is no longer open: it is
+  specified in [ledger.md](ledger.md#validator-election-and-rotation). Nor are
+  the relations among these values open, nor their magnitudes — a
+  consensus-parameters document that violates the constraint block of
+  [ledger.md](ledger.md#rotation-the-cap-and-the-floor), or that leaves the
+  [election bounds](#election-bounds) of the genesis trust anchor, is rejected on
+  acceptance. The simulator therefore chooses inside a feasible region that the
+  chain's own governance cannot widen.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
-security review of enrollment bounds; the validator-election specification is
-owned by the M-02 ledger specialist. Until signed network parameters select
+security review of enrollment bounds. Until signed network parameters select
 values, a deployment is a development network and MUST NOT identify itself as
 Coblox mainnet.
 

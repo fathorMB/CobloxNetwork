@@ -18,7 +18,12 @@ certificate; a peer cannot substitute a transport identity after enrollment.
 A validator MUST use a distinct Ed25519 consensus key. That key is subordinate
 to, and bound by a proof of possession from, its enrolled identity key; it is
 not a second enrolled identity. The binding and mandatory verification rules
-are specified in [ledger.md](ledger.md#validator-set-continuity).
+are specified in [ledger.md](ledger.md#validator-set-continuity). The consensus
+key is published by the node itself, ahead of the election epoch it is bound
+to, through the `validator_candidacy` transaction of
+[ledger.md](ledger.md#candidacy-is-an-explicit-per-epoch-act): an enrolled
+identity is never conscripted into the validator set, and a quorum cannot assert
+a consensus key on someone else's behalf.
 
 ## Canonical libp2p Peer ID
 
@@ -327,11 +332,20 @@ omits them is dishonest rather than merely incomplete:
    governed parameter set could otherwise have removed entirely — and it does not
    change this.
 3. **Sybil containment in Coblox is therefore economic, not cryptographic.** It
-   rests on the per-epoch existence fund being capped and shared rather than
-   paid per node, and on validator eligibility being anchored to storage and
-   compute work that cannot be faked without spending real resources. Both are
-   specified in [ledger.md](ledger.md#mint-existence-income-work-compensation-and-publisher-reward).
-   The network is robust against forgery — balances, signatures, double spending
+   rests on the per-epoch existence fund being capped and shared rather than paid
+   per node — specified in
+   [ledger.md](ledger.md#existence-income-is-a-share-of-a-capped-fund) — and on
+   validator eligibility being anchored to demonstrated storage and compute
+   work, specified in
+   [ledger.md](ledger.md#eligibility-demonstrated-storage-and-compute-never-availability).
+   That anchoring makes eligibility **expensive to fake, not impossible to
+   fake**, and the earlier wording here said "cannot be faked without spending
+   real resources", which was stronger than the protocol delivers. The price of
+   faking it is the enrollment of at least `validator_eligibility_min_issuers`
+   colluding identities per fabricated candidate, plus the beacon grinding that
+   [ledger.md](ledger.md#challenge-evidence) already quantifies; the eligibility
+   section states that residual with its origin. The network is robust against
+   forgery — balances, signatures, double spending
    — while not being Sybil-resistant by cryptographic means, and those two
    claims must be stated together.
 
@@ -390,9 +404,16 @@ at heights before the effective height.
 
 If the revoked node holds a seat in the active validator set, revocation alone
 would leave its voting power intact until some later set transition that no rule
-requires. It therefore **forces** a set transition, and a light client can see
-that transition rather than having to trust a claim about it: the binding rule
-is in [ledger.md](ledger.md#revocation-forces-a-validator-set-transition).
+requires. It therefore **forces** a set transition. A full node sees the
+`revoke_identity` transaction and enforces that rule completely. A light client
+sees no transactions, so its position is narrower and is stated here exactly as
+the ledger states it: it observes *a* transition if one happens, and can check
+that the transition only removes members, but it **cannot establish that a
+transition was due**. For the part that is covered it relies on the
+`revoked_validators` list carried by its weak subjectivity checkpoint, which
+closes the gap only for revocations known when that checkpoint was issued. The
+binding rule, that closure and its declared limit are in
+[ledger.md](ledger.md#revocation-forces-a-validator-set-transition).
 
 Key replacement is a fresh enrollment
 and proof of work; it never inherits the old balance or nonce automatically.

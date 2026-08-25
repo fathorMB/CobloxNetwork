@@ -24,7 +24,16 @@ preserve these invariants:
 6. a transaction ID occurs at most once in chain history and debit nonces are
    strictly consecutive per node or app account;
 7. only a block with a valid quorum certificate from the active validator set
-   is finalized.
+   is finalized;
+8. the active validator set changes only at an election boundary or through a
+   removal-only revocation transition; the set committed at an election boundary
+   is the exact output of the derivation of
+   [validator election and rotation](#validator-election-and-rotation); entry is
+   capped and contraction is floored. A quorum authorizes the successor set and
+   **cannot name its members** — but it does decide which candidacies are
+   finalized, so the accurate statement is that it can narrow the field and not
+   that it is powerless over composition. What bounds that power is the
+   contraction floor, not the derivation.
 
 ## Hashing primitives
 
@@ -51,7 +60,7 @@ All transaction objects share:
   "schema_version":"0.1",
   "network_id":string,
   "kind":"mint"|"burn"|"fund_app"|"challenge_commitment"|"challenge_evidence"
-        |"revoke_identity",
+        |"revoke_identity"|"validator_candidacy",
   "created_at_ms":u64-string,
   "expires_at_ms":u64-string,
   "body":object,
@@ -561,11 +570,14 @@ signatures is not defined in v0.
 ValidatorSet = {
   "schema_version":"0.1",
   "activation_height":u64-string,
+  "election":ElectionRecord,   // absent only for the genesis set
   "validators":[{
     "validator_id":string,
     "node_id":string,
     "consensus_public_key":base64url(32 bytes),
     "key_binding_signature":base64url(64 bytes),
+    "seated_since_epoch":u64-string,
+    "term_expiry_epoch":u64-string,
     "voting_power":u64-string
   }]
 }
@@ -579,6 +591,14 @@ set. At height `h`, `validator_set_hash` MUST equal the set committed as
 Thus the old quorum authorizes the next set before that set can sign blocks.
 A light client obtains the full set, hashes it, and retains it with the header.
 
+`election` and `seated_since_epoch` are specified in
+[validator election and rotation](#validator-election-and-rotation); they are
+what constrains *which* members the old quorum is permitted to commit. The
+genesis set is the only set without an `election` record, because it is a trust
+anchor rather than a derived object; its entries carry `seated_since_epoch:"0"`
+and **staggered** `term_expiry_epoch` values, for the reason given in
+[the genesis cohort](#the-genesis-cohort-and-why-its-terms-must-be-staggered).
+
 For each entry, the identity public key from the finalized enrollment
 certificate MUST verify `key_binding_signature` over the global chain-bound
 domain `coblox-consensus-key-binding-v0` and JCS of
@@ -588,8 +608,21 @@ enrolled. Full nodes and light clients verify every binding before accepting a
 set or any vote from it. On leaving the active set, operators MUST destroy or
 rotate the old consensus private key; re-entry requires a fresh binding.
 
-This continuity rule specifies safe authentication but not how members are
-elected or rotated.
+Continuity authenticates a transition. It does not by itself say **when** a
+transition may happen, and the schema above admits one at every height. v0
+therefore adds a second condition, checkable from the header alone and stated
+here because it is the precondition for everything in
+[validator election and rotation](#validator-election-and-rotation):
+
+> At every finalized height `h` that is neither an **election boundary** nor a
+> **revocation-forced transition**, `next_validator_set_hash` MUST equal
+> `validator_set_hash`. A block that changes the committed successor set outside
+> those two occasions is invalid.
+
+A light client checks this with two fields it already reads, without seeing a
+single transaction. Which members may appear at an election boundary, and which
+may appear at a revocation-forced transition, are the subjects of the next two
+sections.
 
 ### Revocation forces a validator set transition
 
@@ -630,7 +663,7 @@ The consequence is concrete. If the consensus keys of validators summing to more
 than two thirds of the power leak — the exact scenario this rule exists for —
 honest full nodes stall as declared below, while the attacker signs a parallel
 chain from `effective_height` with the *old* set. That chain is hash-continuous,
-every binding verifies, and a light client passes all nine steps on it. Safety
+every binding verifies, and a light client passes every step on it. Safety
 would then protect whoever runs a server and not whoever installed the app.
 
 The missing anchor is not a `BlockHeader` field — adding one would cost every
@@ -667,8 +700,1314 @@ validators fail to commit a compliant successor set within the delay window, the
 chain **stalls** at `effective_height` instead of finalizing blocks signed by a
 set containing a revoked key. That is a deliberate choice of safety over
 liveness, and `min_revocation_effective_delay_blocks` exists to make the window
-long enough that the choice is rarely exercised. Which members replace the
-revoked one is an election question, out of scope here and open in M-02.
+long enough that the choice is rarely exercised.
+
+**A revocation-forced transition removes; it never admits.** This is the second
+validity condition on off-boundary transitions, and it exists because an
+"emergency replacement" clause would reopen exactly the hole that
+[validator election and rotation](#validator-election-and-rotation) closes: an
+unelected member seated by the sitting quorum, under a pretext the quorum
+itself creates. A set whose `activation_height` is not an election boundary is
+valid only if:
+
+7. its `validators` array is a **strict subset** of the array of the set it
+   replaces, entry-for-entry identical in `validator_id`, `node_id`,
+   `consensus_public_key`, `seated_since_epoch`, `term_expiry_epoch`, and
+   `voting_power`, with only `key_binding_signature` re-issued for the new
+   `activation_height`;
+8. every removed `node_id` has a finalized `revoke_identity` whose
+   `effective_height` is at most that `activation_height`;
+9. its `election` record is copied verbatim from the set it replaces, except
+   `member_count`, which MUST equal the new, smaller array length;
+10. it satisfies the **contraction floor**
+    `3 * member_count(new) > 2 * member_count(old)` of
+    [rotation: the cap and the floor](#rotation-the-cap-and-the-floor).
+
+The vacancies stay empty until the next election boundary, where they are
+refilled under the ordinary rotation cap. Consequently a quorum cannot launder
+mass revocation into mass admission. Nor — and this needed rule 10 to be true,
+having previously been asserted without it — can it launder mass revocation into
+**concentration**: for an attacker that is already inside the set, removing the
+others *is* choosing the set, and it was reachable while the only lower bound on
+size was `validator_min_set_size`, which the constraint block permits to be very
+small. With rule 10, shrinking the set far enough reaches the stall rather than a
+set of the attacker's choosing **in one step**. A coalition contracts to itself in
+a single transition only if it already holds more than two thirds, at which point
+BFT safety has failed for reasons no set-composition rule can repair; below that
+it can still get there over several transitions, each of them published, as
+[the contraction floor](#the-contraction-floor-a-cap-on-entry-is-only-half-a-rule)
+sets out. What a light client can and cannot
+conclude from an off-boundary transition is stated in
+[what a light client can establish](#what-a-light-client-can-establish-about-set-composition).
+
+## Validator election and rotation
+
+Continuity says the outgoing quorum authorizes its successor. Until v0 wrote
+this section, nothing said what it was allowed to authorize, so a quorum reached
+once could commit a successor identical to itself, for ever, along a chain that
+satisfied every check in this document at every step. That is the defect this
+section closes, and closing it is not only a matter of preventing capture: it is
+a matter of making the active set verifiable as **the right one** rather than
+merely as **a continuous one**. The two are different claims, and the second is
+the one continuity already provided.
+
+The rule is built in two layers on purpose, because they fail differently.
+
+- **Layer 1 — shape and turnover.** Term limits, uniform voting power, a
+  rotation cap, and the boundary rule above. Layer 1 is a function of the
+  validator-set documents alone, so a light client that never sees a transaction
+  verifies all of it. Layer 1 is what makes self-perpetuation *impossible*
+  rather than *unlikely*, and it does not depend on the quality of any
+  randomness.
+- **Layer 2 — composition.** Which eligible candidates fill the seats Layer 1
+  vacates, derived from a committed candidate set and a finalized seed. Layer 2
+  is verifiable in full by any node that replays finalized transactions, and only
+  partially by a light client. Its residuals are stated in
+  [what a light client can establish](#what-a-light-client-can-establish-about-set-composition).
+
+Splitting them this way is a deliberate answer to the risk that a rule designed
+for full nodes leaves light clients where they were. The anti-capture invariant
+lives entirely in the layer a light client can check.
+
+### Election epochs and the boundary
+
+Election epochs are counted in block heights, not wall-clock time, so that every
+quantity a verifier needs is a header quantity. With
+`election_epoch_blocks = L` from the active consensus parameters, epoch `e`
+begins at
+
+```text
+election_boundary_height(e) = e * L
+```
+
+Epoch 0 is the genesis set. An **election boundary** is any height of that form
+with `e >= 1`. The set activating at `election_boundary_height(e)` MUST carry an
+`election` record with `election_epoch` equal to `e` and `activation_height`
+equal to that height.
+
+Two derived heights bound the inputs:
+
+```text
+candidacy_close_height(e) = election_boundary_height(e) - candidacy_close_blocks
+entropy_window(e)         = [ election_boundary_height(e) - election_entropy_blocks,
+                              election_boundary_height(e) - 1 ]
+```
+
+`candidacy_close_blocks > election_entropy_blocks` is a validity rule on the
+consensus-parameters document, so the candidate set is finalized and fixed
+strictly before the first block whose identity feeds the seed exists. Without
+that ordering a proposer inside the entropy window could watch the seed forming
+and add or withhold a candidacy in response.
+
+### Candidacy is an explicit, per-epoch act
+
+A node cannot be conscripted into the set, and no member is retained implicitly.
+Serving in epoch `e` requires a finalized `validator_candidacy` for that exact
+epoch, from incumbents and newcomers alike. There are three reasons and all
+three are load-bearing: the consensus key binding of
+[validator-set continuity](#validator-set-continuity) is signed over a specific
+`activation_height`, which only a per-epoch declaration can supply in advance;
+consent to hold consensus keys is not something a quorum should be able to
+assert on someone else's behalf; and a member that stops declaring leaves
+without any need for a removal mechanism.
+
+```text
+ValidatorCandidacyBody = {
+  "node_id":string,
+  "election_epoch":u64-string,
+  "consensus_public_key":base64url(32 bytes),
+  "key_binding_signature":base64url(64 bytes)
+}
+ValidatorCandidacyAuthorization = {
+  "public_key":base64url(32 bytes),
+  "signature":base64url(64 bytes)
+}
+```
+
+The authorization key MUST derive the enrolled, unrevoked `node_id`.
+`key_binding_signature` is the signature of the **consensus** key over the
+binding object of [validator-set continuity](#validator-set-continuity) with
+`activation_height = election_boundary_height(election_epoch)` and
+`validator_id = node_id`; validators verify it when the candidacy executes, so a
+candidacy carrying a binding that would not verify inside a set is invalid on
+arrival rather than at the boundary. The consensus key MUST differ from the
+identity key. At most one candidacy exists per `(node_id, election_epoch)`; a
+second is invalid, so a node cannot hold several consensus keys for one epoch
+and let the outgoing set choose which one to seat. `election_epoch` MUST be an
+epoch whose `candidacy_close_height` is strictly above the height of the block
+proposing the candidacy. This transaction moves no value and touches no balance
+or nonce.
+
+Canonical serialized example:
+
+```json
+{"authorization":{"public_key":"11qYAYdk9J0L5Z-6hB4qMTPBSAE5nK1G0IU2n6z1V9g","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"body":{"consensus_public_key":"IjIiMiIyIjIiMiIyIjIiMiIyIjIiMiIyIjIiMiIyIjI","election_epoch":"3","key_binding_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654530000","expires_at_ms":"1787740930000","kind":"validator_candidacy","network_id":"coblox-devnet-0","schema_version":"0.1"}
+```
+
+**Elected sets use `validator_id = node_id` and uniform voting power.** Every
+entry of a set carrying an `election` record MUST have `validator_id` equal to
+its `node_id` and `voting_power` equal to `1`. Distinct validator identifiers
+bought nothing and cost an ambiguity — two candidates claiming one
+`validator_id` — that the election would then have to resolve. Uniform power is
+not cosmetic either: it is the reason a node cannot buy influence by
+contributing more, which is the first point of the [ADR-008] test. The quorum
+predicate is unchanged and still operates on summed power; over an elected set
+that sum happens to equal a member count, which is a consequence of the weights
+and not a change to the predicate.
+
+### Eligibility: demonstrated storage and compute, never availability
+
+Per [ADR-007], eligibility is anchored to work that is hard to forge, and never
+to uptime or availability, which a rented VPS with an SLA beats by construction
+against any real phone. The protocol expresses this as a **contribution score**
+computed from evidence that already exists on the ledger for another purpose.
+
+Let `W(e)` be the finalized `challenge_evidence` transactions with
+`outcome:"passed"` and `kind` in `{"storage","compute"}` whose
+`subject_node_id` is the node, finalized below `candidacy_close_height(e)` and
+belonging to one of the last `validator_eligibility_window_epochs` reward
+epochs. With `storage_units_per_contribution_unit` and
+`compute_units_per_contribution_unit` from the active reward policy, both
+strictly positive:
+
+```text
+contribution_score(n, e) =
+    sum over W(e) of  measured_units / divisor(kind)     // integer division per item
+```
+
+Intermediates are checked `u128`. Evidence of kind `availability` contributes
+**zero**: this is [ADR-007] point 2 written as arithmetic rather than as an
+intention, and it is the single line that makes the rule unattractive to a
+datacenter fleet whose only real advantage is being switched on.
+
+A node is **eligible** for epoch `e` when all of the following hold, each of them
+a fact a replaying verifier settles without judgement:
+
+1. it is enrolled and not revoked as of `candidacy_close_height(e)`;
+2. a valid `validator_candidacy` for `(n, e)` is finalized strictly below
+   `candidacy_close_height(e)`;
+3. `contribution_score(n, e) >= validator_eligibility_threshold_units`;
+4. the evidence counted in that score comes from at least
+   `validator_eligibility_min_issuers` **distinct** `issuer_node_id`s, none of
+   them the subject itself. A score built from a single issuer does not qualify
+   however large it is;
+5. it is not in cooldown: it did not **leave a seat** in any of the
+   `validator_cooldown_epochs` epochs before `e`. Leaving a seat means having
+   been a member of the set active at a boundary and not retained at the next
+   one, **for any reason whatsoever** — term expiry, a lapsed candidacy, a
+   contribution score fallen below the threshold, or revocation.
+
+Condition 5 says "for any reason whatsoever" because an earlier version of it
+said "through term expiry", and that version was **evadable by playing well**.
+An incumbent one epoch short of its term limit could simply file no candidacy,
+leave as a voluntary exit with no cooldown attached, re-file for the next epoch
+and return with `seated_since_epoch` reset — an effective absence of one epoch
+against however many the network had chosen. The occupancy arithmetic made the
+evasion dominant rather than marginal: `T/(T+k)` for a member that serves out its
+term against `(T-1)/T` for one that leaves early, and the second exceeds the
+first for every `validator_cooldown_epochs = k >= 2`. A parameter that the
+diligent obey and the strategic ignore is worse than no parameter, because it is
+budgeted for as though it worked. Under condition 5 the answer to "how long must
+a departing member that plays well stay out?" is `validator_cooldown_epochs`,
+with no qualification.
+
+**Declared limit, inherited and not created here.** Condition 3 is only as sound
+as the evidence it counts, and this document already quantifies a way to obtain
+`outcome:"passed"` evidence more cheaply than by doing the work: a colluding
+issuer that hands over its committed secret lets a proposer enumerate the legal
+`timestamp_ms` values — of order `10^3` to `10^6`, one SHA-256 each — until the
+beacon both assigns that issuer to the target subject and selects a chunk the
+subject actually kept. See
+[challenge evidence](#challenge-evidence), where the residual is stated for the
+reward channel.
+
+This section put that evidence to a **new use**, as a credential for entry into
+consensus rather than as a metric for payment, and the mitigation declared there
+does not transfer. The two-issuer coverage rule of
+[wire.md](wire.md#challenge_request) degrades the attack from "pass the
+challenge" to "pass one of two", which is an effective answer for a *detection
+rate*, where a failure counts against the subject. `contribution_score` is a
+**sum of successes** and subtracts nothing: passing one of two still adds
+`measured_units`, and the honest issuer's failed challenge has no effect on
+eligibility at all. Left unaddressed, a pair of enrolled identities — one playing
+issuer, one playing subject — could clear the threshold while holding a single
+chunk instead of the objects the score claims to measure, at the price of two
+enrollments plus grinding rather than the price of storage.
+
+Condition 4 is the answer, and it is a counting condition on data that is already
+finalized rather than a change to how challenges are issued: the score must draw
+on at least `validator_eligibility_min_issuers` distinct issuers. **It raises the
+price; it does not remove the residual.** An attacker willing to enroll
+`validator_eligibility_min_issuers` colluding issuer identities per fabricated
+candidate still clears the threshold, and the cost of doing so is the cost of
+enrollment — which [ADR-007] has already declared cannot price a perpetual flow.
+So the honest formulation is that eligibility is anchored to work that is
+**expensive to fake and not impossible to fake**, that the price is linear in
+`validator_eligibility_min_issuers`, and that what ultimately bounds the attack
+is the same numerosity residual `alpha` governs, plus the churn cap on how fast
+tickets become seats. Writing "cannot be faked without spending real resources"
+would be the overstated safety claim this document refuses to make.
+
+**Eligibility is a predicate, not a ranking, and this is the whole design.**
+Above the threshold, additional storage or compute buys nothing: not a seat, not
+a weight, not a better draw, because every eligible node contributes exactly one
+ticket and every seated node exactly one unit of power. A ranking by contributed
+work would have been the obvious rule and is rejected here for precisely the
+reason [ADR-008] gives: a rule that pays more for spending more, without the
+network needing more, is mining wearing a different hat, and it would have
+reproduced under the eligibility heading the spending race that the exclusion
+forbids. The test is answered in full in
+[the ADR-008 test, answered](#the-adr-008-test-answered).
+
+### The committed candidate set
+
+The eligible nodes of epoch `e` are committed as a Merkle tree over their
+`account_key`s, unique and sorted bytewise, in the same construction the
+existence-income eligible set already uses:
+
+```text
+candidate_leaf  = H(0x40 || u64be(election_epoch) || account_key_32)
+candidate_node  = H(0x41 || left_32 || right_32)
+candidate_empty = H(0x42)
+```
+
+The tree preserves sorted order and pads to a power of two with
+`candidate_empty`; zero entries use `H(0x43)` as the root, which cannot appear
+in a valid election because an epoch with no eligible candidate and no retained
+member has no valid set at all. `candidate_count` MUST equal the number of
+leaves. Full validators already recompute eligibility from finalized evidence,
+so they hold the exact leaf set and MUST reject an `election` record whose root
+or count differs from their own recomputation.
+
+Sorting the leaves by `account_key` is not presentation. It is what makes
+**non-membership** provable in two leaves, which is how a candidate unlawfully
+left out contradicts the record that omitted it; see
+[what a light client can establish](#what-a-light-client-can-establish-about-set-composition).
+
+### The seed, and why the rule does not depend on it
+
+```text
+election_entropy = H("coblox-election-entropy-v0\0" || chain_id_32
+                     || u64be(election_epoch) || u64be(election_entropy_blocks)
+                     || raw_32_bytes(block_id[first]) || ... || raw_32_bytes(block_id[last]))
+election_seed    = H("coblox-election-seed-v0\0" || chain_id_32
+                     || u64be(election_epoch) || raw_32_bytes(election_entropy))
+election_ticket  = H("coblox-election-ticket-v0\0" || chain_id_32
+                     || raw_32_bytes(election_seed) || account_key_32)
+```
+
+The block IDs are the canonical finalized IDs at every height of
+`entropy_window(e)`, in ascending height order, exactly
+`election_entropy_blocks` of them. They are carried in the `election` record so
+that a client which joined at a later checkpoint can still recompute the seed; a
+client that walked those heights MUST additionally check that they are the IDs
+it saw.
+
+The seed depends on the entropy window **and on nothing else**. An earlier draft
+of this section also hashed `candidate_root` and `candidate_count` into the seed,
+to stop a seed being reused against a different candidate set. That binding is
+not needed and has been removed: `ElectionRecord` commits both quantities, full
+validators recompute both from finalized evidence and reject a record whose
+values differ, and the seed is already bound to its epoch by
+`u64be(election_epoch)` and to its chain by `chain_id`. Keeping them in the
+preimage bought no validity and gave the outgoing set a **second lever** on the
+seed, because the composition of the candidate set is a function of which
+candidacy transactions get finalized, which the outgoing set controls. Removing
+them reduces what a proposer can steer to exactly one thing — the block IDs it
+proposes — which is what makes the paragraphs below stateable without
+qualification.
+
+**Now the honest part, and it is the part that decides whether this rule is worth
+anything.** A beacon derived from block IDs is *grindable by whoever proposes
+those blocks*. The proposer of a block in the entropy window chooses its
+transaction set and its `timestamp_ms`; the timestamp alone admits on the order
+of 10^3 to 10^6 legal values, as [challenge evidence](#challenge-evidence)
+already quantifies, and each is one SHA-256 away from a different `block_id`.
+Aggregating `election_entropy_blocks` consecutive blocks raises the cost of
+controlling the *whole* window to holding consecutive proposal slots — the
+reduction this document deferred to "the dedicated randomness beacon" and takes
+here — but it does not remove best-of-`G` resampling by whoever proposes the
+**last** block of the window. An unbiasable beacon in v0 would need a verifiable
+delay function or a threshold signature scheme, and v0 has Ed25519 and nothing
+else.
+
+So the seed is **not** trusted to be unbiasable, and the security of this section
+does not rest on it:
+
+- grinding yields *bias*, never *choice*: a resample redraws the tickets, it does
+  not let the grinder name a winner;
+- the number of seats a grinder can win at one boundary is bounded by
+  `validator_churn_cap_seats` however favourable the seed is, because the cap is
+  applied after the draw;
+- an incumbent cannot grind itself a longer term at any price, because term
+  expiry is not a function of the seed.
+
+The residual, stated with its shape rather than assumed away: with `c` seats
+filled per boundary, an attacker holding a fraction `p` of the committed
+candidates and `G` grinding attempts wins on the order of
+`c*p + O(sqrt(c*p*(1-p)*2*ln G))` seats instead of `c*p`. The excess grows with
+the square root of the logarithm of the attacker's effort and is capped at `c`
+regardless. That is a fairness loss inside a bounded rotation, not a capture
+path.
+
+#### The second lever: the pool itself, and what is honestly claimable about it
+
+An earlier version of this section claimed that "every resample is still a draw
+over a committed candidate set the grinder does not control". **That claim was
+false for the only adversary that matters** and is retracted here rather than
+softened. A grinder is by construction a sitting validator, since only a proposer
+can grind; a sitting validator controls **transaction inclusion**; a candidacy
+that is not included is not finalized; therefore the outgoing set controls which
+nodes are in `C` at all. It does not control a committed set — it controls what
+gets committed.
+
+What limits that lever is an **ordering** property rather than an assertion, and
+it is worth stating exactly because it is the only thing standing there.
+`candidacy_close_blocks > election_entropy_blocks` puts
+`candidacy_close_height(e)` strictly **below** the entropy window, so the set of
+candidacies is frozen before the first block whose ID feeds the seed exists.
+A proposer choosing which of `q` withheld candidacies to finalize therefore
+chooses **blind**: it cannot yet compute any ticket, so it cannot pick the subset
+that produces the ticket vector it wants. Combined with the removal of
+`candidate_root` from the seed preimage, subset choice now yields no seed
+advantage at all — before the removal it yielded `2^q` seed families, chosen
+blind and therefore of little use, but the surface existed and no longer does.
+
+**What the lever still buys, and it is not nothing: exclusion.** Withholding a
+candidacy removes a competitor from the pool outright, which is worth more than
+any amount of grinding and does not need the seed. Two properties of that
+residual must be stated:
+
+- it is **bounded in effect** by the same quantities as everything else in this
+  section: excluding competitors cannot seat more than
+  `validator_churn_cap_seats` members at a boundary, cannot extend a term, and
+  cannot shrink the set past the contraction floor of
+  [rotation: the cap and the floor](#rotation-the-cap-and-the-floor);
+- it is **worse in visibility** than the omission case (a) of
+  [what a light client can establish](#what-a-light-client-can-establish-about-set-composition).
+  There the omitted node contradicts the record by exhibiting its own *finalized*
+  candidacy against a sorted-tree non-membership proof. Here the candidacy was
+  never finalized, so there is no compact proof and no long one either: a
+  censored candidacy and a candidacy never submitted are the same object, which
+  is to say no object. Delayed inclusion is indistinguishable from absence and
+  leaves no trace. This is recorded in the "cannot establish" list as its own
+  entry rather than folded into (a), because it is the one composition failure
+  that not even a full node replaying the whole chain can detect.
+
+**Two alternatives were considered and rejected.** Candidate commit-reveal, in
+which each candidacy carries a commitment and the seed mixes the reveals, moves
+the bias from the proposer to the candidates and makes it *worse*: a candidate
+that dislikes the outcome simply withholds its reveal, and withholding is free
+because a candidate that is not seated loses nothing. Deriving the seed from the
+finalized `issuer_reveal` values of that epoch's challenge evidence looks
+attractive, because those secrets are committed before their beacons, but the
+outgoing set still controls which evidence transactions are *included*, so the
+bias returns through inclusion rather than through hashing, and it arrives harder
+to see.
+### The derivation
+
+Every step below is a total function of finalized data. Two verifiers holding the
+same finalized chain derive byte-identical sets, or the block at the boundary is
+invalid. Let `P` be the validator set active at
+`election_boundary_height(e) - 1` and let `T = validator_max_consecutive_terms`.
+
+1. **Retain.** An entry `n` of `P` is retained when *all* of these hold: a valid
+   candidacy for `(n, e)` is finalized below `candidacy_close_height(e)`;
+   `e < term_expiry_epoch(n)`; `contribution_score(n, e)` meets the threshold;
+   and `n` is not revoked. A retained entry keeps its `seated_since_epoch` **and
+   its `term_expiry_epoch`** unchanged, and takes its consensus key and binding
+   from its epoch-`e` candidacy. Call the result `R`.
+2. **Commit the candidates.** `C` is the eligible set of the section above —
+   which contains the retained members too — committed as `candidate_root` with
+   `candidate_count` equal to `|C|`.
+3. **Form the fill pool.** `Nw = C \ R`, the eligible nodes not already seated. A
+   member of `P` that failed step 1 is **not** in `Nw` for this epoch, and is not
+   in `C` either: leaving a seat starts the cooldown of eligibility condition 5
+   whatever the reason for leaving, so term expiry, a lapsed candidacy, a fallen
+   contribution score and revocation are alike in this respect.
+4. **Derive the seed** from `entropy_window(e)` alone, per
+   [the seed](#the-seed-and-why-the-rule-does-not-depend-on-it).
+5. **Rank.** Compute `election_ticket` for every node of `Nw` and order the pool
+   by `(ticket ascending, account_key ascending)`, both compared as unsigned
+   bytes over the raw 32 bytes. The second key makes the order **total**: equal
+   tickets would require a SHA-256 collision, but a derivation with an
+   unspecified case is not deterministic even when the case is unreachable, and
+   an unreachable case left open is how a future hash change becomes a chain
+   split.
+6. **Fill, under the cap.**
+
+   ```text
+   fills = min( max(0, validator_target_set_size - |R|),
+                validator_churn_cap_seats,
+                |Nw| )
+   ```
+
+   The first `fills` nodes of the ordered pool are seated with
+   `seated_since_epoch` equal to `e`, `term_expiry_epoch` equal to
+   `e + validator_max_consecutive_terms` evaluated against the parameters active
+   at `e`, `voting_power` 1 and `validator_id = node_id`.
+7. **Assemble.** The new set is `R` together with the fills, sorted by
+   `validator_id`, carrying the `election` record below. It MUST satisfy the
+   **contraction floor** `3 * member_count(new) > 2 * member_count(P)` and hold
+   at least `validator_min_set_size` members. If either fails, **no valid set
+   exists for epoch `e`** and the chain stalls at the boundary; see
+   [degenerate cases](#degenerate-cases-and-what-the-protocol-does-instead-of-improvising).
+
+```text
+ElectionRecord = {
+  "election_epoch":u64-string,
+  "previous_validator_set_hash":sha256-string,
+  "candidate_root":sha256-string,
+  "candidate_count":u64-string,
+  "entropy_first_height":u64-string,
+  "entropy_block_ids":[sha256-string],
+  "election_seed":sha256-string,
+  "retained_count":u64-string,
+  "filled_count":u64-string,
+  "member_count":u64-string
+}
+```
+
+`entropy_block_ids` holds exactly `election_entropy_blocks` entries in ascending
+height order starting at `entropy_first_height`, which MUST equal
+`election_boundary_height(election_epoch) - election_entropy_blocks`.
+`previous_validator_set_hash` MUST equal the hash of `P`. `candidate_root` and
+`candidate_count` are bound here by **validity** rather than through the seed
+preimage: full validators recompute both from finalized evidence and reject a
+record whose values differ, which is a stronger check than hashing them into a
+seed and costs the outgoing set one lever less. `retained_count` and
+`filled_count` MUST equal the number of entries whose `seated_since_epoch` is
+respectively below and equal to `election_epoch`, and `member_count` the array
+length. Those three counts are redundant with the array on purpose: a light
+client checks the cap against `filled_count` and `filled_count` against the
+array, so a set that lies about either contradicts itself.
+
+**Where the commitment lives, and why not in the header.** `ElectionRecord` is
+part of `ValidatorSet`, so it is committed by `validator_set_hash`, which the
+previous height already commits as `next_validator_set_hash` — a `BlockHeader`
+field. The header therefore commits every input of the derivation, transitively
+and exactly, and after-the-fact recomputation is possible from headers plus the
+set documents a client already fetches. A dedicated header field was the obvious
+alternative and is rejected: it would cost every block for ever to carry a
+quantity that changes once per epoch, and it would be authenticated by the same
+quorum anyway, so it would buy no independence.
+
+### Rotation: the cap and the floor
+
+A cap alone does not close this defect. A set merely forbidden to change *fast*
+is still permitted to change *never*, which is the self-perpetuating chain with
+extra steps. v0 therefore states both ends.
+
+**The floor is a term limit, stamped and not derived.** Every entry carries a
+`term_expiry_epoch`, and a set is invalid if any entry has
+`election_epoch >= term_expiry_epoch`. A seat filled at boundary `e` is stamped
+`term_expiry_epoch = e + validator_max_consecutive_terms`; a retained entry keeps
+the stamp it was given, unchanged, for the whole of its tenure.
+
+Stamping rather than recomputing `e - seated_since_epoch < T` at every boundary is
+not a presentational choice. With the derived form, a quorum that raised `T`
+inside the genesis ceiling would extend **its own sitting members' terms
+retroactively**, because their expiry would be recomputed against the new value —
+a smaller version of the same manoeuvre the genesis bounds exist to stop, and one
+those bounds do not by themselves prevent. With the stamped form a change to `T`
+governs only seats filled after it activates, and no document a sitting set signs
+can lengthen a term already running. `seated_since_epoch` remains, because the
+retained/filled distinction and the cross-set consistency check are stated on it.
+
+Turnover is consequently not a target but an arithmetic certainty: a set of `V`
+members whose terms are capped at `T` vacates at least `ceil(V / T)` seats per
+epoch on average, whatever anyone intends. A retiring member enters cooldown for
+`validator_cooldown_epochs` and then competes for re-entry from the pool like
+anyone else. Cooldown does not banish a genuinely contributing node; it forces
+every seat to be **re-won by derivation** instead of retained by inertia, which
+is the property [DEBT-005] found missing.
+
+#### The genesis cohort, and why its terms must be staggered
+
+The three rules of this section — term expiry, the entry cap, the contraction
+floor — are each satisfiable alone and were, for one draft, jointly unsatisfiable
+on **every conformant network**, at a boundary that arrives by the calendar and
+not by anybody's choice. The interaction is worth writing out, because it is
+exactly the kind that no rule sees from inside itself.
+
+A genesis set is a trust anchor: `V` entries installed at once. If all of them
+carry the same expiry, they expire **together**. At that boundary `R` is empty,
+so the new set is whatever the fill step can supply, which is at most `c`; the
+contraction floor then demands `3c > 2V`, that is `c > 2V/3`, while the capture
+constraint demands `3 * c * m <= V` with `m >= 1`, that is `c <= V/3`. The
+interval is empty for every `V`. No valid set exists, and the chain halts at
+height `validator_max_consecutive_terms * election_epoch_blocks` with recovery
+only out of band.
+
+**The tempting repair is a trap and is refused.** Exempting the floor when `R` is
+empty reopens the attrition capture of the contraction floor above, because a
+quorum that controls inclusion can *manufacture* an empty `R` by censoring every
+candidacy and then walk through its own exemption. It is the same objection this
+document already makes twice — to continuing the previous set when no lawful
+successor exists, and to suspending an election for want of a seed. An exception
+clause is worth exactly as much as the difficulty of fabricating its trigger, and
+this one is free to fabricate.
+
+The cause is not the floor. It is the **synchronization**, and synchronization is
+introduced at genesis, where no quorum has any say:
+
+> **Genesis stagger.** In the genesis set, every entry's `term_expiry_epoch` lies
+> in `[1, validator_max_consecutive_terms]`, and no more than
+> `validator_churn_cap_seats` entries share the same value. A genesis set
+> violating either condition is not a valid trust anchor and a client MUST refuse
+> it.
+
+Thereafter the property maintains itself, because expiries at boundary `e` are
+the stamps written at boundary `e - T`, and at most `c` seats are filled per
+boundary — **provided `T` does not shrink**, which is the subject of
+[a term limit may not shrink](#a-term-limit-may-not-shrink) below and is a
+condition of this argument rather than a detail of it. So at most `c` seats
+expire at any boundary, ever, and
+the guarantee to want is that a boundary at which a whole cohort expires and
+**nobody at all is seated** still yields a valid set: the survivors must exceed
+two thirds on their own, that is `3 * (V - c) > 2V`, which is `3c < V`. It is
+added to the constraint block below as a rule rather than left as an observation.
+A network that seats replacements keeps its size and clears the floor trivially;
+`3c < V` is what stops a single empty candidate window from turning an ordinary
+retirement into a halt. A staggered genesis introduces no exception, no
+special case in the derivation, and nothing a quorum can trigger — the stagger is
+fixed in an object no on-chain document can rewrite.
+
+#### A term limit may not shrink
+
+The self-maintenance argument above is exact when `T` is fixed and **false when
+`T` decreases**, and the arithmetic says so precisely. A seat filled at boundary
+`e` is stamped `e + T(e)`, so two seats filled at distinct boundaries
+`e1 < e2` collide when `e1 + T(e1) = e2 + T(e2)`, which happens if and only if
+`T(e2) < T(e1)`. **Collisions exist exactly when the term limit is shortened**,
+and every collision puts more than one cohort on the same boundary, which is the
+one thing `3c < V` is not sized for: that bound covers a single cohort.
+
+The consequence is a halt, and it needs no adversary. Shortening terms on the
+economic simulator's advice is the most ordinary act of governance imaginable.
+With `V = 12` and `c = 3`, walking `T` down one step per boundary from 12 to 4 —
+every intermediate value satisfying `ceil(V/T) <= c` and `3c < V`, every document
+inside the change ratio and the activation gap — sends the seat filled at each of
+those boundaries to the **same** expiry epoch, because `1 + 11`, `2 + 10`, and so
+on down to `8 + 4` are all 12. Nine of twelve seats then expire at boundary 12:
+`R` is three, `fills` is capped at three, the new set is six against a previous
+twelve, and `3 * 6 > 2 * 12` is false. **A full candidate pool does not save
+it**, because what limits the rebuild is the entry cap and not a shortage of
+candidates.
+
+> **Monotonic term limit.** A `consensus_parameters` document is accepted only if
+> its `validator_max_consecutive_terms` is greater than or equal to the value in
+> the currently active document. On a live chain the term limit never decreases.
+
+Raising it is unrestricted beyond the genesis ceiling and the change ratio, and
+costs nothing, precisely because the limit is **stamped**: a longer `T` governs
+only seats filled after it activates and cannot lengthen a term already running.
+That is the same property that made the stamp worth having, paying for itself a
+second time.
+
+**Why the more permissive rule is not taken, with the argument rather than a
+preference.** The obvious liberalization is to allow a reduction whenever it
+cannot collide — accept `T_new < T_old` only when
+`e + T_new > max(term_expiry_epoch)` over the active set. It is sound, and it is
+**not evaluable when a document is accepted**. Acceptance happens at some height;
+activation happens later; and a seat filled at the last boundary before
+activation is stamped with the *old* limit, so the condition an acceptance-time
+check can actually guarantee is
+`e_a + T_new > (e_a - 1) + T_old`, which is `T_new >= T_old` — the monotonic rule
+again. The permissive version has bite only if it is evaluated **at activation**
+against the set then active, which means a governed document whose activation is
+conditional on chain state. v0 does not have that concept and this section is not
+the place to introduce it.
+
+**This is a rejection on cost, not an impossibility.** If a later version gives
+protocol documents conditional activation, the permissive rule becomes available
+and is strictly better, because a term limit that can only ever grow is a
+one-way door on a safety-relevant quantity: a network that starts with terms too
+long cannot correct them without the out-of-band recovery this document reserves
+for stalls. That cost is real and is declared here rather than discovered by the
+operator who first needs to shorten a term.
+
+**The cap is `validator_churn_cap_seats`,** the maximum number of seats filled
+at one boundary. Reasoning at both extremes, because the parameter is
+meaningless without it:
+
+- **Too low.** Genuinely failed validators are replaced slowly; a correlated
+  failure — one hosting provider going down — leaves the set degraded for
+  several epochs, and with the term floor still forcing exits the set shrinks
+  toward the stall threshold. A cap below `ceil(V / T)` is worse than unhelpful:
+  it makes term expiry unsatisfiable, so the chain stalls by construction rather
+  than by accident.
+- **Too high.** An adversary that wins eligibility in a single epoch flips the
+  set in a single transition. With a cap of `c` seats the adversary needs at
+  least `ceil((V / 3) / c)` boundaries to reach the BFT safety threshold **by
+  admission** — the qualification is load-bearing and is explained in the
+  contraction floor below, because seats can also be taken without admitting
+  anyone. Every one of those boundaries publishes a set document whose
+  composition drift any observer can compute. The cap does not prevent capture;
+  it converts capture from an event into a process with a declared minimum
+  duration and a public signal at every step. It is worth having only where
+  someone is looking, which is why the drift is a light-client-computable
+  quantity rather than an operator dashboard.
+
+#### The contraction floor: a cap on entry is only half a rule
+
+The cap bounds **admissions**. For a while nothing in this document bounded
+**departures**, and that asymmetry was a capture path in its own right, reached
+without breaking a single rule. It is written out here in full, because the
+correction is only intelligible next to the attack it answers.
+
+A coalition holding `k` seats with `k > V/3` — below the BFT safety threshold, so
+by hypothesis unable to capture anything — has more than one third of the voting
+power and can therefore withhold quorum from any block it dislikes. During the
+candidacy window it finalizes its own `k` candidacies and then refuses to
+finalize any block carrying somebody else's. After `candidacy_close_height(e)`
+those candidacies are void by construction, since a candidacy must be finalized
+strictly below that height. At the boundary the derivation, run honestly by every
+full node, yields `R` equal to the coalition, `C` equal to the coalition,
+`Nw` empty and `fills = 0`. **Under the cap and not at it.** The coalition is now
+the entire set, holds all the voting power, and every check a light client
+performs passes: no off-boundary change, uniform power, terms respected,
+`seated_since_epoch` consistent, the entry cap satisfied with room to spare. The
+coalition never admitted anybody. It simply outlasted everybody.
+
+The rule that closes it is the quorum predicate applied to membership, and it
+needs no new parameter:
+
+> **Contraction floor.** For any validator set `S_new` replacing `S_old` —
+> at an election boundary or through a removal-only revocation transition —
+> `3 * member_count(S_new) > 2 * member_count(S_old)`. A set that does not
+> satisfy it is invalid, and if no valid set exists the chain stalls at that
+> height.
+
+The shape is deliberate: it is the same strict `signed * 3 > total * 2` used for
+every quorum in v0, applied to seats instead of power, so a reviewer reading it
+recognizes the arithmetic and its boundary cases without new fixtures of its own.
+Its effect on the attack above is exact. A coalition at `k` just above `V/3`
+gives `3k` barely above `V`, which is not above `2V`, so the set it would produce
+is **invalid** and the chain stalls instead of handing it everything. What the
+coalition can obtain by censoring is therefore a halt — which anyone above one
+third could already cause simply by not voting — and never a set of its own
+choosing **at that boundary**.
+
+**What the floor does not buy, stated before what it does.** An earlier version
+of this paragraph concluded that the effective capture threshold of the network
+was therefore two thirds rather than one third plus epsilon. That was wrong, and
+the refutation was already three paragraphs further down in this same section:
+residual (g) of
+[what a light client can establish](#what-a-light-client-can-establish-about-set-composition)
+says a lawful contraction and a capture by attrition are indistinguishable, which
+is only worth saying if capture by attrition survives the floor. It does. Total
+censorship is refused by the floor; **selective** censorship is not. A coalition
+holding `k > V/3` lets through exactly the honest candidacies needed to land on
+the smallest set the floor permits, and repeats:
+
+```text
+V  ->  2V/3  ->  4V/9  ->  ... ->  k        boundaries = ceil(log(V/k) / log(3/2))
+```
+
+For `k` near `V/3` that is **three boundaries**, not one and not never. Honest
+nodes sign each of those blocks, because each is valid: the derivation is
+deterministic, and the candidacies that were censored were never finalized, so
+nothing distinguishes the block from an honest one. The effective capture
+threshold of this network therefore remains **just above one third**, and above
+two thirds a coalition satisfies the floor in a single step — which is not a
+regression, since past two thirds the BFT safety assumption has already failed
+and no set-composition rule can repair it.
+
+**What the floor does buy is worth having and is claimed exactly.** It converts a
+capture that took **one invisible boundary** into one that takes **three, each of
+which publishes its own contraction in a signed document any light client can
+diff**. That is the same standard the entry cap is held to — an event converted
+into a process with a public signal at every step — and it is claimed here on the
+same terms, neither more nor less.
+
+**A stronger rule exists and is refused on its cost, which is not the same as
+there being none.** The per-boundary floor has a cumulative sibling:
+
+```text
+3 * member_count(e)  >  2 * member_count(e - validator_min_capture_epochs)
+```
+
+It would tie the attrition horizon to `m` exactly as `3 * c * m <= V` ties the
+admission horizon, and it is available: it never asks *why* a member left, any
+more than the per-boundary floor does, so it does not need the censored-versus-
+never-sent distinction that residual (h) declares impossible for every verifier;
+and it is computed from `member_count` values a light client already retains.
+What it costs is liveness, and the cost is paid by honest networks: a network
+that legitimately shrinks by more than a third across `m` boundaries — a
+withdrawal of operators, a run of correlated failures, a set deliberately being
+reduced — stalls, and the wider `m` is chosen the more ordinary attrition it
+forbids. v0 declines it for that reason and for that reason only.
+
+The distinction matters beyond this rule. An earlier version of this paragraph
+justified the refusal by asserting that no honest rule could be written here at
+all. That was wrong, and it is the more damaging kind of wrong: a cost is a
+judgement a later version can revisit when the trade changes, while an
+impossibility is a proof that tells the next reader to stop looking. The
+cumulative floor is on the table, it is sound, and it is not taken today.
+
+**Declared asymmetry between the two paths.** The admission horizon is
+**tunable**: `ceil((V/3)/c)` boundaries, and `validator_min_capture_epochs` lets a
+network buy as many of them as it wants by lowering `c`. The attrition horizon is
+**fixed**: `ceil(log(V/k)/log(3/2))` falls out of the floor's ratio and no
+parameter moves it. A rule is only as strong as its weakest path, so the honest
+figure to quote for this network is three boundaries, not the tuned one — and
+anyone tempted to buy safety by lowering `c` should know they are buying it on
+the path that was already the slower of the two.
+
+Contraction is now the mirror of admission rather than its blind spot: entry is
+capped at `c` seats per boundary, exit at one third of the set per boundary, and
+both are computed by a light client from the two set documents it already holds.
+A coalition that wants to shrink the network to itself needs
+`ceil(log(V/k) / log(3/2))` boundaries to do it, every one of them publishing the
+shrinkage in a signed document. Two consequences are declared rather than
+discovered: a network that loses more than a third of its validators to genuine
+correlated failure between two boundaries **stalls**, which is the same
+safety-over-liveness trade taken everywhere else in this section and is in any
+case the state such a network is already in, since a set missing more than a
+third of its power cannot reach quorum either; and mass revocation cannot be
+laundered into concentration **in a single transition**, because the removal-only
+transition is subject to the same floor — over several transitions it can, on the
+same terms and with the same publicity as any other contraction.
+
+#### Magnitudes, not only relations: the bounds are fixed at genesis
+
+Everything above constrains election parameters **against each other**. That is
+not sufficient, and the reason is one this project has already met and solved
+once: `identity.md` justifies making the Argon2id cost floor a validity rule by
+observing that a governed parameter set could otherwise have removed the
+memory-hard floor entirely while remaining fully conformant and leaving no
+on-chain trace. The election parameters are governed by exactly the same
+mechanism — a `consensus_parameters` document signed by a validator quorum, which
+is to say by the sitting set — so the same reasoning applies and had to be
+applied here too.
+
+Concretely, and this was reachable under the relational constraints alone: a
+sitting set publishes a document with `election_epoch_blocks` set to `2^60` and
+`validator_max_consecutive_terms` set to `2^60`. Every relational constraint is
+satisfied — `ceil(V / 2^60) = 1 <= c` holds, `3 * c * m <= V` is untouched,
+`election_epoch_blocks > candidacy_close_blocks` holds comfortably. The document
+is accepted. From that height the next election boundary never arrives, so the
+boundary rule requires `next_validator_set_hash` to equal `validator_set_hash` at
+every height for ever; no term ever expires; and the light client's checks not
+only pass but actively *enforce* the freeze. The invariant would have been
+switched off by a document the invariant itself does not govern.
+
+v0 therefore anchors the magnitudes outside the chain's own governance, in the
+`ElectionBounds` object of the genesis trust anchor
+([README.md](README.md#election-bounds)). Those values ship with the signed
+network distribution, are not discoverable from the network, and cannot be
+changed by any on-chain document — changing them is a new distribution and a new
+chain-level decision, exactly like rotating a trust key.
+
+Those two ends are not independent, and the protocol makes their relation a
+validity rule on the consensus-parameters document rather than advice, with the
+same mechanism as the enrollment cost floor of
+[README.md](README.md#the-enrollment-cost-floor-is-a-validity-rule-not-a-recommendation)
+and the creator-share cap above. With `V = validator_target_set_size`,
+`T = validator_max_consecutive_terms`, `c = validator_churn_cap_seats` and
+`m = validator_min_capture_epochs` — the number of boundaries the network
+declares an adversary must need in order to reach one third of the power — a
+consensus-parameters document is accepted only if:
+
+```text
+0 < validator_min_set_size <= V <= validator_max_set_size
+election_entropy_blocks >= 2
+candidacy_close_blocks  > election_entropy_blocks
+election_epoch_blocks   > candidacy_close_blocks
+T >= 1  and  validator_cooldown_epochs >= 1
+validator_cooldown_epochs <= T       // cooldown cannot outlast a full term
+validator_eligibility_window_epochs >= 1
+ceil(V / T) <= c                     // the term floor must be satisfiable
+3 * c      <  V                      // the contraction floor must survive a
+                                     // full cohort of expiries at one boundary
+3 * c * m   <= V                     // capture must take at least m boundaries
+storage_units_per_contribution_unit > 0
+compute_units_per_contribution_unit > 0
+validator_eligibility_min_issuers >= 2
+
+// magnitude bounds, taken from the genesis ElectionBounds and never from the
+// document under evaluation:
+election_epoch_blocks <= election_epoch_blocks_max
+T                     <= validator_max_consecutive_terms_max
+validator_max_set_size<= validator_max_set_size_max
+validator_min_set_size>= validator_min_set_size_min
+m                     >= validator_min_capture_epochs_min
+
+// rate of change, against the currently active document, for every election
+// parameter x above, with num > den > 0 from the genesis ElectionBounds and
+// checked u128 intermediates:
+x_new * den <= x_old * num   and   x_old * den <= x_new * num
+
+// minimum spacing, so that the rate limit is a limit per unit of chain and not
+// merely per document:
+activation_height(new) >= activation_height(active)
+                          + election_parameter_min_activation_gap_blocks
+
+// direction, for the one parameter whose reduction desynchronizes the stamps:
+T_new >= T_active
+```
+
+Three of those bounds squeeze `c` from both sides and their joint satisfiability
+is itself a constraint, which is why they are written together rather than
+discovered together on a running chain:
+
+```text
+ceil(V / T) <= c < V / 3        requires   T >= 4
+3 * c * m   <= V                requires   T >= 3 * m
+                                so         T >= max(4, 3 * m)
+```
+
+Both couplings are real and neither is obvious. **The number of boundaries a
+capture must take is bounded by the term limit**, so a network that wants capture
+to take at least `m` boundaries cannot also want short terms; and **a term limit
+of three or fewer is unsatisfiable at any set size**, because sustaining `V` seats
+would then need a fill rate of at least `V/3` while the contraction floor needs
+one strictly below `V/3`. A document that violates either is rejected on
+acceptance, so the impossibility surfaces when the parameters are chosen and not
+at the boundary where the chain would otherwise have stopped.
+
+The `validator_cooldown_epochs <= T` bound belongs to the same family and is
+there for a narrower reason. Cooldown attaches to every departure, so an
+adversary that censors an honest node's candidacy for one epoch removes it for
+`1 + validator_cooldown_epochs` epochs: the censorship lever is multiplied by the
+cooldown, and cooldown is the one election quantity whose **increase helps an
+adversary**. Every other magnitude in the block is bounded above because a large
+value is dangerous; this one is bounded above for the same reason, and `T` is the
+natural ceiling because a member barred for longer than a full term is
+effectively barred.
+
+The rate-of-change rule matters as much as the ceilings. Without it a set could
+walk a parameter to its ceiling in one step at the moment it needed to, which is
+the same manoeuvre performed more slowly; with it, any move toward the edge is a
+sequence of signed documents, each of them public and each of them a signal. It
+is the parameter-space analogue of the churn cap, and it exists for the identical
+reason: to convert an event into a process that somebody can watch.
+
+The spacing rule is what makes that reason true rather than merely intended. A
+ratio applied **per document** bounds nothing in time: `sequence` is only required
+to increase, so a quorum can publish as many documents as it likes in as many
+consecutive blocks, and a parameter reaches its genesis ceiling in as many blocks
+as the ratio needs steps. The absolute ceiling still holds — that is what makes
+this a bound on observability rather than on magnitude — but a process nobody has
+time to observe is an event with extra paperwork. Requiring
+`election_parameter_min_activation_gap_blocks` between the activation heights of
+consecutive election-parameter changes prices the walk in chain time, which is
+the quantity an observer actually has.
+
+Every symbol in this section is a governance parameter whose **value** comes from
+the economic simulator of M-02 and is deliberately not fixed here, with the
+exception of the `ElectionBounds` magnitudes, whose values are a genesis decision
+of the network operator and not a simulator output. The constraints among them
+are not parameters and are fixed now.
+
+**Declared limit of the bounds themselves.** `ElectionBounds` is configuration
+carried by the signed distribution, so a client running an outdated distribution
+enforces the bounds that distribution carries. If a network later ships wider
+bounds, such a client rejects chains the network considers valid and fails
+closed, reporting that it needs a newer distribution; if it ships narrower ones,
+the older client is more permissive than the network, but the network will not
+produce the sets it would have wrongly accepted. Neither direction lets an
+attacker widen the bounds a given client enforces, which is the property that
+matters; what it does mean is that the bounds are only as trustworthy as the
+release channel, which is the same footing as the trust key and is stated in the
+same terms in [README.md](README.md#the-network-release-trust-key).
+
+### Degenerate cases, and what the protocol does instead of improvising
+
+**Fewer eligible candidates than seats.** `fills` is a minimum over three
+quantities, one of which is `|Nw|`, so a short pool simply produces a smaller
+set. Nothing is relaxed to fill it: not the threshold, not the term limit, not
+the cooldown. The set shrinks, and if it shrinks below `validator_min_set_size`
+**or past the contraction floor** the chain stalls at the boundary.
+
+**Many members leaving at once, and the cooldown they all enter.** Because
+eligibility condition 5 attaches cooldown to *any* departure, a boundary at which
+many members are not retained puts all of them out of the pool for
+`validator_cooldown_epochs`. Combined with the contraction floor this is the
+sharpest liveness edge in the section: a network cannot shed more than a third of
+its set at a boundary, and the members it sheds cannot come straight back to
+repair the shortfall. The trade is taken deliberately and in the same direction
+as everywhere else — the alternative, waiving cooldown when the pool is short, is
+attacker-triggerable in exactly the way the emergency-continuation clause below
+is, since a coalition that can censor candidacies can manufacture the shortage
+that waives the rule. `validator_cooldown_epochs` and the eligibility threshold
+must be chosen together and against a simulated pool size, which is M-02 work.
+
+**Stalling is a choice, and the alternative was considered.** The obvious
+alternative — let the previous set continue for one more epoch when no lawful
+successor exists — is rejected because it is *attacker-triggerable*: a quorum
+able to censor candidacy transactions can manufacture the emptiness that
+authorizes its own continuation, and the rule meant for emergencies becomes the
+self-perpetuation path in a better disguise. v0 makes the same trade the
+revocation rule makes, for the same reason: safety over liveness, with recovery
+out of band through an authenticated release rather than through a mechanism a
+quorum can turn against the network.
+
+**Ties in the derivation.** Resolved by `account_key` ascending after the ticket,
+giving a total order; see step 5.
+
+**An epoch with no valid randomness.** It cannot occur, and that is by
+construction rather than by fallback. The window
+`[e*L - election_entropy_blocks, e*L - 1]` lies entirely below the boundary, and
+`election_epoch_blocks > candidacy_close_blocks > election_entropy_blocks >= 2`
+places every one of those heights above genesis and below the boundary, so all
+of them are finalized before the boundary is reached and epoch 1 is the earliest
+election. **No rule may make a missing or unusable seed suspend an election.** A
+rule of that shape would hand the outgoing set a way to skip rotation by
+damaging its own beacon, which is the defect of this section restored through the
+exception clause.
+
+**Revocation between two boundaries.** A revocation-forced transition removes
+members and cannot admit any, per
+[revocation forces a validator set transition](#revocation-forces-a-validator-set-transition).
+At the next boundary the derivation runs with the interim set as `P`, so the
+vacancies revocation created are refilled **under the ordinary cap**, not in one
+step. A quorum therefore cannot revoke its way to a large lawful admission. The
+cost of that choice is explicit: a network that revokes many validators at once
+recovers its target size over several epochs, and if the interim set falls below
+`validator_min_set_size` it stalls immediately rather than at the boundary.
+
+**Revocation of a node in cooldown or in the candidate set.** A revoked identity
+fails eligibility condition 1 permanently. A candidacy finalized before the
+revocation does not survive it.
+
+### The [ADR-008] test, answered
+
+[ADR-008] requires every specification introducing a form of rewarded or
+remunerated work to declare the outcome of its three-part test. The declaration
+for this section:
+
+1. **Limit — passed, and it is the reason the rule is a threshold.** There is a
+   ceiling set by real network need, and above it spending more earns nothing.
+   Eligibility is a binary predicate; every eligible node contributes exactly one
+   ticket; every seated member has voting power 1. The evidence the score reads
+   is bounded by demand at its source — storage challenges exist only for objects
+   someone stored, compute challenges only for tasks someone invoked — so the
+   total contribution the network can absorb is set by its own need, and the
+   number of nodes that can clear the threshold is bounded by that need divided
+   by the threshold. A ranking by contributed work, the obvious alternative,
+   fails this point and was rejected for that reason.
+   **Residual, declared rather than argued away:** numerosity still converts into
+   draws, because `N` distinct identities each clearing the threshold hold `N`
+   tickets. Each of them must supply real, demand-bounded, separately verified
+   work, and the churn cap bounds how fast tickets become seats — but this is the
+   same residual [ADR-007] names as governed by `alpha`, and it is not closed
+   here.
+2. **Waste — passed.** The work the score reads is proof of retrievability over
+   stored objects and re-execution of WASM tasks. If it stopped being performed,
+   user-visible services degrade directly: hosted apps stop running and stored
+   data stops being retrievable. The election adds no work of its own beyond one
+   `validator_candidacy` transaction per candidate per epoch.
+3. **Battery — passed, with a consequence that must be stated.** This section
+   introduces **no new sampled work at all**: it consumes challenge evidence that
+   [ADR-002] already produces under the wide-response-window discipline of
+   `SEC-REQ-17`, so the mobile admissibility question is answered where that
+   evidence is defined and is not reopened here. The consequence to state is a
+   different one: anchoring eligibility to storage and compute means a node
+   offering only availability — most phones — is not a validator candidate. That
+   is an intended effect of [ADR-007] rather than a side effect, running a
+   validator on a phone is a poor idea independently, and phones remain full
+   participants in existence income, in work compensation for storage and compute
+   they do provide, and in light-client verification. It is written here because a
+   rule that quietly excludes the project's characteristic device would otherwise
+   be discovered by its users instead of declared by its authors.
+### What a light client can establish about set composition
+
+This document has already had to correct one overstated safety claim, in
+[revocation forces a validator set transition](#revocation-forces-a-validator-set-transition),
+and the correction stands as its standard: a wrong safety statement is worse than
+a missing one. The perimeter below is therefore given as two closed lists.
+
+A light client holds a validated checkpoint, the headers it has walked, the
+`ElectionBounds` of its signed distribution, the active `consensus_parameters`
+document authenticated against the `consensus_parameters_hash` of a header it
+already trusts, and the full `ValidatorSet` document for every set it accepted —
+it fetches and hashes each one already. It sees **no transactions**. Naming the
+parameter source is not a formality: every check below compares against
+`election_epoch_blocks`, `validator_max_consecutive_terms`,
+`validator_churn_cap_seats` and the size bounds, and a client that took those
+values from an unauthenticated source, or fell back to defaults when the document
+was unavailable, would be enforcing the attacker's numbers. On that data alone it
+MUST check, and can establish:
+
+1. that the set changed only where it was permitted to: at every non-boundary,
+   non-revocation height, `next_validator_set_hash` equals `validator_set_hash`;
+2. that every elected set activates exactly at
+   `election_epoch * election_epoch_blocks` and carries an `election` record
+   whose `election_epoch` agrees, and whose `previous_validator_set_hash` equals
+   the hash of the set it is replacing;
+3. that every member has `voting_power` 1 and `validator_id` equal to `node_id`,
+   and that `member_count` lies within
+   `[validator_min_set_size, validator_max_set_size]`;
+4. **the term limit**, from a single set document:
+   `election_epoch < term_expiry_epoch` for every entry. No member serves beyond
+   its term on any chain the client accepts, and because the stamp is carried
+   rather than recomputed, no later parameter change can extend a term already
+   running;
+5. **`seated_since_epoch` and `term_expiry_epoch` consistency** across two
+   adjacent sets: a member present in both keeps both values unchanged; a member
+   present only in the newer set has `seated_since_epoch` exactly `election_epoch`
+   and `term_expiry_epoch` exactly
+   `election_epoch + validator_max_consecutive_terms`;
+6. **the rotation cap**, that `filled_count <= validator_churn_cap_seats`, and
+   that `retained_count`, `filled_count` and `member_count` agree with the array
+   they describe;
+7. that the committed `election_seed` is the correct hash of the committed
+   entropy block IDs **and of nothing else** — `candidate_root` and
+   `candidate_count` are committed by the `election` record but are deliberately
+   not seed inputs, per
+   [the seed](#the-seed-and-why-the-rule-does-not-depend-on-it) — and, for entropy
+   heights it walked itself, that those block IDs are the ones it saw;
+8. the composition **drift** of the set at every boundary, since it holds both
+   sets in full;
+9. **the contraction floor**, that `3 * member_count(new) > 2 * member_count(old)`
+   across every transition it accepts, boundary or removal-only. This is the
+   check that bounds capture by attrition, and like the term limit it is pure
+   arithmetic over two documents it holds;
+10. that the election parameters it is using are **within the genesis
+    `ElectionBounds`** and come from a `consensus_parameters` document whose hash
+    matches the header. A sitting quorum cannot switch the invariant off
+    underneath the client by publishing a document with an unreachable epoch
+    length or an unreachable term limit: such a document is invalid to full nodes
+    and out of bounds to the client independently;
+11. given a candidate-membership Merkle proof against `candidate_root`, that a
+    given seated member was in the committed candidate set. Serving those proofs
+    is M-02 work, exactly as per-epoch existence-income eligibility proofs already
+    are.
+
+It **cannot** establish, and no combination of the above amounts to it:
+
+- **(a)** that `candidate_root` contains every node that was genuinely eligible.
+  A quorum that censors candidacy transactions, or that omits eligible leaves,
+  produces a record a light client cannot tell apart from an honest one;
+- **(b)** that every committed candidate actually met the contribution threshold.
+  The score is a function of transactions the client never sees;
+- **(c)** that the fills are the lowest-ticket members of the pool. It can
+  recompute the ticket of a member it was shown, but establishing that no omitted
+  candidate had a lower ticket requires the whole leaf set;
+- **(d)** that the seed was not ground, which no verifier of any kind can
+  establish, because a ground beacon is a legal beacon;
+- **(e)** cooldown, beyond the boundaries it observed itself. A client that joined
+  at a recent checkpoint does not know who retired before it;
+- **(f)** as already declared for revocation, that an off-boundary transition was
+  *due*. It sees a removal-only transition and checks that it removes only; it
+  cannot see the `revoke_identity` that authorizes it, and relies on its
+  checkpoint's `revoked_validators` for the part that is covered;
+- **(g)** that a **lawful contraction is not a capture by attrition**. The
+  contraction floor bounds how far a set may shrink at one transition, and the
+  client enforces that bound; it cannot tell a network genuinely losing
+  validators from a coalition that is **selectively** censoring — letting through
+  exactly the candidacies that land the set on the smallest size the floor
+  permits, and repeating. Both produce a smaller set within the floor, signed by
+  a valid quorum, and neither looks different from the other. Total censorship,
+  where the coalition withholds quorum from *every* block carrying somebody
+  else's candidacy, is the variant the floor **does** refuse, since it produces a
+  set below the floor and therefore no valid set at all; it is named here only to
+  say that it is not the vector. The vector is the selective one, it reaches the
+  coalition in `ceil(log(V/k) / log(3/2))` boundaries, and what the floor buys
+  against it is that those boundaries are several and each is published — not
+  that any of them is distinguishable from honest attrition. See
+  [what the floor does not buy](#the-contraction-floor-a-cap-on-entry-is-only-half-a-rule);
+- **(h)** that no candidacy was **excluded by never being finalized**. This is
+  the one composition failure that is invisible to *every* verifier, full node
+  included, because a censored candidacy and a candidacy never submitted are the
+  same absence of a transaction. It is listed separately from (a) precisely
+  because (a) is compactly falsifiable and this is not falsifiable at all; see
+  [the second lever](#the-second-lever-the-pool-itself-and-what-is-honestly-claimable-about-it).
+
+**How much of that residual is falsifiable, which is not the same as
+verifiable.** Any node replaying finalized transactions verifies (a), (b) and (c)
+completely — (g) and (h) it cannot, and neither can anyone else, which is why
+they are stated as limits of the protocol rather than as limits of the light
+client. Of the three a replaying node does verify, two are contradictable by a
+**compact** proof that needs no replay:
+
+- **(a)** is falsifiable by the omitted node itself. The candidate tree is sorted
+  by `account_key`, so non-membership is proved by the two adjacent leaves plus
+  the omitted node's own finalized candidacy;
+- **(c)** is falsifiable by anyone holding the leaf set: a Merkle proof of a
+  candidate with a lower ticket that was not seated contradicts the record in a
+  few hundred bytes;
+- **(b)** is **not** compactly falsifiable, because it asserts the *absence* of
+  qualifying evidence and absence has no short proof. Contradicting it requires
+  replaying the eligibility window. The asymmetry is declared rather than smoothed
+  over: of the three composition failures, two can be shouted down with a single
+  message and one needs a node that keeps history.
+
+**The claim this section is entitled to make**, deliberately narrower than "a
+light client verifies the election", and stated in full because a shorter version
+of it was wrong twice:
+
+> Within the election parameter limits fixed at genesis, a light client
+> establishes that the active set is **of lawful shape and in lawful rotation** —
+> bounded terms, bounded entry, floored contraction, no off-schedule change, no
+> member seated beyond its term — and does not establish that it is the set the
+> eligibility rule should have produced. Of the three ways of composing the set
+> wrongly that a replaying node can detect, two are contradictable with a short
+> message and one requires a node that keeps history; two further ways —
+> contraction indistinguishable from attrition, and exclusion by non-finalization
+> — are detectable by nobody, and are bounded rather than observed. The bound on
+> capture is a **number of published boundaries**, not a share of voting power:
+> the effective threshold remains just above one third, and what the rules buy is
+> that reaching it takes several transitions, each of which the client can see.
+
+The first sentence closes [DEBT-005]; the rest is what remains. Two earlier
+versions of this paragraph promised more: one omitted "within the parameter
+limits fixed at genesis", at a time when no such limits existed and the property
+could therefore be switched off by a document the sitting quorum signs; the other
+spoke only about who **enters** the set, at a time when nothing bounded who
+**leaves**. A third claimed that closing the second gap moved the effective
+capture threshold to two thirds; selective censorship refutes that in three
+boundaries, and the claim above is the corrected one, which promises observable
+delay rather than a raised threshold. The wording keeps every qualification
+visible, because the property is exactly as strong as the bounds and the floor,
+and a reader is entitled to know where to look. The honest summary is unchanged in kind: this section moves the
+light client from checking that a transition was *authenticated* to checking that
+it was *lawful*, without promising that it was *correct*.
+
+One clause belongs beside that claim rather than inside it, because it describes
+the ground the claim stands on rather than the claim itself: **the magnitudes
+that hold the property up are fixed at genesis, and the ones that move, move
+under a ratio, under a spacing measured in chain height, and — for the term limit
+— in one direction only.** Every part of that sentence is a rule in
+[rotation: the cap and the floor](#rotation-the-cap-and-the-floor), and together
+they are what stops the property being switched off by the same quorum it
+constrains.
+
+### Worked example of the derivation
+
+The example is normative in form and not in values: every parameter below is
+instantiated only to make the derivation reproducible, and none of these numbers
+is a proposal. `chain_id` is 32 zero bytes, as in the `HASH-0` fixture of
+[README.md](README.md#hash-conformance-fixtures). Account keys are written as a
+byte repeated 32 times so that a reviewer can build every preimage by hand; real
+account keys are hashes.
+
+Example parameters: `election_epoch_blocks` 100, `election_entropy_blocks` 3,
+`candidacy_close_blocks` 10, `validator_target_set_size` 8,
+`validator_min_set_size` 3, `validator_churn_cap_seats` 2,
+`validator_max_consecutive_terms` 4, `validator_cooldown_epochs` 1,
+`validator_min_capture_epochs` 1. They satisfy the constraint block, which is part
+of what the example is for: `ceil(8/4) = 2 <= 2`, `3*2 = 6 < 8`, `3*2*1 = 6 <= 8`,
+`4 >= max(4, 3)`, `1 <= 4`. The epoch under election is `e = 3`, so the boundary
+is height 300, candidacy closed at height 290, and the entropy window is heights
+297, 298 and 299.
+
+The previous set `P`, active at height 299, has four members. Their
+`term_expiry_epoch` values are **staggered** rather than shared, which is the
+genesis stagger rule propagating itself: `01` is a genesis member whose stamp lies
+in `[1, 4]`, and every later stamp is the boundary that seated the entry plus `T`.
+
+| account key | `seated_since_epoch` | `term_expiry_epoch` | outcome at `e = 3` |
+| --- | --- | --- | --- |
+| `01`×32 | 0 | 3 | **term expired** (3 is not below 3): removed, cooldown starts |
+| `02`×32 | 2 | 6 | retained |
+| `03`×32 | 2 | 6 | filed no candidacy for epoch 3: **voluntary exit** |
+| `04`×32 | 1 | 5 | retained |
+
+So `R = {02, 04}` and `|R| = 2`. Three further nodes filed valid candidacies and
+clear the threshold: `05`, `06` and `08`. Node `07` filed a candidacy but its
+`contribution_score` is below `validator_eligibility_threshold_units`; node `01`
+is in cooldown; node `03` filed nothing. The eligible set and the fill pool are
+therefore
+
+```text
+C  = { 02, 04, 05, 06, 08 }        candidate_count = 5
+Nw = C \ R = { 05, 06, 08 }
+```
+
+Leaves, `candidate_leaf = H(0x40 || u64be(3) || account_key_32)`:
+
+```text
+02  cd3950bac9c60b73523a0f8157e5da8384515d2e9c4ef4127be2d910b878158c
+04  004e3b02570032774d181a20dbb4d5e23f6fe83092374635189f42c513db97d9
+05  154a73c742c2f580aafaf97401ef5633898862d761fc13ed230db7817b0111fd
+06  9ecce0184a6b8d6d3a1257add0af3a16cc64809fe2cf723cfe91b570abe07f44
+08  c9e67f59e0d4a6c08cc588bb906b17c8bddba657def06d6c2f111c64420796ca
+candidate_empty = H(0x42) =
+    df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c
+```
+
+Leaves stay in `account_key` order and pad to eight with `candidate_empty`.
+Internal nodes are `H(0x41 || left || right)`:
+
+```text
+level 1
+  H(leaf02, leaf04) = 00d36c1eb2fc336cb635735bbae46cf3e2a32322f4761db3d29a297644e45bb2
+  H(leaf05, leaf06) = db1bd3372cea52438df608862c3dcb3c0a2b1c16b152c296c2a8effe9005bc20
+  H(leaf08, empty)  = b65c2a34ededd92d98721c11a620cc6f16e87a03f512e54fd35b35cd70c3bf39
+  H(empty,  empty)  = a7ee32ed571f99897d698653a14d292cfea8e8633f95a9db217ea993c7773e91
+level 2
+  H(n1_0, n1_1)     = a2bb9ac490112abad3c2af7197fdf6efe62af01b7c251f8d3443b20fa145a060
+  H(n1_2, n1_3)     = 5d426fa91db2b6acb77c0980837dea9e54380afc25eede062e05e2cab2dc6c2b
+candidate_root      = 42e4f6b1f01af3b69ba154aa464738829635a3ed7facf65e652d9712b461924a
+```
+
+The entropy window holds block IDs `aa`×32 at height 297, `bb`×32 at 298 and
+`cc`×32 at 299:
+
+```text
+election_entropy = H("coblox-election-entropy-v0\0" || 00×32 || u64be(3) || u64be(3)
+                     || aa×32 || bb×32 || cc×32)
+                 = 29a63c10926e75ed418c6f3c7670b0edfeb0b021868d1342b788327f53767e42
+election_seed    = H("coblox-election-seed-v0\0" || 00×32 || u64be(3)
+                     || election_entropy)
+                 = 9e2aa2621f957279e4bdf1c4ccea5629ce429892ac3f9af10c9456a3c78dad85
+```
+
+`candidate_root` does not enter the seed; it is bound by validity, as
+[the derivation](#the-derivation) explains. The example still computes it,
+because `ElectionRecord` carries it and a verifier recomputes it.
+
+Tickets, `H("coblox-election-ticket-v0\0" || 00×32 || election_seed || account_key_32)`:
+
+```text
+05  a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21
+06  547132161f56f2361faf3caae90224e1b5c04ae1986ab871703b7003693c5fdd
+08  9d04ef2f66f5403d275fa1f80819ce40a17af81931d263d3c390e0291e0b19c9
+```
+
+Ascending by ticket: `06` (`5471…`), `08` (`9d04…`), `05` (`a10e…`). The pool
+holds three nodes and the target would admit three, but
+
+```text
+fills = min( max(0, 8 - 2), 2, 3 ) = 2
+```
+
+so the cap binds and `05` is not seated this epoch — the case worth exercising,
+because a cap that never binds is no evidence that it works. The elected set,
+sorted by `validator_id` (equal to `node_id`, shown here by account key):
+
+| account key | `seated_since_epoch` | `term_expiry_epoch` | `voting_power` | how |
+| --- | --- | --- | --- | --- |
+| `02`×32 | 2 | 6 | 1 | retained, stamp carried unchanged |
+| `04`×32 | 1 | 5 | 1 | retained, stamp carried unchanged |
+| `06`×32 | 3 | 7 | 1 | filled, ticket rank 1, stamped `3 + 4` |
+| `08`×32 | 3 | 7 | 1 | filled, ticket rank 2, stamped `3 + 4` |
+
+`member_count` 4, `retained_count` 2, `filled_count` 2, which is at the cap. Two
+size conditions are then checked and both hold: four is at or above
+`validator_min_set_size` 3, and the contraction floor `3 * 4 > 2 * 4` holds,
+since the previous set also had four members. Had the two newcomers been censored
+out of the candidate window, the set would have been `R` alone — two members —
+and `3 * 2 > 2 * 4` is false, so **that set would have been invalid and the chain
+would have stalled** instead of leaving the two survivors in sole possession.
+That is the contraction floor doing the work it exists for, on the same example.
+
+The set being valid, `validator_set_hash` is the existing formula over its JCS.
+A reviewer redoing this needs SHA-256 for five leaves, one empty leaf, six
+internal nodes, two domain-separated hashes and three tickets — every preimage is
+given above — and nothing else: the retention table, the ordering, the `fills`
+minimum, the two size conditions and the assembly are integer comparisons.
+
+The two new entries share `term_expiry_epoch` 7, which equals
+`validator_churn_cap_seats` and is therefore admissible: at most `c` seats are
+stamped at any boundary, so at most `c` expire at any later one. That is the
+invariant the genesis stagger rule starts and the entry cap maintains, and it is
+what keeps the contraction floor satisfiable for ever after — at boundary 7 two
+of eight seats retire, and `3 * 6 > 2 * 8` holds with room.
+
 
 ## Sparse Merkle account state
 
@@ -753,19 +2092,51 @@ quorum certificate, and one `AccountProof`:
    it — including the set inherited from the checkpoint. Without this the client
    would follow a chain signed by keys the network has already revoked; see
    [revocation forces a validator set transition](#revocation-forces-a-validator-set-transition).
-5. **Corroborate freshness.** Query independently operated enrolled peers,
+5. **Obtain and authenticate the election parameters, then check that the set is
+   lawfully shaped and lawfully rotating.** The checks below compare against
+   election parameters, so the client MUST first establish where those values
+   come from, in this order and with no fallback at any step: load
+   `ElectionBounds` from the configured network distribution, exactly as it loads
+   the genesis configuration at step 2 — it is a trust anchor and MUST NOT be
+   learned from a peer, a header, or a chain document; fetch the active
+   `consensus_parameters` `SignedProtocolDocument`, recompute
+   `consensus_parameters_hash` over it and require the result to equal the
+   `consensus_parameters_hash` of the trusted header being verified; verify its
+   quorum signatures against the currently trusted validator set with the strict
+   quorum predicate; and require every election parameter it carries to lie
+   within `ElectionBounds`. **A missing, unverifiable, hash-mismatched, or
+   out-of-bounds parameter document fails closed**: the client rejects the header
+   and reports that it cannot verify set composition. It MUST NOT proceed with
+   defaults, with values from an earlier document, or with values supplied by a
+   peer — an implementation that fills the gap from whatever the chain currently
+   says is enforcing the attacker's numbers and is the reason this step names its
+   sources rather than assuming them.
+
+   Then, for every header, require `next_validator_set_hash` to equal
+   `validator_set_hash` unless the next height is an election boundary or the
+   transition is removal-only; and for every accepted set apply checks 1 to 10 of
+   [what a light client can establish](#what-a-light-client-can-establish-about-set-composition):
+   activation height, `election_epoch`, `previous_validator_set_hash`, uniform
+   voting power, `validator_id` equal to `node_id`, size bounds, the term limit,
+   `seated_since_epoch` consistency with the previous set, the rotation cap, the
+   contraction floor, the internal agreement of the three counts, and the seed
+   derivation from the committed entropy IDs. Reject the set on any failure. This
+   step establishes that the set rotates lawfully; it does **not** establish that
+   its composition is the one the eligibility rule should have produced, and the
+   boundary between the two is stated in that section.
+6. **Corroborate freshness.** Query independently operated enrolled peers,
    reject tips older than `max_current_balance_age_ms`, and require the selected
    finalized height to be consistent with the recent checkpoint. Peer agreement
    is an availability/fork alarm, never a substitute for proof verification.
-6. **Select final state.** Require the proof response header height to equal the
+7. **Select final state.** Require the proof response header height to equal the
    requested height exactly, never below persisted trust, and retain its `state_root`.
-7. **Bind the account.** Recompute `account_key` from the requested account kind
+8. **Bind the account.** Recompute `account_key` from the requested account kind
    and subject ID and
    compare all 32 bytes. Reject malformed bitmap or sibling count.
-8. **Create the leaf.** If `present` is true, compute the type-specific leaf. If
+9. **Create the leaf.** If `present` is true, compute the type-specific leaf. If
    false, require balance and nonce both zero, app-only fields absent, and use
    `empty[256]`.
-9. **Rebuild and decide.** Iterate depths 255 down to 0. Obtain that depth's sibling
+10. **Rebuild and decide.** Iterate depths 255 down to 0. Obtain that depth's sibling
    from the proof (or the corresponding default). If the key bit is 0 hash
    `branch(current, sibling)`; if 1 hash `branch(sibling, current)`.
    Compare the final 32-byte value to `state_root` in constant time. Only on
@@ -778,8 +2149,8 @@ alerts, but cryptographic acceptance depends on the authenticated header.
 ## State transition order
 
 Within a block, transactions execute in this deterministic order after all
-static checks: (0) `challenge_commitment`, `challenge_evidence`, and
-`revoke_identity`, ordered by raw
+static checks: (0) `challenge_commitment`, `challenge_evidence`,
+`revoke_identity`, and `validator_candidacy`, ordered by raw
 transaction ID; (1) `fund_app` and `burn`, ordered by
 `(account_kind, raw_account_key, debit_nonce, raw_tx_id)`; then (2) `mint`,
 ordered by raw transaction ID. A mint may reference evidence from class 0 of
@@ -792,19 +2163,18 @@ once after subtracting its amount. Failed
 execution invalidates the entire proposed block; there are no partially applied
 transactions or fees in v0.
 
-## DRAFT: committee selection and economic values
+## DRAFT: economic values
 
-Two matters are intentionally open but fully bounded:
+The committee-selection question that stood here is closed: the election rule,
+its eligibility basis, its randomness source, its rotation cap and its
+commitment are specified in
+[validator election and rotation](#validator-election-and-rotation), and the
+constraints among their parameters are validity rules rather than guidance. What
+remains open is the numeric value of those parameters, which belongs with the
+economic values below.
 
-- committee selection alternatives are a weighted rotation or a
-  finalized-randomness lottery, in both cases over an eligibility set. The
-  selection algorithm is open; the **eligibility basis is not**. Per [ADR-007],
-  eligibility MUST be anchored to finalized, hard-to-forge work — demonstrated
-  storage and compute — and MUST NOT rest on uptime or availability alone, which
-  a rented VPS with an SLA beats by construction against any real phone. The
-  election rule itself, its randomness source, and its rotation cap are owned by
-  AGENT-002 in M-02 and tracked in [DEBT-005]; nothing in this document fixes
-  them;
+One matter is intentionally open but fully bounded:
+
 - reward and price values, including the publisher-reward curve and the
   per-epoch existence fund, come from the economic simulator, either as fixed
   epoch tables or bounded governance curves. AGENT-002 and the Project Lead own
@@ -812,6 +2182,10 @@ Two matters are intentionally open but fully bounded:
   within the creator-share cap above, which is a validity rule and not a
   tuning parameter.
 
-Neither open decision changes transaction kinds, mint/burn separation, signed
-policy hashes, validator-set continuity, the revocation transition rule, or the
-light-client proof algorithm.
+The open values do not change transaction kinds, mint/burn separation, signed
+policy hashes, validator-set continuity, the revocation transition rule, the
+election derivation, or the light-client proof algorithm. The election
+parameters additionally cannot be chosen independently of one another: the
+consensus-parameters document is rejected on acceptance unless it satisfies the
+constraint block of
+[rotation: the cap and the floor](#rotation-the-cap-and-the-floor).

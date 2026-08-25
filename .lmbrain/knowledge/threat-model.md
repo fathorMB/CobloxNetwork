@@ -318,12 +318,41 @@ opzione in §7 — è precisamente il contenuto che la decisione richiede.
 
 #### TM-09 — Dalla massa di identità alla cattura dell'eleggibilità
 
-**Asset:** A-04, A-12 · **Severità:** critica · **Stato:** aperto · **Rif:**
-[ADR-001], `ledger.md` §"Validator-set continuity", §"DRAFT: committee selection"
+**Asset:** A-04, A-12 · **Severità:** critica · **Stato:** **mitigato in specifica**
+da [SPEC-006] (2026-08-25) · **Rif:** [ADR-001], [ADR-007], `ledger.md`
+§"Validator-set continuity", §"Validator election and rotation"
+
+> **Aggiornamento 2026-08-25.** Il vettore descritto sotto — uptime da datacenter che
+> vince la classifica — è chiuso alla radice: nella regola scritta da [SPEC-006]
+> l'evidenza di tipo `availability` contribuisce **zero** al `contribution_score`, e
+> l'eleggibilità è una soglia binaria su storage e compute dimostrati, non una
+> classifica. Un'infrastruttura con SLA non ottiene alcun vantaggio dal solo essere
+> accesa. Resta il residuo di numerosità: `N` identità che forniscano ciascuna lavoro
+> reale sopra la soglia hanno `N` biglietti, ed è il residuo governato da `alpha` in
+> [ADR-007], limitato in velocità dal tetto di ingressi per epoca.
+>
+> **Residuo aggiunto dopo [REVIEW-010] ([RF-004]).** «Lavoro che un Sybil non può
+> falsificare a costo nullo» è vero come tendenza e falso come assoluto, e la
+> differenza è misurabile. Il `contribution_score` somma evidenze
+> `challenge_evidence` con esito `passed`, e `ledger.md` §"Challenge evidence"
+> dichiara già che un emittente colluso che consegni il proprio segreto impegnato
+> consente a un proponente di enumerare i `timestamp_ms` legali — `10^3`–`10^6`
+> valori, un SHA-256 ciascuno — finché il beacon accoppia quell'emittente al
+> soggetto voluto e seleziona un frammento che il soggetto conserva davvero. La
+> mitigazione dichiarata lì, la copertura a due emittenti di `wire.md`, **non
+> trasferisce**: degradare a "superarne una su due" funziona per un *tasso di
+> rilevamento*, dove il fallimento pesa, e non per una **somma di successi**, che
+> non sottrae nulla. [SPEC-006] risponde con la condizione di eleggibilità 4 —
+> almeno `validator_eligibility_min_issuers` emittenti distinti — che **alza il
+> prezzo e non chiude il residuo**: il costo di falsificare l'eleggibilità è
+> l'enrollment di `validator_eligibility_min_issuers` identità colluse per ogni
+> candidato fabbricato, più la macinatura. È ancora un costo una tantum contro un
+> flusso perpetuo, cioè di nuovo l'affermazione strutturale di [ADR-007].
 
 **Attacco.** (1) L'attaccante mantiene N identità emulate su infrastruttura di
 datacenter (TM-08). (2) L'elezione dei validatori pesa, secondo [ADR-001],
-"reputazione e uptime dimostrato". (3) Un processo su un VPS con SLA al 99,99 % ha
+"reputazione e uptime dimostrato" — formulazione anteriore ad [ADR-007] e superata
+su questo punto. (3) Un processo su un VPS con SLA al 99,99 % ha
 un uptime **strutturalmente superiore** a qualunque telefono Android reale, che si
 spegne, perde rete, entra in doze e viene ucciso dal sistema operativo. (4) Ordinando
 i candidati per uptime, le identità dell'attaccante occupano le prime posizioni non
@@ -523,9 +552,19 @@ conseguenza possibile è l'esclusione dal set — che è anche l'arma di TM-33.
 
 #### TM-18 — Auto-perpetuazione del set di validatori
 
-**Asset:** A-04, A-12 · **Severità:** critica · **Stato:** aperto · **Rif:**
-`ledger.md` §"Validator-set continuity", §"DRAFT: committee selection and economic
-values", [ADR-001]
+**Asset:** A-04, A-12 · **Severità:** critica · **Stato:** **mitigato in specifica**
+da [SPEC-006] (2026-08-25), dopo la chiusura di [RF-001] e [RF-002] di [REVIEW-010];
+resta aperta la parte di sanzione, vedi sotto · **Rif:**
+`ledger.md` §"Validator-set continuity", §"Validator election and rotation",
+[ADR-001], [ADR-007], [ADR-008], [DEBT-005]
+
+> **Aggiornamento 2026-08-25.** Lo scenario descritto sotto era il comportamento del
+> protocollo v0 *come scritto allora*. [SPEC-006] ha scritto la regola di elezione in
+> `ledger.md` §"Validator election and rotation" e la frase citata al punto (1) non
+> esiste più. Lo scenario è conservato integralmente perché resta la descrizione
+> corretta di che cosa accade in assenza della regola, ed è il criterio con cui
+> giudicare qualunque futura eccezione che riaprisse quello spazio. Che cosa è
+> chiuso e che cosa no è nella contromisura in fondo alla scheda.
 
 **Attacco.** Non serve alcun attacco: è il comportamento del protocollo v0 come
 scritto. (1) `ledger.md` stabilisce che a ogni altezza il set attivo deve coincidere
@@ -557,6 +596,125 @@ versione economica è impegnare nel header l'hash dell'insieme dei candidati
 eleggibili e del seme, così il ricalcolo resta possibile per chi lo vuole fare e
 almeno la manipolazione è **dimostrabile a posteriori**. Raccomando la versione
 economica per v0 e lo dichiaro come mitigazione parziale.
+
+**Esito in [SPEC-006].** I quattro elementi minimi sono stati adottati, e il punto
+(d) — quello caro — è stato risolto meglio della "versione economica" qui
+raccomandata, ma non completamente. La regola è divisa in due strati:
+
+- *strato 1, forma e ricambio*: limite di mandato (`seated_since_epoch` per voce e
+  `validator_max_consecutive_terms`), potere di voto uniforme, tetto di ingressi per
+  epoca, e il vincolo che `next_validator_set_hash` sia uguale a `validator_set_hash`
+  a ogni altezza che non sia un confine di epoca o una transizione forzata da revoca.
+  Tutto questo strato è verificabile da un light client **senza vedere transazioni**,
+  perché è funzione dei soli documenti `ValidatorSet` che già scarica. È lo strato che
+  rende l'auto-perpetuazione **impossibile** e non solo improbabile, e non dipende
+  dalla qualità della casualità;
+- *strato 2, composizione*: chi riempie i seggi liberati, derivato da
+  `candidate_root` (albero di Merkle ordinato sugli `account_key` eleggibili) e da
+  `election_seed`. Impegnato nel header **transitivamente**, perché `ElectionRecord`
+  fa parte di `ValidatorSet` e quindi di `next_validator_set_hash`: nessun campo nuovo
+  di `BlockHeader`, ricalcolo a posteriori possibile. Questo strato è verificabile per
+  intero solo da chi rigioca le transazioni finalizzate.
+
+**Le due porte che [REVIEW-010] ha trovato ancora aperte, e come sono state
+chiuse.** La prima consegna di [SPEC-006] chiudeva l'ingresso e lasciava passare
+`TM-18` da altre due strade, entrambe senza violare alcuna regola e con la catena
+formalmente valida a ogni altezza. Sono registrate qui perché sono `TM-18` a tutti
+gli effetti, non varianti minori:
+
+- **porta del documento dei parametri.** Le grandezze dell'elezione vivono nel
+  documento `consensus_parameters`, che è firmato dal quorum, cioè dal set in
+  carica. Il blocco di vincoli originario legava i parametri **fra loro** e non
+  nelle **magnitudini**: un `election_epoch_blocks` di `2^60` e un
+  `validator_max_consecutive_terms` di `2^60` soddisfano ogni relazione,
+  e da quel momento nessun confine arriva, nessun mandato scade, e la regola di
+  confine impone al set di **non cambiare** a ogni altezza. Il light client non
+  vedeva un'irregolarità: la applicava. *Chiusa* con l'oggetto `ElectionBounds`
+  del trust anchor di genesi — tetti e pavimenti di magnitudine più una variazione
+  massima per `sequence`, fuori dalla governance della catena — e con il passo 5
+  dell'algoritmo del light client che dichiara la provenienza dei parametri e
+  fallisce chiuso;
+- **porta della contrazione.** Il tetto di rotazione limitava le **ammissioni** e
+  nulla limitava le **uscite**. Una coalizione con `k > V/3` seggi, cioè sotto la
+  soglia di safety BFT, poteva far finalizzare le proprie candidature e poi negare
+  il quorum a ogni blocco che ne contenesse altre: al confine la derivazione
+  onesta produce `R = C =` la coalizione, `fills = 0` — **sotto il tetto, non al
+  tetto** — e la coalizione detiene il 100 % del potere senza aver ammesso
+  nessuno, in **un solo confine e senza segnale**.
+  *Chiusa nella parte che conta* con il **pavimento di contrazione**
+  `3 * member_count(nuovo) > 2 * member_count(precedente)`, la stessa forma del
+  predicato di quorum applicata ai seggi invece che al potere, valida sia ai
+  confini sia nelle transizioni di sola rimozione. La coalizione a `k` appena
+  sopra `V/3` ora produce un set **invalido** e la catena si ferma; contrarre fino
+  a sé stessi in **un solo passo** resta possibile solo a chi detiene già più dei
+  due terzi, dove la safety BFT è comunque già persa.
+
+  **Che cosa il pavimento non compra, verificato da [REVIEW-010] al secondo giro
+  ([RF-008]).** Il pavimento rifiuta la censura *totale* e non quella
+  *selettiva*. Una coalizione a `k > V/3` lascia passare esattamente le
+  candidature oneste che portano il set al minimo consentito e ripete:
+  `V → 2V/3 → 4V/9 → … → k`, cioè `ceil(log(V/k)/log(3/2))` confini, che per `k`
+  vicino a `V/3` sono **tre**. I nodi onesti firmano ognuno di quei blocchi
+  perché ognuno è valido: la derivazione è deterministica e le candidature
+  censurate non sono mai state finalizzate. **La soglia effettiva di cattura
+  resta quindi poco sopra `1/3`.** Ciò che il pavimento compra, e va rivendicato
+  per quello che è, è la conversione di un confine invisibile in **tre confini,
+  ognuno dei quali pubblica la propria contrazione in un documento firmato che un
+  light client sa confrontare** — lo stesso standard del tetto di ingressi, non
+  uno più forte. Con un'asimmetria da dichiarare: l'orizzonte per **ammissione**
+  è tarabile con `validator_min_capture_epochs`, quello per **attrito** è fisso e
+  nessun parametro lo muove, e la sicurezza di una regola è quella del suo
+  percorso più debole.
+
+**Una terza interazione, trovata al secondo giro di [REVIEW-010] ([RF-007]) e
+chiusa.** Limite di mandato, tetto di ingressi e pavimento di contrazione erano
+congiuntamente insoddisfacibili su **ogni rete conforme**, non in un caso limite:
+il set di genesi porta mandati sincroni, quindi al confine `e = T` scadono tutti
+insieme, `R = ∅`, il nuovo set vale al più `c`, e il pavimento pretende `3c > 2V`
+mentre il vincolo di cattura pretende `3cm <= V`, intervallo vuoto per ogni `V`.
+Arresto certo all'altezza `T * election_epoch_blocks`. *Chiusa* alla causa e non
+al sintomo: **scaglionamento dei mandati nel set di genesi** — al più
+`validator_churn_cap_seats` voci per ogni `term_expiry_epoch`, valori in
+`[1, T]` — più il vincolo `3c < V` nel blocco di validità, e la scadenza diventa
+un campo `term_expiry_epoch` **timbrato all'insediamento** invece che ricalcolato,
+il che chiude come effetto collaterale l'estensione retroattiva dei mandati in
+carica da parte di un quorum che alzi `T`. L'esenzione del pavimento quando
+`R = ∅` è stata **rifiutata**: è fabbricabile da chi censura, cioè la stessa
+obiezione già usata contro la continuazione del set e contro la sospensione
+dell'elezione.
+
+**Corollario trovato al terzo giro ([RF-012]) e chiuso.** Lo scaglionamento si
+automantiene solo a `T` costante o crescente: i timbri sono `e + T(e)`, quindi due
+confini distinti collidono **se e solo se `T` diminuisce**, e una collisione mette
+più coorti sullo stesso confine, che è esattamente ciò per cui `3c < V` non è
+dimensionato. Accorciare i mandati su indicazione del simulatore — l'atto di
+governance più ordinario che esista, **senza alcun avversario** — fermava la
+catena, e un pool pieno non salvava, perché a limitare la ricostruzione è il tetto
+di ingressi. *Chiuso* con il vincolo di **monotonia**: `T_new >= T_active` in
+accettazione, quindi su catena viva il limite di mandato non decresce mai.
+Alzarlo resta libero e gratuito proprio grazie al timbro. Il costo è dichiarato:
+è una porta a senso unico su una grandezza rilevante per la sicurezza, e una rete
+che parta con mandati troppo lunghi non può correggerli se non per la via fuori
+banda riservata agli stalli.
+
+**Che cosa resta aperto**, e va tenuto aperto: (i) un light client non può stabilire
+che `candidate_root` contenga tutti gli eleggibili, né che ogni candidato impegnato
+avesse davvero la soglia di contributo, né che i seggi siano andati ai biglietti più
+bassi — falsificabile in modo compatto nei casi (a) e (c) di
+`ledger.md` §"What a light client can establish about set composition", **non**
+falsificabile in modo compatto nel caso (b), che richiede il replay; (ii) il seme è
+derivato dagli ID di blocco della finestra di entropia ed è quindi *macinabile* da chi
+propone l'ultimo blocco della finestra — il vantaggio è un best-of-`G`, ed è limitato
+superiormente dal tetto di ingressi, non dalla qualità del seme; (iii) la sanzione
+dell'equivocazione, seconda metà di `SEC-REQ-13`, non è toccata da [SPEC-006] e resta
+lavoro di M-07; (iv) l'esclusione per **non finalizzazione** di una candidatura non è
+rilevabile da nessun verificatore, full node compreso, perché una candidatura
+censurata e una mai inviata sono la stessa assenza di transazione — è limitata nei
+suoi effetti dal tetto e dal pavimento, non osservabile; (v) una contrazione lecita e
+una cattura per attrito sono indistinguibili per un light client, che ne verifica il
+pavimento ma non la causa. **Lo stato "mitigato in specifica" è condizionato
+all'esistenza di `ElectionBounds` in ogni distribuzione firmata**: una rete che non
+ne pubblichi non è conforme, e su di essa `TM-18` è integralmente aperto.
 
 #### TM-19 — Governance dei parametri come strumento di vantaggio
 
@@ -1042,12 +1200,20 @@ misura pubblicata, la fonte è in §13.
 
 ### 6.1 Collusione e manipolazione dell'elezione dei validatori
 
-**Il punto di partenza è che la regola di elezione non esiste.** `ledger.md`
-§"Validator-set continuity" chiude dicendo che la continuità "specifies safe
+**Il punto di partenza era che la regola di elezione non esisteva.** `ledger.md`
+§"Validator-set continuity" chiudeva dicendo che la continuità "specifies safe
 authentication but not how members are elected or rotated", e la sezione `DRAFT`
-lascia aperte due alternative: rotazione pesata su reputazione/uptime, oppure
+lasciava aperte due alternative: rotazione pesata su reputazione/uptime, oppure
 lotteria su casualità finalizzata con soglia di eleggibilità. Le due alternative
 hanno profili di attacco **opposti**, e questo è il primo risultato utile.
+
+> **Aggiornamento 2026-08-25.** [SPEC-006] ha scelto, sulla base di questa analisi,
+> la lotteria (b) con soglia di eleggibilità ancorata a storage e compute dimostrati,
+> più le leve 1 e 2 dell'elenco in fondo alla sezione. La leva 3, diversificazione
+> per posizione di rete, **non** è stata adottata: resta l'attrito evadibile descritto
+> qui, e trasformerebbe la derivazione in una funzione di dati di rete non impegnati
+> nel ledger, quindi non verificabile da un light client. L'analisi sotto resta valida
+> come motivazione della scelta.
 
 #### Quanto potere serve
 
@@ -1616,7 +1782,7 @@ scala degli altri: un ledger pubblico non si può de-pubblicare.
 | --- | --- | --- |
 | Divergenze di consenso — TM-12, TM-16, TM-17 | **Da chiudere già in M-01.** Non sono rischi da accettare: sono difetti di specifica a costo di chiusura quasi nullo, e in devnet servono proprio per validare le fixture. | Chiusi e verificati su vettori |
 | Falsificazione della storia — TM-10, TM-21, TM-36 | Accettabile finché i client di devnet nascono con un'ancora recente distribuita con la build | Chiuso: ancoraggio, non regressione, firma multipla |
-| Cattura del set di validatori — TM-09, TM-18 | Accettabile **con dichiarazione esplicita** che i validatori di devnet sono seed del progetto e la rotazione non è ancora un meccanismo di sicurezza | Chiuso: regola di elezione scritta, verificabile e con tetto di rotazione. **È il gate di M-07** |
+| Cattura del set di validatori — TM-09, TM-18 | Accettabile **con dichiarazione esplicita** che i validatori di devnet sono seed del progetto e la rotazione non è ancora un meccanismo di sicurezza. La regola esiste da [SPEC-006], quindi la condizione di [DEBT-005] "nessuna devnet accumuli storia conservabile" è soddisfatta appena l'implementazione la applica | Chiuso: regola di elezione scritta, verificabile e con tetto di rotazione. **È il gate di M-07** |
 | Sybil sul reddito di esistenza — TM-08, TM-22 | Accettabile: in devnet il reddito di esistenza può essere disattivato o simbolico, ed è la sede naturale per **eseguire** `AT-07` | Dipende dalla decisione di §7. Qualunque opzione, la metrica dichiarata deve essere verificata da `AT-07` prima dell'apertura |
 | Abuso delle risorse dell'hoster — TM-23, TM-24, TM-25 | Accettabile: gli host di devnet sono del progetto o di volontari informati | Chiuso: politica di accettazione automatica, tetti di deployment, trasparenza su cosa si ospita. È un gate di M-06 |
 | Censura e lista di blocco — TM-13, TM-15, TM-33, TM-34 | Accettabile: il set è del progetto e la questione è priva di senso pratico | Chiuso: la lista di blocco deve essere un oggetto di protocollo con evidenza, scadenza e visibilità **prima** che esistano publisher terzi |
@@ -1648,7 +1814,7 @@ verifica `GATE-LEAD-MAP`.
 | `SEC-REQ-10` | Una sola forma testuale canonica del Peer ID; ogni confronto avviene sulla multihash decodificata | Fixture: la stessa chiave nelle due forme testuali, con la non canonica rifiutata | M-01 | AGENT-001 | [RF-010] |
 | `SEC-REQ-11` | Esiste un tetto alla validità di un envelope, e i limiti anti-abuso sono **globali** oltre che per peer, con comportamento definito in saturazione | `AT-13`: raffica a validità massima da molte identità distinte; la memoria resta limitata e il comportamento è quello dichiarato | M-01 (regola), M-02 (implementazione) | AGENT-001 | TM-11, [RF-012] |
 | `SEC-REQ-12` | `identity.md` dichiara esplicitamente che il protocollo non distingue `N` nodi emulati su un host da `N` dispositivi reali | Review del Lead sul testo | M-01 | AGENT-001 | TM-08, [RF-005] |
-| `SEC-REQ-13` | La regola di elezione dei validatori è scritta, deterministica a partire da casualità finalizzata su un insieme di eleggibili calcolabile da chiunque, con tetto di rotazione per epoca e con impegno nel header che ne consenta il ricalcolo a posteriori; l'equivocazione di un validatore è una transazione di evidenza sanzionabile | `AT-09`, `AT-10` | M-02 (regola e impegno), M-07 (rotazione automatica e sanzione) | AGENT-002 | TM-09, TM-15, TM-17, TM-18 |
+| `SEC-REQ-13` | La regola di elezione dei validatori è scritta, deterministica a partire da casualità finalizzata su un insieme di eleggibili calcolabile da chiunque, con tetto di rotazione per epoca e con impegno nel header che ne consenta il ricalcolo a posteriori; l'equivocazione di un validatore è una transazione di evidenza sanzionabile | `AT-09`, `AT-10` | **M-02: coperto in specifica** da [SPEC-006] (`ledger.md` §"Validator election and rotation"), **in dipendenza da `SEC-REQ-14`**: la regola di elezione non è più forte dei limiti che vincolano i parametri che la definiscono, e finché quei parametri non hanno intervallo firmato alla genesi e variazione massima per epoca la copertura è condizionale. [SPEC-006] soddisfa quella dipendenza per i soli parametri di elezione, tramite l'oggetto `ElectionBounds` del trust anchor; `SEC-REQ-14` resta aperto per gli altri parametri governati. M-07 (rotazione automatica e sanzione dell'equivocazione) resta aperto | AGENT-002 | TM-09, TM-15, TM-17, TM-18 |
 | `SEC-REQ-14` | Ogni parametro governabile ha un intervallo ammissibile firmato alla genesi e una variazione massima per epoca; le modifiche hanno un ritardo di attivazione dichiarato | Fixture: un blocco che attiva un parametro fuori intervallo o oltre la variazione massima è invalido | M-02 | AGENT-002 | TM-19, TM-35 |
 | `SEC-REQ-15` | Per ogni `(app_id, reward_epoch)` vale `publisher_reward ≤ k × Σ(burn di abbonamento conteggiati nella radice)` con `k < 1` fissato nei parametri firmati, imposto dai validatori come regola di validità | `AT-11`: fixture al confine di `k` | M-02 | AGENT-002 | TM-22, [RF-007] |
 | `SEC-REQ-16` | Il simulatore economico verifica ed espone nel proprio rapporto: (a) la frazione `α` dell'emissione che passa dal canale availability/esistenza; (b) la relazione `E_p` contro `S(1−k)` di §6.3; (c) la quota di emissione catturabile da `N` identità emulate | Il rapporto del simulatore contiene le tre grandezze con i valori tarati; review del Lead | M-02 | AGENT-002 | §6.2, §6.3, TM-08, TM-22 |
@@ -1766,6 +1932,31 @@ due storie finalizzate; il voto del validatore revocato non è conteggiato a par
 dalla sua `effective_height`; l'equivocazione produce una transazione di evidenza
 verificabile da chiunque.
 
+> **Valutazione contro la regola di [SPEC-006] (2026-08-25, AGENT-002).** Esito:
+> **parzialmente superato in specifica, non superabile per intero**. I primi tre
+> criteri non sono toccati dalla regola di elezione: la soglia di safety resta 1/3
+> come da `SEC-REQ-02`, e il non conteggio del validatore revocato resta la regola di
+> `ledger.md` §"Revocation forces a validator set transition", che [SPEC-006] non
+> modifica. La regola aggiunge però due fatti rilevanti per la variante con
+> validatore revocato: una transizione fuori dal confine di epoca è valida **solo se
+> rimuove**, con `validators` sottoinsieme stretto del set precedente e ogni voce
+> rimossa coperta da una `revoke_identity` finalizzata, quindi la variante non può
+> essere usata per insediare un sostituto; e i seggi liberati dalla revoca sono
+> ripresi al confine successivo **sotto il tetto ordinario**, quindi una revoca di
+> massa non si converte in un'ammissione di massa. Quella frase, da sola, era vera e
+> insufficiente ([RF-002] di [REVIEW-010]): una revoca di massa non si converte in
+> ammissione ma **si convertiva in concentrazione**, che per un avversario già dentro
+> è equivalente e costa meno, perché rimuovere gli altri *è* scegliere il set. Il
+> **pavimento di contrazione** `3 * member_count(nuovo) > 2 * member_count(vecchio)`
+> vale ora anche per le transizioni di sola rimozione, quindi la variante con
+> validatore revocato non produce né ammissione né concentrazione: oltre il pavimento
+> non esiste set valido e la catena si ferma. Il quarto criterio — "l'equivocazione
+> produce una transazione di evidenza verificabile da chiunque" — **non è coperto**:
+> è la seconda metà di `SEC-REQ-13`, esplicitamente fuori dallo scope di [SPEC-006]
+> (`Excluded`: slashing reputazionale, M-07). `AT-09` non può quindi essere dichiarato
+> superato finché quella transazione non esiste, e la parte mancante è nominata qui
+> perché non sia scambiata per coperta.
+
 **`AT-10` — Cattura dell'elezione.** *Preparazione:* simulazione con `H` candidati
 onesti dal profilo di uptime realistico di §6.1 e `N` candidati d'attaccante con
 uptime da datacenter, per `N/H` ∈ {0,1, 1, 10}. *Procedura:* eseguire la regola di
@@ -1775,6 +1966,69 @@ eleggibilità ancorata a lavoro dimostrato. *Misure:* epoche fino al raggiungime
 *Superamento:* con la configurazione scelta per la produzione, l'attaccante non
 raggiunge 1/3 entro 50 epoche in nessuno dei tre rapporti `N/H`; e la deriva della
 composizione del set è osservabile a ogni epoca da un light client.
+
+> **Valutazione contro la regola di [SPEC-006] (2026-08-25, AGENT-002).** Esito:
+> **eseguibile, e il secondo criterio è già soddisfatto; il primo non è decidibile
+> qui.**
+>
+> *Secondo criterio, osservabilità della deriva: soddisfatto per costruzione.* Il
+> light client possiede in chiaro entrambi i documenti `ValidatorSet` a ogni confine e
+> ne calcola la differenza; verifica inoltre `filled_count` contro
+> `validator_churn_cap_seats`, il limite di mandato da `seated_since_epoch`, e che
+> `next_validator_set_hash` non cambi fuori dai confini. La deriva non è una statistica
+> pubblicata da un operatore, è una quantità che il client ricava dai dati che già
+> scarica.
+>
+> *Primo criterio: la regola lo rende raggiungibile ma il verdetto dipende dai
+> parametri.* Il tempo di cattura non è più una proprietà emergente della classifica
+> ma una disuguaglianza: con `V = validator_target_set_size` e
+> `c = validator_churn_cap_seats`, un attaccante che domini il pool di riempimento
+> impiega almeno `ceil((V/3)/c)` confini a raggiungere 1/3 **per ammissione**, e il
+> documento dei parametri di consenso è **rifiutato in accettazione** se `3*c*m > V`,
+> dove `m` è l'orizzonte di cattura dichiarato `validator_min_capture_epochs`. La
+> qualificazione «per ammissione» è necessaria e la sua assenza era un difetto
+> ([RF-002] di [REVIEW-010]): la cattura **per attrito** non passa dall'ammissione e
+> non è misurata da quella disuguaglianza. Con il pavimento di contrazione ha una
+> propria disuguaglianza, `ceil(log(V/k) / log(3/2))` confini per contrarre da `V` a
+> `k` — **tre** per `k` vicino a `V/3` — e non è tarabile da alcun parametro. La
+> coalizione sotto i due terzi ci arriva comunque, con censura selettiva invece che
+> totale; ciò che il pavimento le toglie è di arrivarci in un confine solo e senza
+> pubblicare nulla. Il criterio di superamento di `AT-10` ("non raggiunge 1/3 entro 50 epoche")
+> è esprimibile come una scelta di `m`, ma i valori di `V`, `c`, `m` e della soglia
+> di eleggibilità vengono dal simulatore economico di M-02 ([DEBT-007]): **il
+> verdetto numerico di `AT-10` resta rinviato alla simulazione, ed è corretto che lo
+> sia.**
+>
+> *Nota sulla preparazione del test.* Il profilo "candidati d'attaccante con uptime da
+> datacenter" non è più il vettore giusto: l'uptime non concorre all'eleggibilità e
+> l'evidenza `availability` contribuisce **zero** al `contribution_score`. La
+> preparazione va aggiornata a candidati d'attaccante che forniscono storage e compute
+> reali sopra la soglia, che è un costo diverso e va misurato come tale. Servono
+> inoltre tre configurazioni che la preparazione originaria non prevedeva:
+>
+> 1. **macinatura del seme.** Un attaccante che proponga l'ultimo blocco della
+>    finestra di entropia e cerchi il seme migliore, per verificare che il guadagno
+>    resti limitato dal tetto e non dal seme.
+> 2. **cattura per attrito.** Una coalizione a `k > V/3` che censura le candidature
+>    altrui, misurando i confini necessari ad arrivare al 100 % del potere. Vanno
+>    eseguite **entrambe** le varianti, perché danno risultati diversi e solo la
+>    seconda è il vettore reale: (2a) censura **totale**, che il pavimento di
+>    contrazione rifiuta — misura attesa: la catena si ferma al confine, la
+>    coalizione non ottiene il set; (2b) censura **selettiva**, in cui la
+>    coalizione lascia passare esattamente le candidature oneste che portano il set
+>    al minimo consentito dal pavimento — misura attesa:
+>    `ceil(log(V/k)/log(3/2))` confini, cioè **tre** per `k` vicino a `V/3`, con
+>    ogni confine pubblicato. Un criterio di superamento che dicesse "la coalizione
+>    non arriva mai al 100 % sotto i due terzi" sarebbe **sbagliato** e verrebbe
+>    smentito dalla simulazione: era la formulazione precedente di questa riga ed è
+>    corretta qui, perché un criterio di test errato viene attribuito
+>    all'implementazione invece che alla specifica.
+> 3. **evasione del cooldown.** Incumbent che escono volontariamente un'epoca prima
+>    della scadenza del mandato, misurando l'assenza effettiva contro
+>    `validator_cooldown_epochs`. Con la condizione di eleggibilità 5 nella forma
+>    «uscita per qualunque ragione» la misura attesa è `validator_cooldown_epochs`;
+>    con la formulazione precedente, limitata alla scadenza del mandato, era **una**
+>    epoca, e il confronto fra le due misure è ciò che rende il test utile.
 
 **`AT-11` — Abbonati fittizi.** *Preparazione:* un publisher che controlla `N`
 identità enrollate e un'app con `microtokens_per_period = S`. *Procedura:* abbonare
