@@ -2,7 +2,7 @@
 id: SPEC-013
 # Note: Quote the title if it contains a colon
 title: "Separazione della chiave di trasporto dalla chiave di identita"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: core
@@ -22,8 +22,10 @@ links: []
 created: 2026-08-25
 updated: 2026-08-25
 tags: [identity, security, conformance]
+activity:
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
-
 # Separazione della chiave di trasporto dalla chiave di identita
 
 ## Objective

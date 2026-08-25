@@ -494,10 +494,15 @@ same attacker. Both belong with the dedicated randomness beacon, which is M-02
 work under [DEBT-005]. The residual is stated with its order of magnitude rather
 than assumed away, and the word "bounded" without a number is not a bound.
 
-Canonical serialized example:
+Canonical serialized example. Its hash-valued fields are illustrative
+placeholders as described in
+[README.md](README.md#inline-examples-are-not-conformance-oracles), with one
+exception that is **not** free: `request_hash` MUST equal `challenge_id`, so
+the example carries the same value in both. Until 2026-08-25 it did not, and
+the example asserted a shape no conformant network can produce.
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","issuer_reveal":"REREREREREREREREREREREREREREREREREREREREREQ","kind":"availability","measured_units":"1","outcome":"passed","request":{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","issuer_commitment":"sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5","issuer_node_id":"cblx1issuerfixture","issuer_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","randomness_source":{"beacon_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af","beacon_height":"40","commitment_epoch":"17"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"request_hash":"sha256:e14d4c02c41a950c9f4f4464e9f98a6652c64e6c992efc36c97f01d2f4ca2dc2","response":{"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","result":{"kind":"availability","response":"MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","subject_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","issuer_reveal":"REREREREREREREREREREREREREREREREREREREREREQ","kind":"availability","measured_units":"1","outcome":"passed","request":{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","issuer_commitment":"sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5","issuer_node_id":"cblx1issuerfixture","issuer_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","randomness_source":{"beacon_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af","beacon_height":"40","commitment_epoch":"17"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"request_hash":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","response":{"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","result":{"kind":"availability","response":"MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","subject_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 ### Identity revocation
@@ -550,6 +555,25 @@ Block = {
 Genesis has height 0 and uses the configured all-zero previous ID. Timestamps
 MUST be greater than the median of the previous 11 finalized blocks and no more
 than the active maximum clock drift after the proposal is received.
+
+**The target block interval is 5 seconds, and v0 does not enforce it.** The
+value is a genesis constant, declared in
+[README.md](README.md#genesis-constants) with the reason it is not a governed
+parameter ([ADR-013]). It is what gives a real-time meaning to every quantity
+this protocol denominates in blocks — `election_epoch_blocks`,
+`candidacy_close_blocks`, `election_entropy_blocks`,
+`min_revocation_effective_delay_blocks` and
+`election_parameter_min_activation_gap_blocks` — and that meaning is the whole
+of its normative content. **No v0 validity rule constrains the distance between
+consecutive `timestamp_ms` values.** The two constraints above impose
+monotonicity against the median of eleven and an upper bound against the
+receiver's clock; neither imposes a step. A set of validators that produces blocks more slowly
+therefore lengthens, in real time, every quantity denominated in blocks —
+including its own terms — without violating anything and without a light client
+being able to say it was deliberate. The consequence is recorded as
+[DEBT-013] and is **not** closed by this document; it is named here rather than
+left for a reader to discover, because a declared cadence reads like an
+enforced one unless the difference is written down.
 `transactions_root` is recomputed in the canonical execution order defined
 below. `state_root` is the result
 after all transactions execute atomically.
@@ -2221,6 +2245,46 @@ Bits of `account_key` are traversed most-significant bit first; bit 0 chooses
 left and bit 1 right. A present zero-balance account still has a leaf so its
 spend nonce remains committed. An absent account uses `empty[256]` and has
 implicit balance/nonce zero.
+
+### `lifecycle_u8`, and why zero is not `active`
+
+`lifecycle_u8` is a single byte and its value is **normative**, because it
+enters a preimage that determines `state_root`. Two implementations that
+disagree about it compute different `app_leaf` values for the same app account
+and split the chain at the first account that is not `active`.
+
+| Lifecycle | `lifecycle_u8` |
+| --- | --- |
+| — reserved, never assigned — | `0x00` |
+| `active` | `0x01` |
+| `grace` | `0x02` |
+| `suspended` | `0x03` |
+
+**Every other value, `0x00` included, is invalid.** An implementation that
+encounters one MUST reject the object that carried it; it MUST NOT substitute a
+default, and there is no default to substitute. This is stated as a rule rather
+than left implicit because a default is exactly how the divergence above comes
+back: two implementations that mis-handle the same *known* value disagree
+visibly and loudly, while two that apply different defaults to an *unknown*
+value agree on nothing and say nothing.
+
+The obvious encoding is declaration order starting at zero, `active = 0`, and
+that is the encoding this document does **not** use. The reason is the
+direction of the danger. `app_leaf` is reconstructed from stored state, and the
+zero byte is what an uninitialized, truncated, or zero-filled record yields for
+free in every language a node might be written in. If zero meant `active`, that
+accident would produce the *permissive* state — an app treated as serving when
+its record says nothing — and it would produce a leaf indistinguishable from a
+legitimately active one, so nothing downstream could contradict it. With `0x00`
+reserved and invalid the same accident is a rejection at the point it happens.
+The cost of the choice is one byte of intuition: implementers who assume
+`0/1/2` are wrong, and the published `APP-0` fixture in
+[README.md](README.md#hash-conformance-fixtures) is there to tell them so on
+the first run instead of on the first suspension.
+
+The textual spelling in `AccountProof` below is the lowercase name, not the
+number; the number appears only in the preimage. An unknown spelling is
+rejected on the same terms.
 
 ```text
 AccountProof = {

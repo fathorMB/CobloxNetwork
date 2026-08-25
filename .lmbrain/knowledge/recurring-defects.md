@@ -11,9 +11,11 @@ Le tre famiglie hanno **un tratto comune** che è la cosa più utile di questa p
 
 ## Famiglia 1 — L'artefatto pubblicato che insegna una forma inammissibile
 
-**Quattro occorrenze in tre spec.** L'elenco completo, con date e cause, è in [ADR-012], che la chiude con un meccanismo: una gate `before-submit` su ogni spec che introduca o modifichi una regola di validità, eseguita da uno strumento **versionato** e provata **in negativo**.
+**Cinque occorrenze in quattro spec.** L'elenco completo, con date e cause, è in [ADR-012], che la chiude con un meccanismo: una gate `before-submit` su ogni spec che introduca o modifichi una regola di validità, eseguita da uno strumento **versionato** e provata **in negativo**.
 
 È l'unica delle tre famiglie meccanizzabile, ed è già meccanizzata. Le altre due no.
+
+**La quinta occorrenza è la prova che il meccanismo funziona, ed è per questo che è annotata qui.** L'esempio canonico di `challenge_evidence` in `ledger.md` portava un `request_hash` diverso dal proprio `challenge_id`, mentre `README.md` impone che siano uguali. L'ha trovata lo strumento di [SPEC-010] alla **prima esecuzione**, contro una regola che esisteva da [SPEC-001] — cioè un difetto che nessuna spec successiva avrebbe avuto ragione di cercare, e che quindi nessuna delle quattro occorrenze precedenti avrebbe fatto emergere. Le prime quattro sono state trovate dal caso; questa da una guardia. **È la differenza fra sapere di avere un problema e avere qualcosa che lo cerca.**
 
 **La domanda che la intercetta:** *quale artefatto pubblicato questa regola nuova rende inammissibile, fra quelli che non sto toccando?*
 

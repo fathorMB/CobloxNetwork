@@ -1,7 +1,7 @@
 ---
 id: DEBT-012
 title: "lifecycle_u8 non e definito: due implementazioni conformi divergono sulla state_root"
-status: open
+status: resolved
 category: "correctness"
 severity: "high"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-012"]
 related_decisions: []
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-010","REVIEW-015"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
 updated: 2026-08-25
 tags: ["ledger","conformance","interoperability"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-25
+    action: "resolved: Risolto da SPEC-010, accettata con REVIEW-015 senza finding a carico dell'implementazione. Chiuso prima di qualunque devnet, come il debito richiedeva."
 debt_events:
   - schema_version: "1"
     id: "DEBT-012-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Registrato come debito e non come remediation di SPEC-008 perche la correzione sta in docs/protocol/, che quella spec dichiarava sola lettura, e perche tocca una preimmagine gia pubblicata: e lavoro di specifica con una fixture da aggiungere, non una modifica al crate. Owner AGENT-001 perche e l'autore del protocollo v0 e di coblox-core, quindi conosce entrambi i lati della correzione. Milestone M-02 perche va chiuso prima della devnet, coerentemente con la ragione per cui DEBT-005 non poteva essere rimandato."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-012-EVENT-002"
+    timestamp: "2026-08-25T19:38:40.050884200+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Risolto da SPEC-010, accettata con REVIEW-015 senza finding a carico dell'implementazione. Chiuso prima di qualunque devnet, come il debito richiedeva."
+    evidence_refs: ["SPEC-010", "REVIEW-015"]
 ---
 # lifecycle_u8 non e definito: due implementazioni conformi divergono sulla state_root
 
@@ -65,3 +77,8 @@ docs/protocol/ledger.md assegna un valore numerico esplicito a ciascuno dei tre 
 
 ## Resolution evidence
 
+La codifica e dichiarata normativa in ledger.md con la sezione "lifecycle_u8, and why zero is not active": 0x00 riservato e mai assegnato, active 0x01, grace 0x02, suspended 0x03, e ogni altro valore invalido con obbligo di rifiuto e divieto esplicito di sostituire un default. La scelta non e l'ordine di elencazione ed e motivata sulla direzione del pericolo: il byte zero e cio che un record troncato o azzerato produce gratis, e se significasse active l'incidente produrrebbe lo stato permissivo e una foglia che nulla a valle puo contraddire.
+
+La fixture app_leaf che mancava e pubblicata come APP-0, deliberatamente in stato suspended e non active, perche una fixture nello stato il cui byte un'implementazione indovinerebbe non prova nulla sulla codifica. Il Lead ha ricalcolato in modo indipendente entrambe le righe nuove del registro, account_key app a881e2e0 e app_leaf 2eac8b0a, validando prima il metodo su due fixture non modificate. La codifica provvisoria in coblox-core e il test che dichiarava di non essere una prova non esistono piu; il rifiuto di un valore non assegnato e implementato in merkle.rs e coperto da un test che nomina la proprieta.
+
+La domanda generale che il debito poneva ha una risposta enumerata: 51 preimmagini, 18 nel registro, 8 pubblicate altrove, 25 senza alcun valore pubblicato ciascuna con la ragione scritta. Byte simbolici su tutte e 51: uno solo, ed e lifecycle_u8. La ragione e strutturale e non fortuita, perche v0 commette ogni altra enumerazione come stringa JCS dentro un oggetto JCS, quindi i byte committati sono le lettere del nome e non esiste alcuna mappatura su cui divergere. La verifica C8 dello strumento fallisce se una preimmagine ne acquista un altro senza enumerazione a cui puntare.

@@ -87,6 +87,36 @@ Protobuf formats; only Coblox application payloads use JCS.
 - Token values are non-negative `u64` microtokens. One displayed token is
   1,000,000 microtokens; consensus never uses decimal fractions.
 
+### Genesis constants
+
+A genesis constant is fixed when a chain is created and cannot be changed by a
+signed governance document. Changing one requires a new genesis, which is the
+point: these are the values that give meaning to the governed parameters, and a
+denominator the governance can move is not a denominator.
+
+| Constant | Value | Governed? |
+| --- | --- | --- |
+| `block_interval_seconds` | `5` | no — genesis only ([ADR-013]) |
+
+**`block_interval_seconds = 5` is declared, not enforced.** Every quantity the
+protocol denominates in blocks acquires its real-time meaning from this value:
+`election_epoch_blocks` of 120,960 is seven days only because a block is five
+seconds. But **no v0 validity rule imposes the cadence.** The only temporal
+constraints on a block are that its `timestamp_ms` exceed the median of the
+previous eleven finalized blocks and not run ahead of the receiver's clock by
+more than the active maximum drift — monotonicity and a ceiling, not a step.
+See [ledger.md](ledger.md#block-format) for the consequence: the active
+validator set determines the real-time duration of its own epochs, and
+therefore of its own incumbency, without breaking any rule. That gap is
+recorded as [DEBT-013] and is deliberately not closed in v0. It is stated here
+because the alternative — publishing a cadence and letting a reader assume it
+is checked — is the failure this specification is written to avoid.
+
+It is not a governed parameter for the same reason the reward epoch has a
+floor: an interval a sitting quorum could shorten or lengthen would be a
+denominator underneath every limit expressed in blocks. It does not appear in
+`ConsensusParametersBody` and no signed document carries it.
+
 Cryptographic comparisons MUST be constant-time where the implementation's
 language permits it. Decoders MUST reject non-canonical encodings before
 signature verification, so a logical object has one signing representation.
@@ -275,8 +305,16 @@ weak subjectivity checkpoint of [Trust anchors](#trust-anchors) with
 `block_id` `66` repeated 32 bytes, `timestamp_ms:"1"`, `issued_at_ms:"1"`,
 `validator_set_hash` `77` repeated 32 bytes,
 `max_weak_subjectivity_age_ms:"1"`, an empty `revoked_validators` array, and
-the corresponding empty `revocation_root` `H(0x33)`. These definitions are
-exact after JCS; no omitted/default fields are implied.
+the corresponding empty `revocation_root` `H(0x33)`. `APP-0` is an **app**
+account in state `suspended`, for `app_id` `99` repeated 32 bytes, with
+`balance_microtokens` 1, `account_nonce` 1 and `suspension_effective_epoch` 1;
+its `lifecycle_u8` is therefore `0x03` under the encoding of
+[ledger.md](ledger.md#lifecycle_u8-and-why-zero-is-not-active). It is
+deliberately **not** `active`: a fixture in the state whose byte an
+implementation would guess correctly proves nothing about the encoding, which
+is the gap this fixture exists to close. Its `account_key` row is the app-side
+derivation, `H("coblox-account-key-v0\0" || 0x01 || app_id_32)`. These
+definitions are exact after JCS; no omitted/default fields are implied.
 
 | Hash | Fixture | Expected value |
 | --- | --- | --- |
@@ -296,12 +334,37 @@ exact after JCS; no omitted/default fields are implied.
 | `election_seed` | `ELEC-0` | `sha256:9e2aa2621f957279e4bdf1c4ccea5629ce429892ac3f9af10c9456a3c78dad85` |
 | `election_ticket` | `ELEC-0` | `sha256:a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21` |
 | `weak_subjectivity_checkpoint_hash` | `WSC-0` | `sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e` |
+| `account_key` (app) | `APP-0` | `sha256:a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d` |
+| `app_leaf` | `APP-0` | `sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697` |
 
 `challenge_randomness` is carried on the wire as the unpadded base64url of those
 32 bytes, which for `RND-0` is `jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc`.
 
 Conformance suites MUST reconstruct every preimage from these definitions and
 compare all 32 digest bytes; checking only presentation strings is insufficient.
+
+#### Inline examples are not conformance oracles
+
+The one-line `json` blocks throughout these documents exist to fix **canonical
+form** — key order, string escaping, integer spelling, base64url padding, hash
+presentation. Their `sha256:` values are illustrative placeholders and are
+**not** claimed to be the digests of anything. The same placeholder appears as a
+`parameter_set_hash` in one example and a `policy_hash` in another, which no
+real chain could produce, because the examples are about shape and not about
+provenance. **The fixture table above is the only oracle in these documents.** A
+suite that treats an inline example's hash field as an expected value is testing
+a value nobody computed.
+
+Two obligations survive that, and both are checked by
+`sim/tools/published_artifacts.py`:
+
+- an inline example MUST still satisfy every equality the specification states
+  between its own fields — `challenge_id` equals `request_hash` is the one such
+  equality in v0, and the challenge-evidence example of
+  [ledger.md](ledger.md#challenge-evidence) violated it until 2026-08-25;
+- no `sha256:` literal may exist in these documents without being classified, in
+  the published-artifact manifest, as either a registry value or a placeholder.
+  An unclassified one is a value a reader can mistake for an expectation.
 
 **Parameter fixtures are not free choices.** A conformance suite that builds a
 `consensus_parameters` document picks values that the constraint block of
@@ -436,8 +499,30 @@ knows what it is touching. The two constraints are separate on purpose:
 Expressing the second constraint as an area rather than as `iterations >= 3` is
 deliberate. A literal `iterations >= 3` rule would reject the RFC's **first**
 recommended profile — "a uniformly safe option", `t = 1`, `p = 4`,
-`m = 2^21` (2 GiB) — which is the *stronger* of the two. The area form admits
-both RFC recommendations and rejects everything weaker than either.
+`m = 2^21` (2 GiB) — which is the *stronger* of the two.
+
+**What the two floors actually guarantee**, stated as the property the rules
+hold rather than as the property one would like them to hold:
+
+1. no admitted configuration has less than 64 MiB of memory, so no admitted
+   configuration is compute-bound;
+2. no admitted configuration has a cost-area below 196,608 KiB-passes, which is
+   the area of the RFC's second recommended profile;
+3. both RFC recommended profiles are admitted.
+
+That is **not** the same as "everything weaker than either recommendation is
+rejected", which an earlier version of this section claimed and which is
+broader than the rules impose. The area form admits a band that matches neither
+recommendation: `iterations = 1` with `196608 <= memory_kib < 2097152` — 192 MiB
+at a single pass, up to just under 2 GiB — satisfies both floors. That band is
+admitted **on purpose and with its cost named**: it has the same KiB-passes as
+the second recommendation and more memory than it, so it is not weaker by
+either quantity the rules measure, but the RFC does not recommend it and this
+document does not claim it is equivalent. Narrowing the rule to the two named
+profiles was rejected: a rule that enumerates the current recommendations of
+one RFC is a whitelist that ages the moment that RFC is revised, and this
+document already carries four occurrences of a published value outliving the
+rule that made it true.
 
 Boundary conformance fixtures, which a suite MUST exercise:
 
@@ -447,6 +532,8 @@ Boundary conformance fixtures, which a suite MUST exercise:
 | `"65535"` | `"3"` | **invalid** | below the memory-hardness floor |
 | `"65536"` | `"2"` | **invalid** | area `131072 < 196608` |
 | `"2097152"` | `"1"` | valid | RFC first recommended profile, 2 GiB |
+| `"196608"` | `"1"` | valid | the admitted band above: neither recommendation, both floors met |
+| `"196607"` | `"1"` | **invalid** | area `196607 < 196608`; the low edge of that band |
 | `"8"` | `"1"` | **invalid** | RFC domain minimum at `lanes: 1`; not a security floor |
 
 A network MUST NOT lower these minima by governance. Raising them is permitted

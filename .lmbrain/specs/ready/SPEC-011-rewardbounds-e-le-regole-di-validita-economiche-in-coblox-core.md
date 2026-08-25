@@ -2,7 +2,7 @@
 id: SPEC-011
 # Note: Quote the title if it contains a colon
 title: "RewardBounds e le regole di validita economiche in coblox-core"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: core
@@ -22,8 +22,10 @@ links: []
 created: 2026-08-25
 updated: 2026-08-25
 tags: [conformance, ledger, rust, sybil]
+activity:
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
-
 # RewardBounds e le regole di validita economiche in coblox-core
 
 ## Objective

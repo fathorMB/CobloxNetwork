@@ -16,7 +16,7 @@
 
 mod common;
 
-use coblox_core::hash::{ChainId, Digest32, NodeId};
+use coblox_core::hash::{AccountKey, ChainId, Digest32, NodeId};
 use coblox_core::merkle;
 use coblox_core::registry::{self, DocumentKind};
 
@@ -60,6 +60,10 @@ const EXPECTED_ELECTION_TICKET: &str =
     "sha256:a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21";
 const EXPECTED_WEAK_SUBJECTIVITY_CHECKPOINT_HASH: &str =
     "sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e";
+const EXPECTED_APP0_ACCOUNT_KEY: &str =
+    "sha256:a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d";
+const EXPECTED_APP0_APP_LEAF: &str =
+    "sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697";
 
 /// "carried on the wire as the unpadded base64url of those 32 bytes".
 const EXPECTED_CHALLENGE_RANDOMNESS_BASE64URL: &str = "jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc";
@@ -77,7 +81,7 @@ const EXPECTED_REVL0: &str =
 
 /// The number of registry rows this file reproduces, checked by
 /// [`the_registry_is_covered_in_full`] against the assertions that exist.
-const REGISTRY_ROW_COUNT: usize = 16;
+const REGISTRY_ROW_COUNT: usize = 18;
 
 fn expect(text: &str) -> Digest32 {
     Digest32::parse_prefixed(text).expect("an expected value from the specification")
@@ -307,7 +311,48 @@ fn chain_id_binds_both_the_network_and_the_genesis_block() {
     assert_eq!(a, ChainId::derive("coblox-devnet-0", &genesis).unwrap());
 }
 
-/// Guards the count in the evidence: sixteen table rows, each with its own
+/// `APP-0`, the app account in state `suspended`.
+///
+/// This is the row [DEBT-012] existed for. `app_leaf` commits `lifecycle_u8`,
+/// which no document assigned until 2026-08-25, so two conformant
+/// implementations could produce different `state_root` values for the same
+/// state and nothing published would have caught it. The fixture is
+/// deliberately **not** `active`: the state whose byte an implementer would
+/// guess correctly proves nothing about the encoding.
+#[test]
+fn app0_account_key_and_app_leaf_match_the_registry() {
+    // "`APP-0` is an **app** account in state `suspended`, for `app_id` `99`
+    // repeated 32 bytes, with `balance_microtokens` 1, `account_nonce` 1 and
+    // `suspension_effective_epoch` 1".
+    let account_key = AccountKey::for_app(&Digest32::repeated(0x99));
+    assert_eq!(
+        Digest32::from_bytes(*account_key.as_bytes()),
+        expect(EXPECTED_APP0_ACCOUNT_KEY),
+    );
+
+    let leaf = merkle::AccountState::App {
+        balance_microtokens: 1,
+        account_nonce: 1,
+        lifecycle: merkle::AppLifecycle::Suspended,
+        suspension_effective_epoch: 1,
+    }
+    .leaf(&account_key);
+    assert_eq!(leaf, expect(EXPECTED_APP0_APP_LEAF));
+
+    // The published value is the one the specification's own encoding table
+    // produces, and only that one. Under the provisional `0/1/2` mapping this
+    // crate carried before [DEBT-012] was closed, `suspended` was `2` and the
+    // leaf below is what it would have committed — a different `state_root`
+    // for the same account.
+    assert_ne!(
+        merkle::AppLifecycle::Suspended.as_u8(),
+        2,
+        "the provisional encoding must not survive as the normative one"
+    );
+    assert_eq!(merkle::AppLifecycle::Suspended.as_u8(), 0x03);
+}
+
+/// Guards the count in the evidence: eighteen table rows, each with its own
 /// test above. Raising the count without adding a test fails here.
 #[test]
 fn the_registry_is_covered_in_full() {
@@ -328,6 +373,8 @@ fn the_registry_is_covered_in_full() {
         "election_seed / ELEC-0",
         "election_ticket / ELEC-0",
         "weak_subjectivity_checkpoint_hash / WSC-0",
+        "account_key (app) / APP-0",
+        "app_leaf / APP-0",
     ];
     assert_eq!(covered.len(), REGISTRY_ROW_COUNT);
 }

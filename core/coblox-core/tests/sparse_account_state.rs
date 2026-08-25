@@ -187,23 +187,53 @@ fn node_and_app_accounts_are_separated_at_both_levels() {
     assert_ne!(node_leaf, app_leaf);
 }
 
-/// **Declared specification gap, asserted so that it cannot be forgotten.**
+/// Every `lifecycle_u8` value the specification does not assign is rejected,
+/// and nothing is defaulted.
 ///
-/// `app_leaf` commits `lifecycle_u8`, but no document in `docs/protocol/`
-/// assigns numeric values to `active`, `grace` and `suspended`. This test pins
-/// the provisional encoding this crate chose so that a change to it is a
-/// deliberate act with a visible diff, and it is **not** evidence that the
-/// encoding is correct: there is no published value to compare against.
+/// `ledger.md#lifecycle_u8-and-why-zero-is-not-active` reserves `0x00` and
+/// assigns `0x01`, `0x02`, `0x03`. The reserved zero is the point of the test:
+/// it is the byte an uninitialized record produces, and a decoder that mapped
+/// it to `Active` would turn a truncated record into a serving app.
+///
+/// The positive direction — that the encoding this crate emits is the one the
+/// document publishes — is asserted against the published `APP-0` fixture in
+/// `conformance_registry.rs`, not here. This test would pass under any
+/// injective mapping; that one would not.
 #[test]
-fn the_provisional_lifecycle_encoding_is_pinned_pending_a_specification_fix() {
-    assert_eq!(AppLifecycle::Active.as_u8(), 0);
-    assert_eq!(AppLifecycle::Grace.as_u8(), 1);
-    assert_eq!(AppLifecycle::Suspended.as_u8(), 2);
+fn an_unassigned_lifecycle_value_is_rejected_and_never_defaulted() {
+    assert_eq!(AppLifecycle::from_u8(0x01).unwrap(), AppLifecycle::Active);
+    assert_eq!(AppLifecycle::from_u8(0x02).unwrap(), AppLifecycle::Grace);
+    assert_eq!(
+        AppLifecycle::from_u8(0x03).unwrap(),
+        AppLifecycle::Suspended
+    );
+
+    assert!(
+        AppLifecycle::from_u8(AppLifecycle::RESERVED_U8).is_err(),
+        "0x00 is reserved and MUST NOT decode to a state"
+    );
+    for byte in 4u8..=255 {
+        assert!(
+            AppLifecycle::from_u8(byte).is_err(),
+            "0x{byte:02x} is unassigned and MUST be rejected"
+        );
+    }
+
+    // The textual spelling is rejected on the same terms.
     assert_eq!(AppLifecycle::parse("grace").unwrap(), AppLifecycle::Grace);
     assert!(AppLifecycle::parse("retired").is_err());
+    assert!(AppLifecycle::parse("").is_err());
 
-    // Whatever the mapping turns out to be, the three states must produce
-    // different leaves; that part is not in doubt.
+    // Round-tripping is total over the assigned values and only those.
+    for state in [
+        AppLifecycle::Active,
+        AppLifecycle::Grace,
+        AppLifecycle::Suspended,
+    ] {
+        assert_eq!(AppLifecycle::from_u8(state.as_u8()).unwrap(), state);
+    }
+
+    // The three states produce three different leaves.
     let key = AccountKey::for_app(&Digest32::repeated(0x77));
     let leaf = |lifecycle| {
         AccountState::App {

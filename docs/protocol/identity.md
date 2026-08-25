@@ -256,9 +256,29 @@ are required; neither is sufficient alone.
 an established, authenticated transport connection, and the nonce is bound to
 that libp2p Peer ID and the observed remote address, single-use, and short-lived
 (seconds, not minutes). It is not precomputable, not transferable between
-validators, and not reusable. This costs an honest requester one round trip and
-costs an attacker a distinct **reachable** address for every concurrent slot it
-wants to hold, which is the part of the attack that does not scale with CPU.
+validators, and not reusable.
+
+Single-use bounds **reuse** of a nonce; it does not bound the **number** of
+nonces, and those are different quantities. A validator that answers every
+issuance request from one address hands that address as many concurrent slots
+as it asks for, and Part 1 then costs an attacker one round trip rather than an
+address. Two further requirements therefore close the volume, and without them
+the rest of this section does not hold:
+
+- **issuance is counted against the step-1 per-source rate limit**, on the same
+  terms as the failed step 9 already is, so a nonce request is not a free
+  operation that bypasses the limit the ordering exists to apply;
+- **a validator declares a cap `k` on the un-consumed, unexpired nonces
+  outstanding for one source**, and refuses issuance with `rate_limited` above
+  it, never by queueing.
+
+With those in place the honest requester pays one round trip, and an attacker
+pays a distinct **reachable** address for every `k` concurrent slots it wants
+to hold — `k` being the validator's declared cap, not one, and not unbounded.
+That address cost is the part of the attack that does not scale with CPU, and
+it is proportional to the concurrency the attacker wants rather than equal to
+it. `k` is local operational policy, like the other bounds in this section:
+what is normative is that it exists, is declared, and fails closed.
 
 **Part 2 — a constant-verification puzzle.** With the nonce, the validator
 issues `admission_difficulty_bits`. The requester searches `admission_solution`

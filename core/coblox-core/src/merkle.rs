@@ -299,17 +299,21 @@ pub fn revocation_root(entries: &[(String, u64)]) -> Result<Digest32> {
 
 /// An app account's lifecycle state.
 ///
-/// **Declared specification gap.** `ledger.md` writes `app_leaf` as
+/// `ledger.md` writes `app_leaf` as
 /// `H(0x13 || account_key || u64be(balance) || u64be(nonce) || lifecycle_u8 ||
-/// u64be(suspension_effective_epoch))` but never assigns numeric values to
-/// `active`, `grace` and `suspended`. No other document in `docs/protocol/`
-/// supplies the mapping either, so `lifecycle_u8` is currently undefined and
-/// two conformant implementations can compute different `app_leaf` values for
-/// the same state. The encoding below — declaration order, starting at zero —
-/// is this implementation's **provisional** choice; it is not derivable from
-/// the specification and must be replaced by whatever the protocol document
-/// eventually fixes. `docs/protocol/` is read-only for SPEC-008, so the gap is
-/// reported rather than filled.
+/// u64be(suspension_effective_epoch))`, and since 2026-08-25 it also fixes
+/// `lifecycle_u8`: `active` is `0x01`, `grace` is `0x02`, `suspended` is
+/// `0x03`, and every other value — `0x00` included — is invalid. The reserved
+/// zero is deliberate and is the reason [`AppLifecycle::from_u8`] exists as a
+/// fallible constructor rather than as a `From<u8>` with a fallback arm: a
+/// zero-filled or truncated record must be rejected where it is read, not
+/// silently become the permissive state.
+///
+/// Until that encoding was published this crate carried a provisional `0/1/2`
+/// mapping, recorded as [DEBT-012]: two conformant implementations could
+/// compute different `app_leaf` values for the same state and split the chain
+/// at the first app account that was not `active`. `APP-0` in the conformance
+/// registry now pins the published byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppLifecycle {
     /// Serving normally.
@@ -321,13 +325,31 @@ pub enum AppLifecycle {
 }
 
 impl AppLifecycle {
-    /// The provisional `lifecycle_u8` encoding. See the type documentation.
+    /// The reserved `lifecycle_u8` value. Never assigned, always invalid.
+    pub const RESERVED_U8: u8 = 0x00;
+
+    /// The normative `lifecycle_u8` encoding of `ledger.md`.
     #[must_use]
     pub const fn as_u8(self) -> u8 {
         match self {
-            Self::Active => 0,
-            Self::Grace => 1,
-            Self::Suspended => 2,
+            Self::Active => 0x01,
+            Self::Grace => 0x02,
+            Self::Suspended => 0x03,
+        }
+    }
+
+    /// Decodes a `lifecycle_u8`, rejecting every unassigned value.
+    ///
+    /// There is no default arm on purpose. `0x00` is the value an
+    /// uninitialized or truncated record yields for free, and the whole point
+    /// of reserving it is that reading one is an error rather than a silently
+    /// permissive `Active`.
+    pub fn from_u8(byte: u8) -> Result<Self> {
+        match byte {
+            0x01 => Ok(Self::Active),
+            0x02 => Ok(Self::Grace),
+            0x03 => Ok(Self::Suspended),
+            _ => Err(crate::error::JsonError::Field("lifecycle_u8".to_owned()).into()),
         }
     }
 

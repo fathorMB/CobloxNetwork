@@ -38,6 +38,30 @@ jobs:
         with:
           command: check
 
+  protocol-docs:
+    # The guards over docs/protocol/ that [ADR-012] requires to be versioned.
+    # They were versioned but never executed by anything except a person
+    # remembering to, which is the failure mode that ADR exists to close: a
+    # guard nobody runs is a guard nobody trusts. These three exit non-zero on
+    # a finding and need no toolchain beyond the standard library.
+    name: Protocol document guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # No setup-python step: the runner image ships a python3 newer than the
+      # 3.11 these tools need (they use `tomllib`, added in 3.11), and pinning
+      # another action by digest buys nothing here.
+      - name: Interpreter version
+        run: python3 --version
+      - name: Published-artifact inventory
+        run: python3 sim/tools/published_artifacts.py
+      - name: The inventory proved in the negative, ten defect classes
+        run: python3 sim/tools/published_artifacts_negative.py
+      - name: Registry hashes recomputed from the written bytes
+        run: python3 sim/tools/protocol_hashes.py
+      - name: Reward and election rule checks
+        run: python3 sim/tools/reward_rules.py
+
   android:
     name: Android arm64 + Kotlin bindings
     runs-on: ubuntu-latest

@@ -2,7 +2,7 @@
 id: SPEC-012
 # Note: Quote the title if it contains a colon
 title: "Verificatore Ed25519 consensus-critical con i vettori speccheck come oracolo"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: core
@@ -22,8 +22,10 @@ links: []
 created: 2026-08-25
 updated: 2026-08-25
 tags: [conformance, rust, security]
+activity:
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
-
 # Verificatore Ed25519 consensus-critical con i vettori speccheck come oracolo
 
 ## Objective

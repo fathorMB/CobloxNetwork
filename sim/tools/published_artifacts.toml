@@ -1,0 +1,1389 @@
+# Inventory of every published artifact of the Coblox v0 protocol documents.
+#
+# Written by hand and checked by sim/tools/published_artifacts.py, which
+# re-derives the candidate set from docs/protocol/ and fails when the two
+# disagree in either direction. See that file for the ten defect classes.
+#
+# [ADR-012] requires the sweep; [DEBT-012] asked the coverage question this
+# manifest answers. Run `python sim/tools/published_artifacts.py --uncovered`
+# for the answer in prose.
+
+[meta]
+schema_version = "1"
+documents = ["README.md", "identity.md", "ledger.md", "wire.md", "app-manifest.md"]
+not_covered = [
+  "Prose. A rule or value stated only in running text carries no domain string, tag byte, fixture identifier or digest literal and is invisible to the mechanical sweep. The C10 probe list pins the passages that matter today and is not claimed to be exhaustive.",
+  "base64url presentations outside the 43-character (32-byte) and 22-character (16-byte) unpadded forms, including the 86-character signature placeholders.",
+  "Semantic correctness of any digest. This tool never recomputes one; sim/tools/protocol_hashes.py and the coblox-core conformance suite do.",
+  "Numeric fixture values that are not digests, such as the parameter values of the PD-0 bodies. Those are the subject of sim/tools/reward_rules.py and of the constraint-block validation the registry section already requires of a suite.",
+]
+
+# --- domain-separation strings ---------------------------------------------
+
+[[domain]]
+name = "coblox-account-key-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "account_key"
+
+[[domain]]
+name = "coblox-app-id-v0"
+kind = "hash-preimage"
+site = "app-manifest.md"
+purpose = "app_id"
+
+[[domain]]
+name = "coblox-app-manifest-v0"
+kind = "signature-domain"
+site = "app-manifest.md"
+purpose = "publisher signature"
+
+[[domain]]
+name = "coblox-block-id-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "block_id"
+
+[[domain]]
+name = "coblox-block-vote-v0"
+kind = "signature-domain"
+site = "ledger.md"
+purpose = "finality vote"
+
+[[domain]]
+name = "coblox-chain-id-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "chain_id"
+
+[[domain]]
+name = "coblox-challenge-evidence-v0"
+kind = "signature-domain"
+site = "ledger.md"
+purpose = "auditor signature"
+
+[[domain]]
+name = "coblox-challenge-issuer-commitment-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "issuer_commitment"
+
+[[domain]]
+name = "coblox-challenge-randomness-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "challenge_randomness"
+
+[[domain]]
+name = "coblox-challenge-request-hash-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "request_hash"
+
+[[domain]]
+name = "coblox-challenge-request-v0"
+kind = "signature-domain"
+site = "wire.md"
+purpose = "challenge issuer signature"
+
+[[domain]]
+name = "coblox-challenge-response-hash-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "response_hash"
+
+[[domain]]
+name = "coblox-challenge-response-v0"
+kind = "signature-domain"
+site = "wire.md"
+purpose = "challenge subject signature"
+
+[[domain]]
+name = "coblox-compute-input-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "input_hash"
+
+[[domain]]
+name = "coblox-consensus-key-binding-v0"
+kind = "signature-domain"
+site = "ledger.md"
+purpose = "consensus key binding"
+
+[[domain]]
+name = "coblox-consensus-parameters-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "consensus_parameters_hash"
+
+[[domain]]
+name = "coblox-dht-v0"
+kind = "hash-preimage"
+site = "wire.md"
+purpose = "dht_namespace_key"
+
+[[domain]]
+name = "coblox-election-entropy-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "election_entropy"
+
+[[domain]]
+name = "coblox-election-seed-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "election_seed"
+
+[[domain]]
+name = "coblox-election-ticket-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "election_ticket"
+
+[[domain]]
+name = "coblox-enrollment-admission-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "admission_tag"
+
+[[domain]]
+name = "coblox-enrollment-certificate-v0"
+kind = "signature-domain"
+site = "identity.md"
+purpose = "enrollment certificate"
+
+[[domain]]
+name = "coblox-enrollment-parameter-set-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "parameter_set_hash"
+
+[[domain]]
+name = "coblox-enrollment-pow-salt-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "enrollment_pow_salt"
+
+[[domain]]
+name = "coblox-enrollment-pow-v0"
+kind = "hash-preimage"
+site = "identity.md"
+purpose = "pow_password"
+
+[[domain]]
+name = "coblox-enrollment-request-hash-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "enrollment_request_hash"
+
+[[domain]]
+name = "coblox-enrollment-request-v0"
+kind = "signature-domain"
+site = "identity.md"
+purpose = "enrollment request"
+
+[[domain]]
+name = "coblox-hosting-rate-card-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "hosting_rate_card_hash"
+
+[[domain]]
+name = "coblox-ledger-transaction-v0"
+kind = "signature-domain"
+site = "ledger.md"
+purpose = "transaction authorization"
+
+[[domain]]
+name = "coblox-message-id-v0"
+kind = "hash-preimage"
+site = "wire.md"
+purpose = "message_id"
+
+[[domain]]
+name = "coblox-node-id-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "node_id"
+
+[[domain]]
+name = "coblox-protocol-document-v0"
+kind = "signature-domain"
+site = "README.md"
+purpose = "governed document signature"
+
+[[domain]]
+name = "coblox-reward-policy-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "policy_hash"
+
+[[domain]]
+name = "coblox-storage-object-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "object_id"
+
+[[domain]]
+name = "coblox-tx-id-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "tx_id"
+
+[[domain]]
+name = "coblox-validator-set-v0"
+kind = "hash-preimage"
+site = "ledger.md"
+purpose = "validator_set_hash"
+
+[[domain]]
+name = "coblox-weak-subjectivity-checkpoint-v0"
+kind = "hash-preimage"
+site = "README.md"
+purpose = "weak_subjectivity_checkpoint_hash"
+
+[[domain]]
+name = "coblox-weak-subjectivity-signature-v0"
+kind = "signature-domain"
+site = "README.md"
+purpose = "checkpoint signature"
+
+[[domain]]
+name = "coblox-wire-envelope-v0"
+kind = "signature-domain"
+site = "wire.md"
+purpose = "wire envelope signature"
+
+# --- tagged-tree tag bytes -------------------------------------------------
+
+[[tag]]
+byte = "0x00"
+tree = "transaction merkle tree"
+site = "ledger.md"
+preimage = "tx_leaf"
+
+[[tag]]
+byte = "0x01"
+tree = "transaction merkle tree"
+site = "ledger.md"
+preimage = "merkle_node"
+
+[[tag]]
+byte = "0x02"
+tree = "transaction merkle tree"
+site = "ledger.md"
+preimage = "tx_padding_leaf"
+
+[[tag]]
+byte = "0x03"
+tree = "transaction merkle tree"
+site = "ledger.md"
+preimage = "empty_transactions_root"
+
+[[tag]]
+byte = "0x10"
+tree = "sparse account state tree"
+site = "ledger.md"
+preimage = "node_leaf"
+
+[[tag]]
+byte = "0x11"
+tree = "sparse account state tree"
+site = "ledger.md"
+preimage = "sparse_branch"
+
+[[tag]]
+byte = "0x12"
+tree = "sparse account state tree"
+site = "ledger.md"
+preimage = "sparse_empty_leaf"
+
+[[tag]]
+byte = "0x13"
+tree = "sparse account state tree"
+site = "ledger.md"
+preimage = "app_leaf"
+
+[[tag]]
+byte = "0x20"
+tree = "active subscription tree"
+site = "ledger.md"
+preimage = "subscription_leaf"
+
+[[tag]]
+byte = "0x21"
+tree = "active subscription tree"
+site = "ledger.md"
+preimage = "subscription_node"
+
+[[tag]]
+byte = "0x22"
+tree = "active subscription tree"
+site = "ledger.md"
+preimage = "subscription_empty"
+
+[[tag]]
+byte = "0x23"
+tree = "active subscription tree"
+site = "ledger.md"
+preimage = "empty_subscription_root"
+
+[[tag]]
+byte = "0x24"
+tree = "eligible set tree"
+site = "ledger.md"
+preimage = "eligible_leaf"
+
+[[tag]]
+byte = "0x25"
+tree = "eligible set tree"
+site = "ledger.md"
+preimage = "eligible_node"
+
+[[tag]]
+byte = "0x26"
+tree = "eligible set tree"
+site = "ledger.md"
+preimage = "eligible_empty"
+
+[[tag]]
+byte = "0x27"
+tree = "eligible set tree"
+site = "ledger.md"
+preimage = "empty_eligible_root"
+
+[[tag]]
+byte = "0x30"
+tree = "revocation tree"
+site = "README.md"
+preimage = "revocation_leaf"
+
+[[tag]]
+byte = "0x31"
+tree = "revocation tree"
+site = "README.md"
+preimage = "revocation_node"
+
+[[tag]]
+byte = "0x32"
+tree = "revocation tree"
+site = "README.md"
+preimage = "revocation_empty"
+
+[[tag]]
+byte = "0x33"
+tree = "revocation tree"
+site = "README.md"
+preimage = "empty_revocation_root"
+
+[[tag]]
+byte = "0x40"
+tree = "candidate set tree"
+site = "ledger.md"
+preimage = "candidate_leaf"
+
+[[tag]]
+byte = "0x41"
+tree = "candidate set tree"
+site = "ledger.md"
+preimage = "candidate_node"
+
+[[tag]]
+byte = "0x42"
+tree = "candidate set tree"
+site = "ledger.md"
+preimage = "candidate_empty"
+
+[[tag]]
+byte = "0x43"
+tree = "candidate set tree"
+site = "ledger.md"
+preimage = "empty_candidate_root"
+
+# --- named conformance fixtures --------------------------------------------
+
+[[fixture]]
+id = "ADM-0"
+site = "README.md"
+covers = "the admission tag"
+
+[[fixture]]
+id = "ADM-1"
+site = "identity.md"
+covers = "the admission-shield burst behaviour fixture (behavioural, not a digest)"
+
+[[fixture]]
+id = "APP-0"
+site = "README.md"
+covers = "the suspended app account, its account_key and its app_leaf"
+
+[[fixture]]
+id = "CMT-0"
+site = "README.md"
+covers = "the challenge issuer commitment"
+
+[[fixture]]
+id = "ELEC-0"
+site = "README.md"
+covers = "the epoch-3 election entropy, seed and ticket"
+
+[[fixture]]
+id = "ER-0"
+site = "README.md"
+covers = "the enrollment request of the registry"
+
+[[fixture]]
+id = "HASH-0"
+site = "README.md"
+covers = "the all-zero chain_id and the 00 01 02 byte string shared by the registry rows"
+
+[[fixture]]
+id = "ORDER-1"
+site = "ledger.md"
+covers = "the state transition ordering fixture (behavioural, not a digest)"
+
+[[fixture]]
+id = "PD-0"
+site = "README.md"
+covers = "the four governed protocol documents of the registry"
+
+[[fixture]]
+id = "REQ-0"
+site = "README.md"
+covers = "the unsigned challenge request"
+
+[[fixture]]
+id = "RESP-0"
+site = "README.md"
+covers = "the unsigned challenge response"
+
+[[fixture]]
+id = "REVL-0"
+site = "README.md"
+covers = "the single revocation leaf, which is also the single-entry root"
+
+[[fixture]]
+id = "RND-0"
+site = "README.md"
+covers = "the challenge randomness derived from CMT-0"
+
+[[fixture]]
+id = "SMT-1"
+site = "ledger.md"
+covers = "the negative sparse-Merkle proof with an explicit default sibling"
+
+[[fixture]]
+id = "WSC-0"
+site = "README.md"
+covers = "the unsigned weak subjectivity checkpoint"
+
+# --- every digest literal in the documents ---------------------------------
+# class = "registry"     a value the documents publish as expected
+# class = "illustrative" a placeholder inside an inline example
+
+[[value]]
+hex = "004e3b02570032774d181a20dbb4d5e23f6fe83092374635189f42c513db97d9"
+class = "registry"
+site = "ledger.md"
+name = "candidate_leaf 04 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "00811b3f6ae09c7acdb2e5c92fb273a05481f75fd477901fd43f76a9290b19b7"
+class = "illustrative"
+site = "ledger.md"
+name = "transactions_root placeholder in the block header example"
+
+[[value]]
+hex = "00d36c1eb2fc336cb635735bbae46cf3e2a32322f4761db3d29a297644e45bb2"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 1 [0] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "154a73c742c2f580aafaf97401ef5633898862d761fc13ed230db7817b0111fd"
+class = "registry"
+site = "ledger.md"
+name = "candidate_leaf 05 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5"
+class = "registry"
+site = "README.md"
+name = "issuer_commitment | CMT-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/canonical_serialization.rs"]
+
+[[value]]
+hex = "1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"
+class = "illustrative"
+site = "identity.md"
+name = "validator_set_hash placeholder in the inline examples"
+
+[[value]]
+hex = "29a63c10926e75ed418c6f3c7670b0edfeb0b021868d1342b788327f53767e42"
+class = "registry"
+site = "README.md"
+name = "election_entropy | ELEC-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e"
+class = "registry"
+site = "README.md"
+name = "weak_subjectivity_checkpoint_hash | WSC-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "2d1e35bf61f89fc50cb9cafe158f44ad63d522898971e0211d59708331c4b404"
+class = "illustrative"
+site = "ledger.md"
+name = "pricing_hash placeholder in the burn examples"
+
+[[value]]
+hex = "2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697"
+class = "registry"
+site = "README.md"
+name = "app_leaf | APP-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "2f0e2c8a9d4b6f1c3e5a7b9d0f2468ace13579bdf02468ace13579bdf02468ac"
+class = "illustrative"
+site = "ledger.md"
+name = "eligible_set_root placeholder in the existence-income mint example"
+
+[[value]]
+hex = "313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"
+class = "illustrative"
+site = "ledger.md"
+name = "evidence tx_id placeholder in the existence-income mint example"
+
+[[value]]
+hex = "3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21"
+class = "illustrative"
+site = "ledger.md"
+name = "challenge_id placeholder; also the request_hash of the same example, which the specification requires to be equal"
+
+[[value]]
+hex = "42e4f6b1f01af3b69ba154aa464738829635a3ed7facf65e652d9712b461924a"
+class = "registry"
+site = "ledger.md"
+name = "candidate_root | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "44dc2df246a89f42d9a9da10f621c86f5141b597b1a6f08cc78b5e61a8388eb1"
+class = "illustrative"
+site = "identity.md"
+name = "enrollment_request_hash placeholder in the certificate example"
+
+[[value]]
+hex = "457915b8cd8816c5fe76651bdda0578983f8e393c7e4fe0b24376ca0bca22628"
+class = "registry"
+site = "README.md"
+name = "admission_tag | ADM-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+class = "registry"
+site = "README.md"
+name = "empty revocation_root H(0x33)"
+mirrors = ["sim/tools/protocol_hashes.py", "core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "547132161f56f2361faf3caae90224e1b5c04ae1986ab871703b7003693c5fdd"
+class = "registry"
+site = "ledger.md"
+name = "election_ticket 06 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "56d2aa0cd4c2ff0b06c47b478b6bfc2dff88b2c162c6cff1e33f9bf3284c7308"
+class = "illustrative"
+site = "wire.md"
+name = "message_id placeholder in the wire examples"
+
+[[value]]
+hex = "5d426fa91db2b6acb77c0980837dea9e54380afc25eede062e05e2cab2dc6c2b"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 2 [1] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9"
+class = "registry"
+site = "README.md"
+name = "consensus_parameters_hash | consensus PD-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/light_client_perimeter.rs"]
+
+[[value]]
+hex = "66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9"
+class = "registry"
+site = "README.md"
+name = "input_hash | bytes 00 01 02"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8"
+class = "illustrative"
+site = "ledger.md"
+name = "app_id placeholder in the ledger examples"
+
+[[value]]
+hex = "7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc"
+class = "illustrative"
+site = "identity.md"
+name = "governed-document hash placeholder, reused as parameter_set_hash, policy_hash and consensus_parameters_hash"
+
+[[value]]
+hex = "7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af"
+class = "illustrative"
+site = "identity.md"
+name = "block_id placeholder in the inline examples"
+
+[[value]]
+hex = "7fb1f4024627c413cbf70b49a390b6d31778e667e86042864c4bed107cd52497"
+class = "registry"
+site = "README.md"
+name = "revocation_leaf | REVL-0"
+mirrors = ["sim/tools/protocol_hashes.py", "core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48"
+class = "registry"
+site = "README.md"
+name = "policy_hash | reward PD-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f"
+class = "illustrative"
+site = "ledger.md"
+name = "response_hash placeholder in the challenge-evidence example"
+
+[[value]]
+hex = "8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360"
+class = "registry"
+site = "README.md"
+name = "request_hash | REQ-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "8cebe4ad890bd41e8c37b87ad976ad92b8ef35aa3284c441d86691cfdaad88d7"
+class = "registry"
+site = "README.md"
+name = "challenge_randomness | RND-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "993b24bf6115fbf5651d615ca57a1baa825baf304b1dcc4d52debbc7fa3bd6d8"
+class = "illustrative"
+site = "ledger.md"
+name = "state_root placeholder in the block header example"
+
+[[value]]
+hex = "9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8"
+class = "registry"
+site = "README.md"
+name = "hosting_rate_card_hash | hosting PD-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "9d04ef2f66f5403d275fa1f80819ce40a17af81931d263d3c390e0291e0b19c9"
+class = "registry"
+site = "ledger.md"
+name = "election_ticket 08 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "9e2aa2621f957279e4bdf1c4ccea5629ce429892ac3f9af10c9456a3c78dad85"
+class = "registry"
+site = "README.md"
+name = "election_seed | ELEC-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "9ecce0184a6b8d6d3a1257add0af3a16cc64809fe2cf723cfe91b570abe07f44"
+class = "registry"
+site = "ledger.md"
+name = "candidate_leaf 06 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "9ee7dba4de0a88de35a8813c32c6d8cce0a86766c0ee65db3d26f519164b750e"
+class = "illustrative"
+site = "ledger.md"
+name = "active_subscription_root placeholder in the subscription-cycle passage"
+
+[[value]]
+hex = "a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21"
+class = "registry"
+site = "README.md"
+name = "election_ticket | ELEC-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63"
+class = "registry"
+site = "README.md"
+name = "parameter_set_hash | enrollment PD-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "a2bb9ac490112abad3c2af7197fdf6efe62af01b7c251f8d3443b20fa145a060"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 2 [0] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "a5b6042890092482e58c2fb7b4d7f78eb5bc546b2258f7f831b9412e8c4175a6"
+class = "illustrative"
+site = "app-manifest.md"
+name = "module digest placeholder in the app manifest example"
+
+[[value]]
+hex = "a7ee32ed571f99897d698653a14d292cfea8e8633f95a9db217ea993c7773e91"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 1 [3] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d"
+class = "registry"
+site = "README.md"
+name = "account_key (app) | APP-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "b65c2a34ededd92d98721c11a620cc6f16e87a03f512e54fd35b35cd70c3bf39"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 1 [2] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "c9e67f59e0d4a6c08cc588bb906b17c8bddba657def06d6c2f111c64420796ca"
+class = "registry"
+site = "ledger.md"
+name = "candidate_leaf 08 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f"
+class = "registry"
+site = "README.md"
+name = "enrollment_request_hash | ER-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41"
+class = "registry"
+site = "README.md"
+name = "response_hash | RESP-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "cd3950bac9c60b73523a0f8157e5da8384515d2e9c4ef4127be2d910b878158c"
+class = "registry"
+site = "ledger.md"
+name = "candidate_leaf 02 | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "db1bd3372cea52438df608862c3dcb3c0a2b1c16b152c296c2a8effe9005bc20"
+class = "registry"
+site = "ledger.md"
+name = "candidate_node level 1 [1] | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
+class = "registry"
+site = "ledger.md"
+name = "candidate_empty H(0x42) | worked example"
+mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c"
+class = "registry"
+site = "README.md"
+name = "object_id | bytes 00 01 02"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "fc9cd19c4f7b32970a7c870e821dbca915d204c09a496d60b17f66ec8790ad3a"
+class = "illustrative"
+site = "ledger.md"
+name = "active_subscription_root placeholder in the publisher mint example"
+
+# --- base64url presentations -----------------------------------------------
+
+[[presentation]]
+text = "11qYAYdk9J0L5Z-6hB4qMTPBSAE5nK1G0IU2n6z1V9g"
+class = "illustrative"
+site = "ledger.md"
+name = "publisher public key placeholder"
+
+[[presentation]]
+text = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+class = "illustrative"
+site = "ledger.md"
+name = "the all-zero sibling bitmap of the absent-account proof example"
+
+[[presentation]]
+text = "AAECAwQFBgcICQoLDA0ODw"
+class = "illustrative"
+site = "wire.md"
+name = "the 00..0f envelope nonce placeholder"
+
+[[presentation]]
+text = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+class = "illustrative"
+site = "ledger.md"
+name = "the 00..1f byte string used as randomness and account_key placeholders"
+
+[[presentation]]
+text = "IjIiMiIyIjIiMiIyIjIiMiIyIjIiMiIyIjIiMiIyIjI"
+class = "illustrative"
+site = "ledger.md"
+name = "consensus public key placeholder"
+
+[[presentation]]
+text = "L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s"
+class = "registry"
+site = "identity.md"
+name = "the identity fixture public key of identity.md"
+
+[[presentation]]
+text = "MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"
+class = "illustrative"
+site = "ledger.md"
+name = "33 repeated 32 bytes, the challenge response placeholder"
+
+[[presentation]]
+text = "REREREREREREREREREREREREREREREREREREREREREQ"
+class = "illustrative"
+site = "ledger.md"
+name = "44 repeated 32 bytes, the issuer_reveal placeholder"
+
+[[presentation]]
+text = "iIiIiIiIiIiIiIiIiIiIiA"
+class = "registry"
+site = "README.md"
+name = "the admission_nonce of ADM-0, 88 repeated 16 bytes"
+
+[[presentation]]
+text = "jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc"
+class = "registry"
+site = "README.md"
+name = "the wire presentation of challenge_randomness RND-0"
+
+# --- preimages, and whether a published fixture covers them ----------------
+# This table is the written answer to the general question of [DEBT-012].
+
+[[preimage]]
+id = "chain_id"
+site = "README.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "Derived from a network_id and a genesis block ID, neither of which v0 fixes: a fixture would have to invent a genesis and would then be the only place in the documents asserting one. Covered indirectly, since every registry row binds the all-zero chain_id of HASH-0."
+
+[[preimage]]
+id = "node_id"
+site = "identity.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "identity.md#node-identifier publishes the derivation of cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq from the fixture public key; it is a base32 presentation and so has no row in the digest table."
+
+[[preimage]]
+id = "enrollment_request_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "ER-0"
+expected = "sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f"
+uncovered_reason = ""
+
+[[preimage]]
+id = "parameter_set_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "PD-0"
+expected = "sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63"
+uncovered_reason = ""
+
+[[preimage]]
+id = "policy_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "PD-0"
+expected = "sha256:89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48"
+uncovered_reason = ""
+
+[[preimage]]
+id = "hosting_rate_card_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "PD-0"
+expected = "sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8"
+uncovered_reason = ""
+
+[[preimage]]
+id = "consensus_parameters_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "PD-0"
+expected = "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9"
+uncovered_reason = ""
+
+[[preimage]]
+id = "object_id"
+site = "README.md"
+coverage = "fixture"
+fixture = "HASH-0"
+expected = "sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c"
+uncovered_reason = ""
+
+[[preimage]]
+id = "input_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "HASH-0"
+expected = "sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9"
+uncovered_reason = ""
+
+[[preimage]]
+id = "request_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "REQ-0"
+expected = "sha256:8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360"
+uncovered_reason = ""
+
+[[preimage]]
+id = "response_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "RESP-0"
+expected = "sha256:cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41"
+uncovered_reason = ""
+
+[[preimage]]
+id = "issuer_commitment"
+site = "README.md"
+coverage = "fixture"
+fixture = "CMT-0"
+expected = "sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5"
+uncovered_reason = ""
+
+[[preimage]]
+id = "challenge_randomness"
+site = "README.md"
+coverage = "fixture"
+fixture = "RND-0"
+expected = "sha256:8cebe4ad890bd41e8c37b87ad976ad92b8ef35aa3284c441d86691cfdaad88d7"
+uncovered_reason = ""
+
+[[preimage]]
+id = "election_entropy"
+site = "README.md"
+coverage = "fixture"
+fixture = "ELEC-0"
+expected = "sha256:29a63c10926e75ed418c6f3c7670b0edfeb0b021868d1342b788327f53767e42"
+uncovered_reason = ""
+
+[[preimage]]
+id = "election_seed"
+site = "README.md"
+coverage = "fixture"
+fixture = "ELEC-0"
+expected = "sha256:9e2aa2621f957279e4bdf1c4ccea5629ce429892ac3f9af10c9456a3c78dad85"
+uncovered_reason = ""
+
+[[preimage]]
+id = "election_ticket"
+site = "README.md"
+coverage = "fixture"
+fixture = "ELEC-0"
+expected = "sha256:a10e8ec4a79c2defa40f869c68c2a1570bbb4a5b12b597a28d94294bf7582f21"
+uncovered_reason = ""
+
+[[preimage]]
+id = "admission_tag"
+site = "README.md"
+coverage = "fixture"
+fixture = "ADM-0"
+expected = "sha256:457915b8cd8816c5fe76651bdda0578983f8e393c7e4fe0b24376ca0bca22628"
+uncovered_reason = ""
+
+[[preimage]]
+id = "weak_subjectivity_checkpoint_hash"
+site = "README.md"
+coverage = "fixture"
+fixture = "WSC-0"
+expected = "sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e"
+uncovered_reason = ""
+
+[[preimage]]
+id = "account_key"
+site = "README.md"
+coverage = "fixture"
+fixture = "APP-0"
+expected = "sha256:a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d"
+uncovered_reason = ""
+
+[[preimage]]
+id = "app_leaf"
+site = "README.md"
+coverage = "fixture"
+fixture = "APP-0"
+expected = "sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697"
+uncovered_reason = ""
+
+  [[preimage.symbolic_field]]
+  field = "lifecycle_u8"
+  site = "ledger.md"
+  probe = "\\| `active` \\| `0x01` \\|"
+
+[[preimage]]
+id = "enrollment_pow_salt"
+site = "README.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "Named in the preimage registry with no row of its own. It is a 16-byte truncation whose only consumer is the Argon2id salt, so an implementation that gets it wrong fails the ADM-0 and ER-0 rows for a different reason; a dedicated fixture would still be worth adding and is the clearest remaining gap."
+
+[[preimage]]
+id = "pow_password"
+site = "identity.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "The Argon2id password. Verifying it end to end requires an Argon2id evaluation, which the documents deliberately keep out of the digest table; the enrollment example carries a placeholder proof-of-work nonce rather than a solved one."
+
+[[preimage]]
+id = "tx_id"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "JCS over a full unsigned transaction. The seven canonical transaction examples fix the JCS form, which is the part an implementation gets wrong, but none carries its own tx_id."
+
+[[preimage]]
+id = "block_id"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "JCS over a block header. The canonical header example fixes the JCS form; no published value is its digest."
+
+[[preimage]]
+id = "validator_set_hash"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "JCS over a ValidatorSet. No canonical ValidatorSet example is published, so the JCS form of that object is fixed only by the schema. Note that this preimage, alone among the domain-separated ones, does not bind chain_id."
+
+[[preimage]]
+id = "app_id"
+site = "app-manifest.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "JCS over an unsigned manifest. The canonical manifest example fixes the JCS form; its app_id is not published."
+
+[[preimage]]
+id = "message_id"
+site = "wire.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "JCS over an envelope without message_id and signature. The canonical envelope example fixes the JCS form; the message_id it carries is a placeholder."
+
+[[preimage]]
+id = "dht_namespace_key"
+site = "wire.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "Derived from a genesis block ID, which v0 does not fix, for the same reason as chain_id. It is a discovery namespace, not a consensus commitment."
+
+[[preimage]]
+id = "tx_leaf"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "One tag byte over a tx_id. Uncovered together with the whole transaction Merkle tree; the tree's shape rules (order preserved, padded with H(0x02), empty root H(0x03)) are stated but no worked example computes a transactions_root."
+
+[[preimage]]
+id = "merkle_node"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "As tx_leaf: the transaction Merkle tree has no published worked example. The candidate-set tree of the election has one, and it exercises the same shape."
+
+[[preimage]]
+id = "tx_padding_leaf"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x02), the transaction-tree padding leaf. No published value."
+
+[[preimage]]
+id = "empty_transactions_root"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x03), the empty-block transactions root. No published value, although its revocation-tree counterpart H(0x33) has one."
+
+[[preimage]]
+id = "node_leaf"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "The node-account counterpart of app_leaf. It commits no symbolic byte — account_key, two u64be — so it carries none of the risk that made app_leaf urgent, but it is the clearest candidate for the next fixture after enrollment_pow_salt."
+
+[[preimage]]
+id = "sparse_branch"
+site = "ledger.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "ledger.md#sparse-merkle-account-state publishes the canonical absent-account proof, whose verification walks 256 default branches; the coblox-core suite reproduces the empty root from it. No single branch digest is published as a literal."
+
+[[preimage]]
+id = "sparse_empty_leaf"
+site = "ledger.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "Covered by the same published absent-account proof: empty[256] is the leaf that proof asserts."
+
+[[preimage]]
+id = "subscription_leaf"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "The active-subscription tree has no published worked example. Its root appears in the publisher-reward mint example only as a placeholder."
+
+[[preimage]]
+id = "subscription_node"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "As subscription_leaf."
+
+[[preimage]]
+id = "subscription_empty"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "As subscription_leaf."
+
+[[preimage]]
+id = "empty_subscription_root"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x23). Stated to be unreachable in a valid publisher reward, and not published."
+
+[[preimage]]
+id = "eligible_leaf"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "The eligible-set tree has no published worked example. Its root appears in the existence-income mint example only as a placeholder."
+
+[[preimage]]
+id = "eligible_node"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "As eligible_leaf."
+
+[[preimage]]
+id = "eligible_empty"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "As eligible_leaf."
+
+[[preimage]]
+id = "empty_eligible_root"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x27). Stated to be unreachable in a valid mint, and not published."
+
+[[preimage]]
+id = "revocation_leaf"
+site = "README.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "README.md#weak-subjectivity-checkpoint publishes REVL-0 as a literal, outside the digest table."
+
+[[preimage]]
+id = "revocation_node"
+site = "README.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "REVL-0 is a single-entry tree, so no internal node is exercised by it. A two-entry fixture would cover this and is not published."
+
+[[preimage]]
+id = "revocation_empty"
+site = "README.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x32), the padding leaf. Not exercised by the single-entry REVL-0 and not published."
+
+[[preimage]]
+id = "empty_revocation_root"
+site = "README.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "README.md#weak-subjectivity-checkpoint publishes H(0x33) as a literal, outside the digest table."
+
+[[preimage]]
+id = "candidate_leaf"
+site = "ledger.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "ledger.md#worked-example-of-the-derivation publishes five candidate leaves as bare hex, outside the digest table."
+
+[[preimage]]
+id = "candidate_node"
+site = "ledger.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "The same worked example publishes six internal nodes and the candidate_root."
+
+[[preimage]]
+id = "candidate_empty"
+site = "ledger.md"
+coverage = "fixture-elsewhere"
+fixture = ""
+expected = ""
+uncovered_reason = "The same worked example publishes H(0x42)."
+
+[[preimage]]
+id = "empty_candidate_root"
+site = "ledger.md"
+coverage = "uncovered"
+fixture = ""
+expected = ""
+uncovered_reason = "H(0x43). Stated to be unreachable in a valid election, and not published."
+
+# --- equalities an inline example must satisfy -----------------------------
+
+[[example_invariant]]
+id = "challenge-evidence-request-hash"
+site = "ledger.md"
+selector = "\"kind\":\"challenge_evidence\""
+equal_fields = ["body.challenge_id", "body.request_hash"]
+rule = "README.md#hash-preimage-registry: `challenge_id` MUST equal `request_hash`"
+
+# --- hand-pinned normative passages ----------------------------------------
+
+[[probe]]
+id = "block-interval-genesis-constant"
+site = "README.md"
+pattern = "\\| `block_interval_seconds` \\| `5` \\| no — genesis only \\(\\[ADR-013\\]\\) \\|"
+count = 1
+why = "The genesis constant of [ADR-013] must stay in the documents as a constant and not as a governed parameter."
+
+[[probe]]
+id = "block-interval-not-enforced"
+site = "README.md"
+pattern = "\\*\\*`block_interval_seconds = 5` is declared, not enforced\\.\\*\\*"
+count = 1
+why = "[ADR-013] part 3 is a renunciation, and a declared cadence reads as an enforced one unless the difference is written."
+
+[[probe]]
+id = "block-interval-debt-link"
+site = "README.md"
+pattern = "\\[DEBT-013\\]"
+count = 1
+why = "The unenforced cadence must stay linked to the debt that owns it; SPEC-010 was not permitted to close it."
+
+[[probe]]
+id = "block-interval-in-ledger"
+site = "ledger.md"
+pattern = "\\*\\*The target block interval is 5 seconds, and v0 does not enforce it\\.\\*\\*"
+count = 1
+why = "The block-format section is where an implementer looks for the timestamp rules and must find the non-imposition there."
+
+[[probe]]
+id = "lifecycle-encoding-table"
+site = "ledger.md"
+pattern = "\\| `suspended` \\| `0x03` \\|"
+count = 1
+why = "The lifecycle_u8 encoding is normative because it enters a preimage; DEBT-012 exists because it was missing."
+
+[[probe]]
+id = "lifecycle-zero-reserved"
+site = "ledger.md"
+pattern = "\\*\\*Every other value, `0x00` included, is invalid\\.\\*\\*"
+count = 1
+why = "An unknown lifecycle value must be rejected and never defaulted; a default is how the divergence returns."
+
+[[probe]]
+id = "argon2id-band-declared"
+site = "README.md"
+pattern = "`iterations = 1` with `196608 <= memory_kib < 2097152`"
+count = 1
+why = "RF-109: the admitted band must stay named, because the sentence that omitted it claimed more than the rules impose."
+
+[[probe]]
+id = "argon2id-superlative-retracted"
+site = "README.md"
+pattern = "That is \\*\\*not\\*\\* the same as \\\"everything weaker than either recommendation is"
+count = 1
+why = "RF-109: the retraction must stay. A retraction that is deleted is a rehabilitation, and .lmbrain/knowledge/recurring-defects.md records what a rehabilitation cost this project."
+
+[[probe]]
+id = "admission-nonce-volume-rule"
+site = "identity.md"
+pattern = "\\*\\*issuance is counted against the step-1 per-source rate limit\\*\\*"
+count = 1
+why = "RF-110: without counting issuance, Part 1 of the admission shield costs an attacker a round trip and not an address."
+
+[[probe]]
+id = "admission-nonce-cap-declared"
+site = "identity.md"
+pattern = "every `k` concurrent slots"
+count = 1
+why = "RF-110: the consequence must be stated in terms of the declared cap, not as one address per slot."
+
+[[probe]]
+id = "inline-examples-not-oracles"
+site = "README.md"
+pattern = "\\*\\*The fixture table above is the only oracle in these documents\\.\\*\\*"
+count = 1
+why = "Sixteen of the thirty-seven published digests are placeholders; without this statement a reader cannot tell which."

@@ -1,7 +1,7 @@
 ---
 id: DEBT-008
 title: "Due imprecisioni residue nella specifica del protocollo v0"
-status: open
+status: resolved
 category: "documentation"
 severity: "low"
 origin_severity: "low"
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-007"]
 related_decisions: ["ADR-007"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-010","REVIEW-015"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
 updated: 2026-08-25
 tags: ["documentation","argon2id","enrollment"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-25
+    action: "resolved: Risolto da SPEC-010 nella milestone M-02, come il debito prevedeva. La stima di una riga ciascuna era per difetto su RF-110, dove la correzione corretta era una regola nuova e non una riformulazione, ed e un miglioramento di sostanza rispetto a cio che il debito chiedeva."
 debt_events:
   - schema_version: "1"
     id: "DEBT-008-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Promosso a debito dal Lead alla chiusura di SPEC-001, su mandato dell'operatore di salvare ogni questione emergente invece di lasciarla in una review chiusa. Senza questo, i due finding sparirebbero con l'archiviazione della spec."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-008-EVENT-002"
+    timestamp: "2026-08-25T19:38:51.335566700+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Risolto da SPEC-010 nella milestone M-02, come il debito prevedeva. La stima di una riga ciascuna era per difetto su RF-110, dove la correzione corretta era una regola nuova e non una riformulazione, ed e un miglioramento di sostanza rispetto a cio che il debito chiedeva."
+    evidence_refs: ["SPEC-010", "REVIEW-015"]
 ---
 # Due imprecisioni residue nella specifica del protocollo v0
 
@@ -59,3 +71,8 @@ Le due frasi sono riformulate in modo da corrispondere esattamente a cio che le 
 
 ## Resolution evidence
 
+RF-109 e stata riformulata e non ristretta. Il documento dichiara ora la banda ammessa, iterations uguale 1 con memory_kib fra 196608 e 2097152 escluso, con due righe di frontiera nuove nella tabella di conformita, e nomina il costo della scelta: quella banda ha le stesse KiB-passate della seconda raccomandazione RFC e piu memoria, quindi non e piu debole per nessuna delle due grandezze che le regole misurano, ma la RFC non la raccomanda e il documento non pretende che sia equivalente. Restringere la regola alle due configurazioni nominate e stato rifiutato con la motivazione che una regola che enumera le raccomandazioni correnti di una RFC e una whitelist che invecchia alla prima revisione di quella RFC.
+
+RF-110 e stata chiusa prendendo entrambe le strade e non una. L'implementatore ha contestato l'oppure offerto dalla spec, stabilendo che la sola riformulazione lascerebbe il primo passo dello scudo di ammissione a costare all'attaccante un giro, in contraddizione con l'argomento della sezione stessa. L'emissione dei nonce e ora conteggiata contro il limite per sorgente del primo passo, con un tetto dichiarato k sui nonce in sospeso, e la frase e corretta di conseguenza: con un tetto k il costo e un indirizzo ogni k slot concorrenti, non uno per slot.
+
+Il Lead ha verificato che la frase di RF-109 sta in README.md e non in identity.md come la spec affermava, correzione dell'implementatore registrata come RF-202 di REVIEW-015.
