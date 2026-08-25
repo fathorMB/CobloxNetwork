@@ -2,7 +2,7 @@
 id: SPEC-006
 # Note: Quote the title if it contains a colon
 title: "Regola di elezione e rotazione del set di validatori"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: consensus
@@ -34,6 +34,8 @@ activity:
     action: "set tags"
   - date: 2026-08-25
     action: "set tags"
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
 # Regola di elezione e rotazione del set di validatori
 
