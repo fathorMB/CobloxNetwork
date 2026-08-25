@@ -37,19 +37,17 @@ Risolti: [DEBT-001], [DEBT-005] (l'unico `critical`), [DEBT-006], [DEBT-007], [D
 
 ## Decisioni di prodotto
 
-**Una da portare all'operatore**, su sua richiesta del 2026-08-25, **quando AGENT-007 consegna la valutazione di [DEBT-014] e [DEBT-013]**: la **forma del monitoraggio della rete**.
+**Nessuna aperta.**
 
-La roadmap la nomina in una riga sola a M-08, *«telemetria di salute della rete»*, e le righe sole diventano collettori centrali per inerzia. Il punto che la rende una decisione e non un dettaglio implementativo: **telemetria di rete significa nodi che riportano a qualcuno**, cioè esattamente la superficie di correlazione che [ADR-015] ha tolto e la raccolta che [ADR-014] impegna a dichiarare. Fatta nel modo naturale reintrodurrebbe TM-28 da un'altra porta, con un insieme di nodi privilegiati che vedono tutto — la stessa obiezione per cui il relay obbligatorio è stato rifiutato come rimedio principale.
+**Rimandata deliberatamente: la forma del monitoraggio di rete.** Decisione dell'operatore del 2026-08-25, presa dopo aver visto le alternative e il loro costo. Resta a M-08 come la roadmap prevede, con la motivazione che senza una devnet non si sa quali grandezze servano davvero e deciderle a tavolino rischia di progettare per problemi immaginari.
 
-Le tre forme hanno costi molto diversi: **derivata dalla catena** (verificabile, zero superficie nuova), **auto-riportata** (non verificabile, superficie nuova), **campionata e aggregata** (via di mezzo, e la più difficile da fare onestamente).
+**Il perimetro del rinvio, perche non venga letto piu largo di com'e.** Riguarda la sola *telemetria di rete*, cioe nodi che riportano a qualcuno. Non riguarda la dashboard locale di M-03, che e gia prevista e non crea alcuna superficie nuova.
 
-Va decisa ora e non a M-08, per la stessa ragione per cui la separazione delle chiavi doveva precedere il primo certificato. **Nota di merito che riduce la posta:** molto di ciò che si vorrebbe da un cruscotto è già una grandezza di consenso e non una stima — altezza e cadenza reale, composizione del set e ogni transizione, emissione per epoca, e `eligible_node_count` con `eligible_set_root` in ogni mint di reddito di esistenza. `ledger.md` dichiara già che la deriva di composizione del set è *«a light-client-computable quantity rather than an operator dashboard»*, e lo è per scelta.
+**La condizione che il rinvio porta con se, ed e la ragione per cui e registrato invece che lasciato in conversazione.** Quando M-08 arrivera, *«telemetria di salute della rete»* e una riga sola, e le righe sole diventano collettori centrali per inerzia. La forma va decisa **con un ADR** e non scoperta come dettaglio implementativo, perche telemetria di rete significa nodi che riportano a qualcuno: la superficie di correlazione che [ADR-015] ha tolto e la raccolta che [ADR-014] impegna a dichiarare. Le tre forme e il loro costo sono in questa nota: derivata dalla catena, auto-riportata, campionata e aggregata.
 
-**Nessun'altra aperta.** Le cinque residue sono state chiuse il 2026-08-25: intervallo di blocco ([ADR-013]), popolazione al lancio (annotazione su [ADR-011]), privacy degli abbonati ([ADR-014]), identità di trasporto ([ADR-015]), disposizione di [DEBT-010].
+**Un innesco piu vicino di M-08, da riconoscere quando arriva.** La spec che chiudera [DEBT-013] costruira la misura della cadenza reale dal checkpoint di soggettivita debole, lato light client. E monitoraggio derivato dalla catena che entra da un'altra porta: quando accadra, buona parte della prima opzione sara gia costruita, e conviene accorgersene invece di riprogettarla.
 
-[ADR-015] è stata letta e **accettata** dall'operatore il 2026-08-25. Nessuna azione dell'operatore in sospeso.
-
-Due segnalazioni fuori ambito emerse da [SPEC-010] e da valutare: gli alberi Merkle delle transazioni, degli abbonamenti e dell'insieme eleggibile **non hanno un esempio lavorato pubblicato** mentre quello dei candidati sì; e le lacune più chiare fra le 25 preimmagini senza valore pubblicato sono `enrollment_pow_salt` e `node_leaf`.
+**Cosa la catena gia da senza decidere nulla:** altezza e cadenza reale, composizione del set e ogni transizione, emissione per epoca, e `eligible_node_count` con `eligible_set_root` in ogni mint di reddito di esistenza. `ledger.md` dichiara gia che la deriva di composizione del set e *«a light-client-computable quantity rather than an operator dashboard»*, e lo e per scelta.
 
 ## Next
 
