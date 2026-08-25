@@ -21,7 +21,7 @@ updated: 2026-08-25
 
 - `status`: active
 - `outcome`: Una devnet di validatori seed raggiunge consenso BFT; i light client verificano saldi con prove Merkle; mint & burn implementati a livello di transazioni; primo simulatore economico per la taratura dei parametri.
-- `specs`: []
+- `specs`: [SPEC-005, SPEC-006]
 - `risks`: [complessità del consenso, taratura curve emissione/burn]
 
 ### M-03 — Presenza dimostrata: challenge di availability e reddito di esistenza
