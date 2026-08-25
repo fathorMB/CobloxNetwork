@@ -15,6 +15,10 @@ updated: 2026-08-25
 
 Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007] tocca una promessa di prodotto ed è superabile se non concorda; e un proprio errore di processo è documentato in `.lmbrain/knowledge/commit-discipline.md`.
 
+## Handoff attivo
+
+[HANDOFF-001] — consegna della sessione del 2026-08-25. Il Lead entrante lo legga per primo: contiene stato, decisioni prese su delega, debiti e prossime azioni.
+
 ## Current milestone
 
 M-01 — Fondamenta: protocollo su carta e scheletro del core.
