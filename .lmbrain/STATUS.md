@@ -1,7 +1,7 @@
 ---
 title: Project pulse
 status: active
-milestone: M-01
+milestone: M-02
 updated: 2026-08-25
 ---
 
@@ -11,33 +11,37 @@ updated: 2026-08-25
 
 **Sessione autonoma del Lead conclusa, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead ha operato senza attendere conferme.
 
-**M-01 è di fatto completata: tre spec su quattro sono `done`** ([SPEC-001], [SPEC-002], [SPEC-004]), e la quarta ([SPEC-003]) è accettata tecnicamente e attende solo che l'operatore guardi i mockup. Sette review prodotte, sette dispatch, [ADR-007] deciso su delega con la metrica di [[PROJECT]] riformulata, quattro debiti nuovi registrati, tre commit spinti su `main`.
+In quella sessione M-01 arrivò a tre spec su quattro `done` ([SPEC-001], [SPEC-002], [SPEC-004]), con la quarta ([SPEC-003]) accettata tecnicamente e ferma sul gate dell'operatore. Sette review prodotte, sette dispatch, [ADR-007] deciso su delega con la metrica di [[PROJECT]] riformulata, quattro debiti nuovi registrati, tre commit spinti su `main`.
 
 Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007] tocca una promessa di prodotto ed è superabile se non concorda; e un proprio errore di processo è documentato in `.lmbrain/knowledge/commit-discipline.md`.
 
 **Ripresa del 2026-08-25, sessione successiva: la CI è verde e il repository è pubblico.** L'operatore ha sbloccato la fatturazione GitHub e reso pubblico il repository. La pipeline ha eseguito per la prima volta e ora passa su tutti e cinque i job; [DEBT-001] è chiuso. Il risultato che conta oltre il colore: **le tre rotture emerse non erano problemi di toolchain cross-platform**, cioè il rischio n.1 di [ADR-003], ma difetti di confezionamento del repository — due bit di esecuzione persi perché i file erano stati committati da Windows, e un ordine di step sbagliato nel workflow. Rust, NDK, cargo-ndk, UniFFI e Tauri hanno funzionato al primo tentativo utile su Windows e su Linux.
 
-Il passaggio a pubblico ha portato con sé il proprio lavoro di sicurezza, in parte fatto e in parte da decidere; vedi la sezione *Postura di sicurezza del repository pubblico*.
+Il passaggio a pubblico ha portato con sé il proprio lavoro di sicurezza; vedi la sezione *Postura di sicurezza del repository pubblico*. È chiuso: pin a SHA con refresh via Dependabot, canale di disclosure privato, `LICENSE` Apache-2.0, harness esclusi da regola, e [DEBT-009] risolto.
+
+**M-01 è completa.** [SPEC-003] è passata a `done` quando l'operatore ha attestato `GATE-OPERATOR-LOOK`: quattro spec su quattro chiuse. Il prossimo lavoro è M-02, che non ha ancora spec redatte e la cui priorità è dettata dai debiti — [DEBT-005], critico, viene prima di tutto.
 
 ## Handoff attivo
 
-[HANDOFF-001] — consegna della sessione del 2026-08-25. Il Lead entrante lo legga per primo: contiene stato, decisioni prese su delega, debiti e prossime azioni.
+Nessuno. [HANDOFF-001] è stato **consumato e archiviato** il 2026-08-25: tutte le sue azioni raccomandate sono state eseguite o superate dagli eventi. Le sue affermazioni sono state verificate prima di agire, come chiedeva, e due sono risultate da correggere — [DEBT-001] non era più bloccato dalla fatturazione, e la questione della licenza non era una decisione da prendere ma una contraddizione da sciogliere.
 
 ## Current milestone
 
-M-01 — Fondamenta: protocollo su carta e scheletro del core.
+**M-02 — Ledger vivo: federazione BFT su devnet.** M-01 è chiusa dal 2026-08-25, tutte e quattro le spec `done`.
+
+M-02 non ha ancora spec redatte: è il primo lavoro del Lead. La priorità non è libera, la dettano i debiti aperti — [DEBT-005] (regola di elezione dei validatori, critico) prima di ogni altra cosa, perché **nessuna devnet deve accumulare storia conservabile prima che quella regola sia scritta**, e una devnet è precisamente ciò che M-02 produce.
 
 ## Ready for handoff
 
-Nessuna: tutte e quattro le spec di M-01 sono avviate.
+Nessuna. Non ci sono spec in `ready`: quelle di M-02 vanno ancora redatte.
 
 ## In progress
 
-Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo gate dell'operatore.
-- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). In `review`, **accettata tecnicamente** dal Lead con [REVIEW-004]: sette criteri su sette verificati meccanicamente, un solo finding di severità bassa che non blocca. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`. **Bloccata dal solo `GATE-OPERATOR-LOOK`:** il sistema rifiuta `spec_done` finché l'operatore non attesta di aver visto e approvato la direzione estetica, e il Lead non può farlo al suo posto.
+Nessuna. **M-01 è completa.**
 
 ## Done
 
+- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **`done` il 2026-08-25**, ultima spec di M-01. Accettata tecnicamente con [REVIEW-004] — sette criteri su sette verificati, un solo finding di severità bassa non bloccante — ed è rimasta ferma sul solo `GATE-OPERATOR-LOOK` finché l'operatore non ha attestato di aver visto i mockup. Il gate ha funzionato come doveva: il sistema ha rifiutato `spec_done` al tentativo del Lead, e nessuno ha attestato al posto dell'operatore un giudizio estetico che spettava a lui. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`.
 - [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
 - [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` era derogato e coperto da [DEBT-001]. Commit `81cca93`. **Deroga rientrata il 2026-08-25:** la run 32821923135 sul commit `6b9ad1f` è verde su tutti e cinque i job, con `cargo fmt`, `clippy -D warnings` e `cargo-deny` eseguiti come step distinti e riusciti; [DEBT-001] è risolto. Ne era però emerso [DEBT-009] — quel `cargo-deny` non copriva `apps/desktop/src-tauri`, escluso dal workspace — **anch'esso risolto lo stesso giorno** con la run 32833295352, che aggiunge il gate sul grafo della shell desktop.
 - [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
@@ -66,12 +70,13 @@ Risolti, entrambi il 2026-08-25: [DEBT-001] con la run CI verde 32821923135, pri
 **Per l'operatore, al risveglio:**
 
 1. ~~Rivedere [ADR-007]~~ — **fatto il 2026-08-25**: confermata, e dalla revisione è nata [ADR-008]. Resta da fissare `X`, ma dipende dal simulatore di M-02.
-2. **Attestare `GATE-OPERATOR-LOOK`** guardando `.lmbrain/design/coblox-design-system/index.html`: è l'unico passo che separa SPEC-003 da `done`.
+2. ~~Attestare `GATE-OPERATOR-LOOK`~~ — **fatto il 2026-08-25**: [SPEC-003] è `done` e **M-01 è chiusa**.
 3. ~~Sbloccare la fatturazione GitHub~~ — **fatto il 2026-08-25**, [DEBT-001] chiuso.
 4. Decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
 
-5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. Vanno aggiunti al `.gitignore` oppure resi portabili. **Ora più urgente:** il repository è pubblico e questi file restano untracked solo per disciplina manuale, non per una regola.
-6. **Decidere sulla `LICENSE`**: il canale di disclosure è fatto (`SECURITY.md`), ma il repository pubblica crate che dichiarano `Apache-2.0` senza un file che conceda quella licenza. Vedi la sezione seguente.
+5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. ~~Vanno aggiunti al `.gitignore` oppure resi portabili.~~ **Fatto il 2026-08-25:** aggiunti al `.gitignore`, quindi esclusi da una regola e non più dalla disciplina manuale.
+6. ~~Decidere sulla `LICENSE`~~ — **fatto il 2026-08-25**: `LICENSE` Apache-2.0 in radice, allineato a quanto i manifest già dichiaravano. Anche `SECURITY.md` è in piedi.
+7. **Redigere le spec di M-02.** È il prossimo lavoro reale e non ne esiste ancora una. L'ordine è dettato dai debiti: la regola di elezione dei validatori ([DEBT-005], critico) viene prima di tutto, poi il simulatore economico che fissa `α` ([DEBT-007]) e da cui dipende il valore `X` di [ADR-007], poi un ADR sulla privacy ([DEBT-006]).
 
 **Per il Lead, in autonomia:**
 
@@ -94,11 +99,9 @@ Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Qu
 
 *Non* disponibile: `secret_scanning_non_provider_patterns` richiede GitHub Advanced Security e resta disabilitato sul piano attuale. In pratica significa che vengono riconosciuti i formati di segreto dei provider noti, non quelli inventati dal progetto — rilevante se in futuro Coblox definisse un proprio formato di chiave.
 
-**Aperto, e in attesa dell'operatore:**
+- **`LICENSE` Apache-2.0**, su conferma dell'operatore. Non era una casella vuota ma una contraddizione: il `Cargo.toml` del workspace dichiarava `license = "Apache-2.0"` dal bootstrap, quindi il repository pubblicava crate che dichiaravano una licenza che nessun file concedeva. Il testo non è stato trascritto ma copiato da una copia canonica del registry Cargo locale, e il corpo verificato identico byte per byte contro una seconda copia indipendente — su un documento legale la fedeltà conta più della comodità. Il segnaposto `[yyyy] [name of copyright owner]` nell'`APPENDIX` è parte del template di applicazione ai singoli file e va lasciato com'è.
 
-- **Il file `LICENSE` manca, ma la licenza non è indecisa.** Il `Cargo.toml` del workspace dichiara `license = "Apache-2.0"` dal bootstrap, e ora lo dichiara anche `coblox-desktop`. La questione non è quindi *quale* licenza — quella scelta è già nei metadati — ma che **il repository pubblica crate che dichiarano Apache-2.0 senza concedere quella licenza a nessuno**, perché il file che la concede non esiste. È una contraddizione, non una casella vuota, e va sciolta con un file `LICENSE` o con una decisione diversa da registrare anche nei manifest. Serve solo la conferma dell'operatore.
-
-**Chiuso rispetto alla rilevazione iniziale:** il pin a SHA delle action, i file di configurazione degli harness ora esclusi da regola in `.gitignore` invece che per disciplina manuale, il canale di disclosure, e la copertura `cargo-deny` sulla shell desktop ([DEBT-009]).
+**Tutte le voci rilevate al passaggio a pubblico sono chiuse.** Restano solo due limiti dichiarati: `secret_scanning_non_provider_patterns` non disponibile sul piano attuale, e i percorsi di macchina nelle trascrizioni di [SPEC-002], severità bassa.
 
 ## Strategia di branching
 

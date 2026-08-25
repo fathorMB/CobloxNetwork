@@ -11,15 +11,15 @@ updated: 2026-08-25
 
 ### M-01 — Fondamenta: protocollo su carta e scheletro del core
 
-- `status`: active
-- `nota`: SPEC-001, SPEC-002 e SPEC-004 sono `done` al 2026-08-25. Resta SPEC-003, accettata tecnicamente e ferma sul solo gate dell'operatore. Debiti aperti che nascono da questa milestone: DEBT-001, DEBT-005, DEBT-006, DEBT-007, DEBT-008.
+- `status`: completed
+- `nota`: **Completata il 2026-08-25**: tutte e quattro le spec sono `done`. SPEC-001, SPEC-002 e SPEC-004 chiuse nella sessione autonoma; SPEC-003 chiusa quando l'operatore ha attestato `GATE-OPERATOR-LOOK`. Due debiti nati qui sono già risolti — DEBT-001 (la CI ha eseguito e passa su tutti e cinque i job) e DEBT-009 (`cargo-deny` esteso al grafo della shell desktop) — e restano aperti DEBT-005, DEBT-006, DEBT-007, DEBT-008. Il rischio `toolchain Android/UniFFI` è **sbancato**: la prima esecuzione reale della CI ha rivelato solo difetti di confezionamento del repository, nessun problema di toolchain. Il secondo rischio, `sotto-specificare l'elezione dei validatori`, si è invece materializzato ed è DEBT-005, critico, prima voce di M-02.
 - `outcome`: Le specifiche del protocollo (identità dei nodi, formato ledger, messaggi P2P, manifest delle app) esistono come documenti versionati; il workspace Rust `coblox-core` compila su Win/Linux/Android con CI multipiattaforma; il design system "hacker" ha i suoi token di base (palette, tipografia, componenti chiave); il threat model iniziale è redatto.
 - `specs`: [SPEC-001, SPEC-002, SPEC-003, SPEC-004]
 - `risks`: [toolchain Android/UniFFI, sotto-specificare l'elezione dei validatori]
 
 ### M-02 — Ledger vivo: federazione BFT su devnet
 
-- `status`: proposed
+- `status`: active
 - `outcome`: Una devnet di validatori seed raggiunge consenso BFT; i light client verificano saldi con prove Merkle; mint & burn implementati a livello di transazioni; primo simulatore economico per la taratura dei parametri.
 - `specs`: []
 - `risks`: [complessità del consenso, taratura curve emissione/burn]

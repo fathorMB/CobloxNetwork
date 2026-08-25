@@ -1,7 +1,7 @@
 ---
 id: HANDOFF-001
 title: "Handoff di sessione — chiusura di M-01 e sessione autonoma notturna"
-status: ready
+status: consumed
 from_role: AGENT-LEAD
 to_role: AGENT-LEAD
 created: 2026-08-25
@@ -14,6 +14,8 @@ tags: [session-handoff]
 activity:
   - date: 2026-08-25
     action: "created"
+  - date: 2026-08-25
+    action: "transitioned ready -> consumed"
 ---
 # Project Lead session handoff
 

@@ -2,7 +2,7 @@
 id: SPEC-003
 # Note: Quote the title if it contains a colon
 title: "Fondamenta del design system Coblox (token, componenti base, schermate chiave)"
-status: review
+status: done
 kind: feature
 priority: medium
 area: design
@@ -40,6 +40,21 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-25
     action: "transitioned working -> review"
+  - date: 2026-08-25
+    action: "attested verification GATE-OPERATOR-LOOK by operator"
+  - date: 2026-08-25
+    action: "transitioned review -> done"
+verification_attestations:
+  - actor: "operator"
+    actor_role: "operator"
+    evidence_digest: "49fcfc2a61832158d0de3e1ca2308f2e71e62ae7a497a3976f16a36fb2f53379"
+    evidence_ref: "looks fine"
+    id: "SPEC-003-ATTEST-001"
+    requirement_digest: "ee98a78df10617e77f7102f3502cc086467237f9e8257507b04b1ea03d8b13ff"
+    requirement_id: "GATE-OPERATOR-LOOK"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-25T12:04:48.315684800+02:00"
 ---
 # Fondamenta del design system Coblox
 
@@ -97,7 +112,7 @@ Token con nomi semantici a due livelli (primitivi → semantici, es. `--green-50
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
 - [x] GATE-CONTRAST | kind=manual | owner=agent | phase=before-submit | evidence=artifact | Tabella dei rapporti di contrasto per ogni coppia testo/sfondo legittima, tutti ≥ AA.
-- [ ] GATE-OPERATOR-LOOK | kind=operator | owner=operator | phase=before-done | evidence=observation | L'operatore ha visto la pagina demo e i mockup e approva la direzione estetica.
+- [x] GATE-OPERATOR-LOOK | kind=operator | owner=operator | phase=before-done | evidence=observation | L'operatore ha visto la pagina demo e i mockup e approva la direzione estetica.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
