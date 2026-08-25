@@ -37,7 +37,15 @@ Risolti: [DEBT-001], [DEBT-005] (l'unico `critical`), [DEBT-006], [DEBT-007], [D
 
 ## Decisioni di prodotto
 
-**Nessuna aperta.** Le cinque residue sono state chiuse il 2026-08-25: intervallo di blocco ([ADR-013]), popolazione al lancio (annotazione su [ADR-011]), privacy degli abbonati ([ADR-014]), identità di trasporto ([ADR-015]), disposizione di [DEBT-010].
+**Una da portare all'operatore**, su sua richiesta del 2026-08-25, **quando AGENT-007 consegna la valutazione di [DEBT-014] e [DEBT-013]**: la **forma del monitoraggio della rete**.
+
+La roadmap la nomina in una riga sola a M-08, *«telemetria di salute della rete»*, e le righe sole diventano collettori centrali per inerzia. Il punto che la rende una decisione e non un dettaglio implementativo: **telemetria di rete significa nodi che riportano a qualcuno**, cioè esattamente la superficie di correlazione che [ADR-015] ha tolto e la raccolta che [ADR-014] impegna a dichiarare. Fatta nel modo naturale reintrodurrebbe TM-28 da un'altra porta, con un insieme di nodi privilegiati che vedono tutto — la stessa obiezione per cui il relay obbligatorio è stato rifiutato come rimedio principale.
+
+Le tre forme hanno costi molto diversi: **derivata dalla catena** (verificabile, zero superficie nuova), **auto-riportata** (non verificabile, superficie nuova), **campionata e aggregata** (via di mezzo, e la più difficile da fare onestamente).
+
+Va decisa ora e non a M-08, per la stessa ragione per cui la separazione delle chiavi doveva precedere il primo certificato. **Nota di merito che riduce la posta:** molto di ciò che si vorrebbe da un cruscotto è già una grandezza di consenso e non una stima — altezza e cadenza reale, composizione del set e ogni transizione, emissione per epoca, e `eligible_node_count` con `eligible_set_root` in ogni mint di reddito di esistenza. `ledger.md` dichiara già che la deriva di composizione del set è *«a light-client-computable quantity rather than an operator dashboard»*, e lo è per scelta.
+
+**Nessun'altra aperta.** Le cinque residue sono state chiuse il 2026-08-25: intervallo di blocco ([ADR-013]), popolazione al lancio (annotazione su [ADR-011]), privacy degli abbonati ([ADR-014]), identità di trasporto ([ADR-015]), disposizione di [DEBT-010].
 
 [ADR-015] è stata letta e **accettata** dall'operatore il 2026-08-25. Nessuna azione dell'operatore in sospeso.
 

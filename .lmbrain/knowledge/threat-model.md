@@ -789,6 +789,324 @@ verificati da `AT-03`) più l'obbligo procedurale di distruzione delle chiavi di
 consenso all'uscita dal set. **Costo:** il canale di distribuzione degli ancoraggi,
 con la superficie che esso stesso apre — vedi TM-36 e `SEC-REQ-23`.
 
+#### TM-38 — Cadenza non imposta: il set attivo allunga in tempo reale le proprie epoche
+
+**Asset:** A-04, A-12 · **Severità:** **alta** (registrata `media` in via cautelativa
+da [DEBT-013]; l'innalzamento è motivato sotto) · **Stato:** **aperto** · **Rif:**
+[ADR-013], [DEBT-013], `ledger.md` §"Block format", §"Revocation forces a validator
+set transition", `README.md` §"Genesis constants", TM-17, TM-18, [REVIEW-014]
+
+> Valutazione adversariale richiesta da [DEBT-013] e prodotta da AGENT-007 il
+> 2026-08-25. Il debito chiedeva di pronunciarsi separatamente su tre effetti;
+> l'esito è **due finding e una correzione di premessa**, e in più una conclusione
+> sulla forma della chiusura che contraddice la prima delle tre opzioni che
+> [ADR-013] elenca fra i propri esiti ammissibili.
+
+**Il fatto.** `timestamp_ms` è vincolato da due sole regole: deve superare la mediana
+degli undici blocchi finalizzati precedenti, e non deve superare l'orologio di chi lo
+riceve di più della deriva massima attiva. La prima impone **monotonia**, la seconda
+un **tetto verso il futuro**. Nessuna delle due impone un passo, e — è la metà che
+conta e che non è scritta da nessuna parte — **nessuna delle due impedisce al tempo
+di catena di restare arbitrariamente indietro rispetto al tempo reale.** Il pericolo
+sta verso il basso e il solo limite esistente è verso l'alto: è la terza domanda della
+famiglia 3 di [[recurring-defects]] — *in quale direzione sta il pericolo?* — con la
+risposta sbagliata già scritta nel documento.
+
+**Una precisazione preliminare che cambia la forma del problema.** `docs/protocol/`
+non specifica **né la selezione del proposer né la meccanica dei round**: `round` è un
+campo dell'intestazione e del voto, e nessun documento dice come avanza, chi propone a
+un'altezza, o quale timeout fa fallire un round. Non siamo quindi davanti a una
+cadenza *dichiarata e non imposta*: siamo davanti a un livello di produzione dei
+blocchi **interamente non specificato**, dentro il quale la cadenza è una delle cose
+che mancano. La conseguenza operativa è che **non esiste una soglia di protocollo da
+citare** per dire quanta collusione serve a rallentare: dipende dall'istanza BFT che
+un'implementazione sceglierà, e v0 non ne sceglie nessuna. In qualunque istanza
+ragionevole un **terzo bloccante** basta a impedire la finalizzazione di un round, e
+quindi basta a decidere *quanti round falliscono prima che un blocco passi*: il
+rallentamento è disponibile alla stessa soglia di TM-17, non alla soglia del quorum
+che [DEBT-013] assumeva. Questa è la prima correzione, e vale per tutti e tre gli
+effetti sotto.
+
+**Perché non è TM-17 con altro nome.** TM-17 è lo stallo: discreto, immediatamente
+visibile, autolesivo, e già accettato come prezzo della safety BFT. Qui la catena
+**continua a finalizzare**, ogni blocco è valido, la continuità del set regge a ogni
+altezza, e un light client che controlla tutto ciò che gli è dato controllare non ha
+nulla da segnalare. Il difetto è che v0 offre un **gradiente continuo e negabile** fra
+il funzionamento normale e l'incumbency indefinita, senza che si attraversi una sola
+regola. Un cartello non deve decidere di attaccare: deve solo essere lento, e la
+lentezza ha sempre una spiegazione onesta disponibile.
+
+**Effetto 1 — allungamento dell'incumbency. Finding, severità alta.** È il più grave
+dei tre e non è un allungamento: è **illimitato**. `election_epoch_blocks`,
+`candidacy_close_blocks` e `term_expiry_epoch` sono denominati in epoche e le epoche
+in blocchi; il limite di mandato è l'unica regola che impedisce l'auto-perpetuazione
+in tempo reale, e il suo denominatore è prodotto dalla parte che vincola. La promessa
+di [ADR-001] — *nessun validatore è permanente* — resta vera in epoche e **non ha
+alcun contenuto in tempo reale**. [SPEC-006] ha tolto al quorum uscente la facoltà di
+*scegliere* il successore, rendendolo funzione deterministica di casualità
+finalizzata; non gli ha tolto la facoltà di **decidere quando arriva il confine** che
+quella funzione valuta. Il rallentamento è quindi il canale residuo esatto di TM-18,
+raggiunto per un'altra strada, e con lo stesso esito: perimetro di fiducia permanente,
+transizione senza segnale. TM-18 è classificato `critica`; questa riga è classificata
+`alta` e non `critica` solo perché il risultato si costruisce lentamente e ha, come
+si vede all'effetto 3, un costo economico continuo per chi lo esegue.
+
+Per la diagnosi di [REVIEW-014] — *è stata vincolata la grandezza nominata, non quella
+da cui la proprietà dipende* — questo è il quinto esemplare accertato della famiglia 3,
+e il primo che colpisce la metà elettorale invece di quella economica.
+
+**Effetto 2 — ritardo effettivo di revoca. Finding, severità alta.** [DEBT-013] lo
+dava con "la stessa esposizione" dell'effetto 1; è **peggiore**, per tre ragioni che
+il debito non poteva vedere. (a) `ledger.md` promette che, se i superstiti non
+impegnano un successore conforme entro la finestra, la catena **si ferma** a
+`effective_height` invece di finalizzare blocchi firmati da un set che contiene una
+chiave revocata, e chiama la cosa una scelta deliberata di safety sopra liveness.
+Rallentando, `effective_height` **non arriva mai**: non è stallo, non è revoca, è una
+catena viva su cui una chiave revocata continua a votare con peso pieno per un tempo
+reale illimitato. La scelta dichiarata non viene esercitata, viene aggirata. (b) La
+parte che beneficia del ritardo è **dentro** il set che lo produce, quindi la leva e
+l'interesse coincidono, che è la configurazione peggiore. (c) `ledger.md` porta già,
+in questa stessa sezione, una frase che il rallentamento rende falsa:
+
+> *"Governance MUST therefore choose `max_weak_subjectivity_age_ms` no greater than
+> the **expected wall-clock duration** of `min_revocation_effective_delay_blocks`"*
+
+È un accoppiamento di sicurezza fra un parametro in millisecondi e uno in blocchi,
+mediato da una durata *attesa* che nessuna regola impone e che la parte sorvegliata
+controlla. È famiglia 2 di [[recurring-defects]] — un'affermazione che promette una
+proprietà più forte di quella dimostrata — ed è già scritta nel repository: quarta
+conferma del tratto comune di quella pagina, il difetto già scritto e non guardato.
+
+**Effetto 3 — interazione con l'emissione. La premessa del debito va corretta in due
+punti, e il secondo apre una questione separata.**
+
+*Primo punto.* [DEBT-013] afferma che l'emissione, denominata in millisecondi, "non si
+muove", e ne deduce che il movente si riduce al mantenimento del seggio. La deduzione
+è giusta, la ragione no. L'emissione **si muove, verso il basso**: la catena non ha
+altro orologio che i propri `timestamp_ms`, e poiché quei timestamp possono restare
+indietro rispetto al tempo reale ma non correre avanti, ogni grandezza denominata in
+millisecondi di catena si dilata in tempo reale esattamente come quelle denominate in
+blocchi. Un set lento emette **meno** crediti per giorno reale. Il verso è quello
+sicuro — è la ragione per cui questo non è un vettore di inflazione e per cui
+[REVIEW-014] resta chiusa nel merito che le competeva — ma la conclusione operativa è
+diversa da quella del debito: il rallentamento **ha un costo**, e non è nullo.
+
+*E qui sta la correzione che conta:* quel costo è **esternalizzato**. L'emissione che
+si perde è quella di **tutta la rete**, mentre il seggio conservato è solo del
+cartello. Un terzo bloccante che rallenta paga circa un terzo della perdita e incassa
+il cento per cento del beneficio. La formulazione corretta non è "nessun guadagno in
+crediti, quindi il movente è solo il seggio", ma **"il seggio si compra con una
+perdita pagata in gran parte dagli onesti"**, che è un movente più forte e non più
+debole. Severità dell'effetto in sé: `bassa` come vettore di emissione, ma è la riga
+che sposta l'economia dell'effetto 1 dalla parte dell'attaccante.
+
+*Secondo punto — osservazione adiacente, fuori dal mandato di [DEBT-013], da
+registrare a parte.* Cercando la regola che lega l'indice `reward_epoch` al tempo, non
+l'ho trovata: `docs/protocol/` nomina `reward_epoch` come campo dei corpi di mint, ne
+usa il valore nelle foglie Merkle e impone unicità per `(beneficiario, reward_epoch)`
+e per `(app_id, reward_epoch)`, ma **non contiene alcuna regola che derivi quell'indice
+da `timestamp_ms`, da `reward_epoch_ms` o da qualunque altra grandezza**. Lo stesso
+vale in `core/coblox-core`. Se la lettura è corretta, `reward_epoch_ms_min` vincola la
+durata **dichiarata** dell'epoca in un documento firmato, e non la velocità con cui
+gli indici di epoca avanzano nei mint: un quorum che tiene `reward_epoch_ms` a
+86 400 000 — perfettamente dentro `RewardBounds` — e incrementa `reward_epoch` a ogni
+blocco resta conforme a ogni regola scritta. Sarebbe **famiglia 3, la stessa
+grandezza, un livello più in basso di RF-002 di [REVIEW-014]**, e proprio la forma che
+la seconda opzione di quel finding ("ridenominare ogni tetto per unità di tempo di
+catena, e la questione scompare invece di essere tappata") avrebbe evitato. Non l'ho
+istruita oltre la ricerca documentale: è materia di un debito proprio e di
+un'attribuzione propria, e non va chiusa dentro [DEBT-013] né affermata come certa
+prima che chi possiede quella superficie l'abbia guardata.
+
+**La conclusione sulla forma della chiusura, ed è la parte che serve di più.** La
+prima delle tre opzioni che [DEBT-013] e [ADR-013] ammettono — *una regola di validità
+che vincoli la distanza fra `timestamp_ms` consecutivi* — **non chiude nulla**, e
+adottarla produrrebbe una chiusura falsa. `timestamp_ms` è scritto dagli stessi
+validatori la cui condotta si vuole vincolare: una regola che imponga
+`timestamp[h] - timestamp[h-1] <= X` li obbliga a **scrivere** timestamp vicini, non a
+**produrre** blocchi vicini. Un cartello produce un blocco all'ora facendo avanzare i
+timestamp di cinque secondi, rispetta la regola nuova a ogni altezza, e ottiene
+esattamente ciò che otteneva prima. È la famiglia 3 commessa nel rimedio: si
+vincolerebbe la grandezza nominata — la distanza fra due timestamp — e non quella da
+cui la proprietà dipende, che è il **tempo reale trascorso per epoca**.
+
+Ne discende una proposizione generale che vale la pena scrivere una volta sola:
+**nessuna regola di validità interna alla catena può vincolare il tempo reale, perché
+ogni orologio che la catena possiede è scritto dai validatori.** Un vincolo sul tempo
+reale richiede un orologio esterno alla catena. v0 ne ha esattamente uno, ed è già
+normativo: il **checkpoint di soggettività debole**, firmato dalla chiave di rilascio
+che non appartiene a nessun validatore, che porta insieme `height`, il `timestamp_ms`
+di quel blocco e `issued_at_ms`, cioè il momento reale in cui il checkpoint è stato
+prodotto. Due checkpoint successivi **misurano la cadenza reale della catena** —
+`(height₂ - height₁)` blocchi in `(issued_at₂ - issued_at₁)` millisecondi reali — e la
+misura non passa da nessuna grandezza che i validatori scrivono.
+
+**Contromisura.** In ordine di forza, e nessuna delle tre è una regola di consenso:
+
+(a) **La cadenza osservata diventa una grandezza dichiarata e verificabile fuori
+catena.** Il processo di rilascio non emette un checkpoint per una catena la cui
+cadenza misurata fra due checkpoint esce da una banda dichiarata alla genesi accanto a
+`block_interval_seconds`, e lo dichiara come condizione del rilascio. È il punto in cui
+il progetto ha già messo il giudizio in tempo reale, ed è coerente con [ADR-013] parte
+2: la cadenza non diventa un parametro governato, resta una costante di genesi che
+acquista un sorvegliante.
+
+(b) **Il light client calcola la stessa cifra e fallisce chiuso, o almeno segnala.**
+Dal checkpoint che già detiene e dall'intestazione fidata più recente ricava blocchi
+per millisecondo reale e la confronta con la banda. Costo: una divisione e un campo di
+configurazione in più; nessun dato nuovo sul filo.
+
+(c) **Le quantità di elezione che portano una promessa in tempo reale — il limite di
+mandato prima di tutte — sono ridenominate, o portano un secondo limite in
+millisecondi di catena accanto a quello in blocchi**, così che scada la prima delle
+due condizioni. Da sola non basta (il tempo di catena resta scrivibile dai
+validatori), ma composta con (a) o (b) chiude, e senza (a) o (b) è la stessa illusione
+della regola sui timestamp.
+
+**Costo.** (a) è procedura di rilascio e una riga di genesi. (b) è una regola del
+light client, quindi contenuto normativo nuovo e gate di [ADR-012]. (c) tocca
+`ElectionBounds` e la taratura di [SPEC-007], ed è la più cara delle tre. Se se ne
+adotta una sola, **(b)**: è l'unica che vive dentro il protocollo e che nessun
+operatore di rete può dimenticare di eseguire.
+
+**Ciò che non è chiuso da nessuna delle tre, e va detto.** Nessuna contromisura qui
+proposta **impedisce** il rallentamento: tutte lo rendono **misurabile e dichiarato**,
+cioè trasformano una deriva negabile in una condizione osservabile con un nome. Per
+un difetto la cui gravità sta per intero nell'invisibilità, è la parte che conta; ma
+una revisione futura che leggesse "chiuso" qui leggerebbe più di quanto è scritto.
+
+**Esito per [DEBT-013].** Non è il rifiuto motivato. Due dei tre effetti sono finding
+e nessuno dei due è chiuso dai documenti attuali; la premessa del terzo va corretta
+nel verso che aggrava, non che allevia; e l'opzione di chiusura che il debito elenca
+per prima va **rifiutata esplicitamente** invece di essere lasciata disponibile, perché
+produrrebbe una regola di validità nuova — con tutto il costo di [ADR-012] — senza
+spostare la proprietà. La parte 3 di [ADR-013] va riscritta e non annotata, come la
+ADR stessa prevede nelle proprie *review conditions*; e va riscritta dicendo la cosa
+esatta, che non è "v0 dichiara una cadenza e non la impone", ma **"v0 non specifica la
+produzione dei blocchi, e nessuna regola interna alla catena potrebbe imporla"**.
+
+#### TM-39 — Riuso di un set di validatori fra due catene: `validator_set_hash` senza `chain_id`
+
+**Asset:** A-04, A-05 · **Severità:** **n/a come vettore** (vedi sotto: l'attacco non
+esiste); il residuo reale è di conformità ed è `bassa` · **Stato:** **mitigato**, ma
+**per il contenuto e non per la preimmagine**, e la differenza va scritta ·
+**Rif:** [DEBT-014], [SPEC-010], [REVIEW-015], `ledger.md` §"Validator-set continuity",
+`README.md` §"Hash preimage registry", §"Weak subjectivity checkpoint", `SEC-REQ-03`
+
+> Valutazione adversariale richiesta da [DEBT-014] e prodotta da AGENT-007 il
+> 2026-08-25. Esito: **rifiuto motivato**. L'asimmetria non è un difetto e non va
+> corretta. Ma la ragione per cui non lo è **non è quella che il debito registra come
+> ipotesi deliberata**, e scriverla nella forma sbagliata sarebbe famiglia 2.
+
+**La premessa del debito è falsa fuori da un caso.** [DEBT-014] afferma che «un
+insieme di validatori identico su due catene diverse produce lo stesso
+`validator_set_hash`». Per ogni set **non di genesi** questo è falso, perché il
+`ValidatorSet` **non è una lista di chiavi**: i suoi byte contengono già tre legami di
+catena.
+
+1. ogni voce porta `key_binding_signature`, che `ledger.md` impone di verificare
+   *"over the global chain-bound domain `coblox-consensus-key-binding-v0`"* — cioè su
+   una preimmagine che contiene `chain_id_32`. Ed25519 è deterministico: messaggio
+   diverso, firma diversa, **byte diversi**;
+2. `election.election_seed` è per definizione
+   `H("coblox-election-seed-v0\0" || chain_id_32 || …)`, quindi il suo **valore**
+   differisce fra due catene;
+3. `election.entropy_block_ids` sono `block_id`, e `block_id` lega `chain_id`.
+
+Un `ValidatorSet` valido sulla catena X non è quindi ri-presentabile sulla catena Y:
+non produce lo stesso hash, e se lo producesse sarebbe perché è lo stesso oggetto.
+**L'asimmetria della preimmagine è compensata dal contenuto**, e questo è il fatto che
+la valutazione stabilisce.
+
+**Superficie 1 — certificati di quorum. Nessun difetto.** In un `QuorumCertificate` e
+in un `TransactionQuorumCertificate`, `validator_set_hash` è un **selettore**, non
+un'autorità. L'autorità sono le firme, e le firme coprono
+`"coblox-block-vote-v0\0" || chain_id_32 || height || round || block_id` per la
+finalità e `raw_32_bytes(tx_id)` sotto il dominio globale legato alla catena per le
+transazioni — con `tx_id` e `block_id` a loro volta leganti `chain_id`. Un certificato
+della catena X non verifica sulla catena Y nemmeno se i due set avessero lo stesso
+hash, perché nessuna delle firme che lo compongono verifica. Legare `chain_id` nella
+preimmagine del set aggiungerebbe qui **zero**: è il caso già coperto da `SEC-REQ-03`
+e da `AT-05`.
+
+**Superficie 2 — checkpoint di soggettività debole. Nessun difetto, ed è la superficie
+dove la premessa è più tentante e più chiaramente falsa.** Il checkpoint porta
+`chain_id` come **campo esplicito**; la sua preimmagine è
+`H("coblox-weak-subjectivity-checkpoint-v0\0" || chain_id_32 || JCS(…))`; la firma usa
+la procedura globale legata alla catena; il passo 1 dell'algoritmo del light client
+**impone** che `chain_id` sia uguale a quello configurato e che la chiave di fiducia
+sia una che il client già detiene, senza poterla apprendere da nessuna fonte di rete.
+L'ancora del light client non è il set: sono la **chiave di fiducia** e il
+**`chain_id` configurato**. Il `validator_set_hash` dentro il checkpoint è un puntatore
+da confrontare con il set che il client ricostruisce dalle intestazioni della propria
+catena, e quel percorso è legato alla catena a ogni passo.
+
+**Superficie 3 — transizioni di set. Nessun difetto, e qui l'argomento è il più forte
+e ha l'unico residuo vero.** `previous_validator_set_hash` è verificato contro il
+predecessore **effettivo su questa catena**, raggiungibile solo attraverso
+intestazioni legate alla catena a partire da una genesi configurata; e i byte stessi
+del set, per i tre motivi elencati sopra, non sono comuni a due catene. Resta un solo
+caso in cui la premessa del debito è vera: il **set di genesi**, che è l'unico privo di
+`election` e quindi privo dei legami (2) e (3), e i cui `key_binding_signature`
+dipendono da un `chain_id` che alla genesi **non è ancora calcolabile** —
+`chain_id` deriva da `genesis_block_id`, che deriva dall'intestazione di genesi, che
+impegna `validator_set_hash`. Anche in quel caso, però, **non esiste attacco**: il set
+di genesi non arriva mai per hash da un peer, arriva dentro la distribuzione firmata
+come ancoraggio di fiducia, e il passo 2 dell'algoritmo del light client dice
+esattamente questo — *"load the configured … genesis validator set; recompute the set
+hash"*. Una configurazione è per costruzione di una catena sola.
+
+**La ragione generale, che è la sola che vada scritta nel documento.** Un legame di
+catena in una preimmagine serve a impedire che un oggetto **autorizzato** sulla catena
+X sia **accettato** sulla catena Y. Il predicato di accettazione di un set su una
+catena non è «questo hash esiste da qualche parte», ma «questo hash è quello che
+l'intestazione precedente **di questa catena** ha impegnato come
+`next_validator_set_hash`, sotto un certificato di quorum verificato su firme legate a
+questa catena». Un hash uguale fra due catene significa soltanto che gli stessi byte
+hanno lo stesso hash, cioè che l'indirizzamento per contenuto funziona: **non è una
+sostituzione, ed è la sostituzione che il legame previene.** Legare `chain_id` a
+`validator_set_hash` costerebbe il ricalcolo di ogni valore pubblicato che ne dipende
+e la passata piena di [ADR-012], per una proprietà che non cambierebbe.
+
+**Perché l'argomento "deliberato" registrato in [DEBT-014] è quello sbagliato.** Il
+debito registra come plausibile che l'omissione sia voluta *«perché un insieme di
+validatori è una lista di chiavi e non un oggetto di catena, e legarla alla catena
+impedirebbe di riusare la stessa lista in una genesi nuova»*. Questo argomento è
+**falso**, e scriverlo accanto alla definizione sarebbe fissare nel documento normativo
+una giustificazione che il documento stesso confuta due paragrafi sopra: un
+`ValidatorSet` **è** un oggetto di catena, e la stessa lista **non è riusabile** su una
+genesi nuova comunque, perché ogni `key_binding_signature` andrebbe riemessa e il
+record di elezione non esisterebbe. Un'eccezione scritta con la ragione sbagliata è
+peggio di un'eccezione non scritta, perché il lettore successivo la userà come
+precedente.
+
+**Contromisura, ed è una dichiarazione, non una regola.** `README.md`, nel registro
+delle preimmagini, e `ledger.md`, accanto alla formula di `validator_set_hash`,
+dichiarano che questa preimmagine **non lega `chain_id`**, che l'omissione è
+deliberata, e la ragione corretta in due parti: (i) il legame di catena di un
+`ValidatorSet` è **nel contenuto** — `key_binding_signature`, `election_seed`,
+`entropy_block_ids` — e non nella preimmagine; (ii) l'accettazione di un set non
+avviene mai per hash isolato, ma contro l'impegno `next_validator_set_hash` della
+catena in corso di verifica. `core/coblox-core/src/registry.rs` porta già metà della
+dichiarazione (*"This preimage carries **no** chain binding … the omission looks like
+an oversight until it is checked"*) e le manca la ragione: va allineato alla stessa
+formulazione, così che la spiegazione stia nel documento normativo e il codice vi
+rimandi. **Costo:** due paragrafi e un commento; nessun valore pubblicato cambia,
+nessuna fixture si ricalcola, la gate di [ADR-012] non scatta perché nessuna regola di
+validità cambia. È il motivo per cui questo esito è più economico dell'altro di due
+ordini di grandezza, e la ragione per cui il debito andava valutato prima della devnet
+resta comunque valida: se la valutazione fosse andata nell'altro verso, il costo
+sarebbe stato quello del ricalcolo.
+
+**Osservazione adiacente da non perdere, e non è di [DEBT-014].** La circolarità della
+genesi — `chain_id` richiede `genesis_block_id`, che richiede `chain_id` — **non è
+risolta in `docs/protocol/`**. La `HASH-0` usa 32 byte a zero per `chain_id`, ma è una
+fixture di conformità e non una regola, e nulla dice come un deployment reale calcoli
+l'intestazione di genesi, i `key_binding_signature` del set di genesi e le eventuali
+transazioni di genesi. Due implementazioni possono risolverla in due modi e ottenere
+due `chain_id` diversi dalla stessa distribuzione: è divergenza di conformità su un
+valore che tutto il resto lega. Va registrata a parte.
+
 ### 5.5 `T-05` — Publisher ostile
 
 #### TM-22 — Abbonati fittizi per lucrare la quota al creatore
@@ -1904,6 +2222,8 @@ verifica `GATE-LEAD-MAP`.
 | `SEC-REQ-22` | La documentazione pubblica dichiara che identificatore di nodo, indirizzo IP, saldo, abbonamenti e orari di attività sono pubblici e correlabili; gli istanti di challenge sono committati con granularità di epoca e non al millisecondo | Review sul testo pubblico; fixture sull'arrotondamento nell'evidenza | M-01 (dichiarazione), M-08 (misure) | AGENT-001, AGENT-LEAD | TM-26, TM-28, TM-29, TM-30 |
 | `SEC-REQ-23` | Gli ancoraggi di fiducia e i binari sono firmati da più parti indipendenti con soglia richiesta dal client, distribuiti per canali diversificati, e le build sono riproducibili | Verifica indipendente che il binario rilasciato corrisponda alla sorgente; test che un ancoraggio sotto soglia di firme è rifiutato | M-04 (rilascio), M-08 (beta) | AGENT-008 | TM-31, TM-36 |
 | `SEC-REQ-24` | Ogni nuovo canale di emissione introdotto dopo v0 è accompagnato, prima dell'attivazione, da una valutazione documentata del costo di falsificazione e della quota di emissione che vi transita | Review del Lead con il documento di valutazione allegato all'ADR o alla spec | M-02 e successive | AGENT-LEAD, AGENT-007 | TM-19, TM-35, §6.2 |
+| `SEC-REQ-25` | La cadenza reale di produzione dei blocchi è una grandezza **misurata contro un orologio che i validatori non scrivono** e confrontata con una banda dichiarata alla genesi accanto a `block_interval_seconds`: il light client la ricava da `(height, issued_at_ms)` del checkpoint che detiene e dall'intestazione fidata più recente, e fallisce chiuso o segnala fuori banda; il processo di rilascio non emette checkpoint per una catena fuori banda. Nessuna regola di validità sulla distanza fra `timestamp_ms` consecutivi è ammessa come chiusura di questo requisito, perché non vincola il tempo reale | Test: una catena che finalizza blocchi con timestamp a passo nominale ma cadenza reale dimezzata fra due checkpoint è segnalata dal light client; fixture negativa con cadenza dentro banda che non segnala. Il **fallimento** del test è il verdetto atteso finché il requisito è aperto | M-02 (regola e banda), M-03 (client) | AGENT-007, AGENT-002 | TM-38, TM-18, [DEBT-013], [ADR-013] |
+| `SEC-REQ-26` | Le preimmagini a dominio separato che **non** legano `chain_id` sono enumerate nei documenti di protocollo con la ragione per cui non lo fanno, e la ragione nomina il meccanismo che fornisce il legame al loro posto. Per `validator_set_hash` la ragione dichiarata è che il legame di catena sta nel **contenuto** del `ValidatorSet` (`key_binding_signature`, `election_seed`, `entropy_block_ids`) e che l'accettazione di un set avviene contro l'impegno `next_validator_set_hash` della catena verificata, mai per hash isolato | Review sul testo: ogni riga del registro delle preimmagini senza `chain_id_32` ha la propria dichiarazione, e la dichiarazione è ricontrollata contro il documento invece che contro la memoria di chi la scrive. Complementare a `SEC-REQ-03`, che copre le preimmagini che il legame ce l'hanno | M-02 | AGENT-007, AGENT-001 | TM-39, [DEBT-014], [SPEC-010] |
 
 Tre requisiti sono, a mio giudizio, **irrinunciabili** e vanno chiusi prima di
 qualunque altra cosa, perché hanno costo di chiusura quasi nullo e conseguenze
@@ -2540,6 +2860,15 @@ in fondo a §7.5 e vanno verificate sperimentalmente prima di qualunque impegno
 sull'opzione 3.
 
 ## 14. Manutenzione di questo documento
+
+**Aggiornamento 2026-08-25 (AGENT-007).** Aggiunti TM-38 e TM-39 con `SEC-REQ-25` e
+`SEC-REQ-26`, come valutazioni adversariali di [DEBT-013] e [DEBT-014] richieste dai
+criteri di risoluzione dei due debiti. TM-39 è un **rifiuto motivato** e chiude la
+propria questione appena la dichiarazione è scritta nei documenti di protocollo;
+TM-38 è **aperto** e la sua chiusura è lavoro di spec del Lead. Restano due
+osservazioni adiacenti che non appartengono a nessuno dei due debiti e vanno
+registrate a parte: l'indice `reward_epoch` senza regola di derivazione dal tempo
+(TM-38, effetto 3) e la circolarità irrisolta di `chain_id` alla genesi (TM-39).
 
 Va rivisto quando: cambia una delle decisioni di §12; viene accettato un ADR che
 introduce un nuovo canale di emissione (`SEC-REQ-24`); un test di §10 fallisce in modo
