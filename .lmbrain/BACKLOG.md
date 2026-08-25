@@ -12,11 +12,14 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 - [SPEC-001] Specifica del protocollo v0 (identità, P2P, ledger, manifest) — AGENT-001, M-01, high
 - [SPEC-002] Scheletro workspace Rust + CI multipiattaforma — AGENT-008, M-01, high
 - [SPEC-003] Fondamenta del design system — AGENT-006, M-01, medium
-- [SPEC-004] Threat model iniziale — AGENT-007, M-01, high
+- ~~[SPEC-004] Threat model iniziale — AGENT-007, M-01, high~~ → **done** il 2026-08-25
 
 ## Debiti aperti
 
+- [DEBT-005] Il set di validatori è auto-perpetuante: manca la regola di elezione — **critical**, owner AGENT-002, M-02.
 - [DEBT-001] La pipeline CI non è mai stata eseguita, `GATE-CI-GREEN` derogato — high, owner AGENT-008, M-01. Sbloccabile solo dalla fatturazione GitHub dell'operatore.
+- [DEBT-006] La quota al creatore obbliga a pubblicare chi è abbonato a cosa — high, owner AGENT-LEAD, M-06.
+- [DEBT-007] La forma del reddito di esistenza non è decisa e determina `α` — high, owner AGENT-002, M-02.
 
 ## Next
 

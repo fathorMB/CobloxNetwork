@@ -60,6 +60,9 @@ Protobuf formats; only Coblox application payloads use JCS.
 - Hash: SHA-256.
 - Identity and validator signatures: Ed25519 (RFC 8032), 32-byte public keys and
   64-byte signatures.
+- Enrollment proof of work: Argon2id (RFC 9106), version `0x13`. SHA-256 is not
+  a proof-of-work primitive in v0; it remains the hash for identifiers,
+  commitments, and Merkle trees.
 - `chain_id`: `sha256:` plus
   `SHA-256("coblox-chain-id-v0\0" || u32be(len(network_id_utf8)) ||
   network_id_utf8 || raw_32_bytes(genesis_block_id))`.
@@ -135,12 +138,27 @@ object_id               = H("coblox-storage-object-v0\0"
 input_hash              = H("coblox-compute-input-v0\0"
                             || u64be(input_length) || input_bytes)
 request_hash            = H("coblox-challenge-request-hash-v0\0"
-                            || chain_id_32 || JCS(ChallengeRequestWithoutId))
+                            || chain_id_32 || JCS(ChallengeRequestWithoutIdOrSignature))
 response_hash           = H("coblox-challenge-response-hash-v0\0"
                             || chain_id_32 || JCS(ChallengeResponseWithoutSignature))
+issuer_commitment       = H("coblox-challenge-issuer-commitment-v0\0"
+                            || chain_id_32 || u32be(len(issuer_node_id_utf8))
+                            || issuer_node_id_utf8 || u64be(commitment_epoch)
+                            || issuer_secret_32)
+challenge_randomness    = H("coblox-challenge-randomness-v0\0"
+                            || chain_id_32 || u64be(beacon_height)
+                            || raw_32_bytes(beacon_block_id)
+                            || raw_32_bytes(issuer_commitment) || issuer_secret_32
+                            || u32be(len(subject_node_id_utf8)) || subject_node_id_utf8)
+enrollment_pow_salt     = first 16 bytes of
+                          H("coblox-enrollment-pow-salt-v0\0"
+                            || chain_id_32 || public_key_32
+                            || raw_32_bytes(recent_block_id))
 ```
 
-`challenge_id` MUST equal `request_hash`. The evidence `request_hash` and
+`ChallengeRequestWithoutIdOrSignature` is the challenge request with both
+`challenge_id` and `issuer_signature` removed; `challenge_id` MUST equal
+`request_hash`. The evidence `request_hash` and
 `response_hash` MUST equal the formulas above. Lengths are byte lengths, not
 Unicode character counts.
 
@@ -159,33 +177,48 @@ source is never sufficient.
 ### Hash conformance fixtures
 
 Fixture `HASH-0` uses 32 zero bytes for `chain_id`; byte fixtures use
-`00 01 02`. `ER-0` is the exact enrollment-request schema with all timestamps,
-nonce and recent height set to `"1"` except nonce `"0"`, network `"fixture"`,
+`00 01 02`. `ER-0` is the exact enrollment-request schema with all timestamps
+and recent height set to `"1"`, nonce `"0"`, network `"fixture"`,
 node `"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq"`, the Peer ID/public key fixture from
-[identity.md](identity.md#canonical-libp2p-peer-id), difficulty `"18"`,
+[identity.md](identity.md#canonical-libp2p-peer-id), algorithm
+`"argon2id-leading-zero-bits-v0"`, `difficulty_bits:"4"`, the RFC 9106 second
+recommended cost profile (`memory_kib:"65536"`, `iterations:"3"`, `lanes:"4"`),
 parameter hash `11` repeated 32 bytes, recent block hash `22` repeated 32 bytes,
 and a 64-zero-byte base64url signature. Each `PD-0` has common fields
 `schema_version:"0.1"`, `network_id:"fixture"`, zero `chain_id`,
 `sequence:"1"`, and `activation_height:"1"`; it uses its matching
-`document_kind` and required body, with every numeric value `"1"` except
-enrollment difficulty `"18"` and algorithm
-`"sha256-leading-zero-bits-v0"`. `REQ-0` is an availability request without ID
-for `cblx1fixture`, issued at 1, deadline 2, 32 zero randomness bytes, and
-`response_bytes:"1"`. `RESP-0` is its unsigned response at time 2, challenge
+`document_kind` and required body, with every numeric value `"1"` except the
+enrollment body's algorithm/difficulty/cost values listed above with
+`tag_length_bytes:"32"`, and the reward body's
+`publisher_reward_cap_denominator:"2"` (the cap must be strictly below one, so
+`"1"/"1"` would not be a structurally valid fixture). `CMT-0` is the issuer
+commitment for issuer `cblx1issuerfixture`, `commitment_epoch` 1, and an issuer
+secret of `44` repeated 32 bytes. `RND-0` is the challenge randomness derived
+from `CMT-0`, beacon height 1, beacon block ID `55` repeated 32 bytes, and
+subject `cblx1fixture`. `REQ-0` is an availability request without ID or issuer
+signature for subject `cblx1fixture`, issued by `cblx1issuerfixture` at 1,
+deadline 2, `randomness` equal to `RND-0`, `issuer_commitment` equal to `CMT-0`,
+the `RND-0` randomness source with `commitment_epoch:"1"`, and
+`response_bytes:"1"`. `RESP-0` is an unsigned response at time 2, challenge
 hash `33` repeated 32 bytes, and one zero response byte. These definitions are
 exact after JCS; no omitted/default fields are implied.
 
 | Hash | Fixture | Expected value |
 | --- | --- | --- |
-| `enrollment_request_hash` | `ER-0` | `sha256:1a6da895e17b7c9edb7df7bceadd89de593a88e8765d4c42ef32727713a2a808` |
-| `parameter_set_hash` | enrollment `PD-0` | `sha256:11bf643aeda21def158ca6397568310ccd54736914bbce6a6c3a358ec450e398` |
-| `policy_hash` | reward `PD-0` | `sha256:1f86e0ac250172f936b94c952f89c0d798f088987f7b755408b85a7d147cbc45` |
+| `enrollment_request_hash` | `ER-0` | `sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f` |
+| `parameter_set_hash` | enrollment `PD-0` | `sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63` |
+| `policy_hash` | reward `PD-0` | `sha256:1a4139ed0204a94efd654d324a859af913a351dea191a6c6839f8fddeee17075` |
 | `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
-| `consensus_parameters_hash` | consensus `PD-0` | `sha256:821614ace5ced8e6414867943ae06f601f6096f458a0b1419e3ba136328ff50e` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:1a947f60bada6a4974ae55411f404216ffd4093ebf5add0ed34cb95ba20c6a92` |
 | `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
 | `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
-| `request_hash` | `REQ-0` | `sha256:dd9609b3fb1ecc0882704e6ef5557282ac7b76138b15866cc79ce5dfe1a59189` |
+| `issuer_commitment` | `CMT-0` | `sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5` |
+| `challenge_randomness` | `RND-0` | `sha256:8cebe4ad890bd41e8c37b87ad976ad92b8ef35aa3284c441d86691cfdaad88d7` |
+| `request_hash` | `REQ-0` | `sha256:8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360` |
 | `response_hash` | `RESP-0` | `sha256:cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41` |
+
+`challenge_randomness` is carried on the wire as the unpadded base64url of those
+32 bytes, which for `RND-0` is `jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc`.
 
 Conformance suites MUST reconstruct every preimage from these definitions and
 compare all 32 digest bytes; checking only presentation strings is insufficient.
@@ -220,16 +253,20 @@ Required bodies are:
 ```text
 EnrollmentParametersBody = {
   "pow_algorithm":string, "difficulty_bits":u64-string,
+  "memory_kib":u64-string, "iterations":u64-string, "lanes":u64-string,
+  "tag_length_bytes":u64-string,
   "max_request_age_ms":u64-string, "max_future_skew_ms":u64-string,
   "recent_block_window":u64-string
 }
 RewardPolicyBody = {
   "reward_epoch_ms":u64-string,
-  "existence_microtokens_per_eligible_epoch":u64-string,
+  "existence_fund_microtokens_per_epoch":u64-string,
   "availability_microtokens_per_unit":u64-string,
   "storage_microtokens_per_byte_epoch":u64-string,
   "compute_microtokens_per_million_fuel":u64-string,
-  "publisher_microtokens_per_active_subscriber":u64-string
+  "publisher_microtokens_per_active_subscriber":u64-string,
+  "publisher_reward_cap_numerator":u64-string,
+  "publisher_reward_cap_denominator":u64-string
 }
 HostingRateCardBody = {
   "billing_epoch_ms":u64-string, "minimum_billable_epochs":u64-string,
@@ -244,9 +281,23 @@ ConsensusParametersBody = {
   "replay_cache_entries_global":u64-string,
   "max_weak_subjectivity_age_ms":u64-string,
   "max_current_balance_age_ms":u64-string,
-  "app_suspension_notice_epochs":u64-string
+  "app_suspension_notice_epochs":u64-string,
+  "min_revocation_effective_delay_blocks":u64-string
 }
 ```
+
+`pow_algorithm` MUST be `argon2id-leading-zero-bits-v0` in v0. Its cost
+parameters obey the RFC 9106 limits: `lanes` in 1–16, `memory_kib` at least
+`8 * lanes`, `iterations` at least 1, and `tag_length_bytes` exactly 32. A
+document outside those ranges is invalid, so a governance change cannot
+silently reduce the enrollment floor to zero cost.
+
+`publisher_reward_cap_denominator` MUST be non-zero and
+`publisher_reward_cap_numerator` MUST be strictly smaller than it. That
+strictness is what makes the subscription cycle of
+[ledger.md](ledger.md#mint-existence-income-work-compensation-and-publisher-reward)
+lossy rather than merely unprofitable at the margin; a governance document
+with `numerator >= denominator` is invalid, not merely unwise.
 
 Reward arithmetic uses checked `u128` intermediates, integer multiplication by
 the eligible units, and rejects a result above `u64::MAX`; no floating point or
@@ -300,12 +351,15 @@ discoverable security facts. Network peers cannot replace that external trust.
 The algorithms and parameter names are fixed in v0, but their launch values are
 not economic facts and remain open:
 
-- enrollment `difficulty_bits`: benchmark-derived fixed value vs an adaptive
-  epoch value bounded by governance;
-- base income, work reward curves, hosting prices, and subscription minimums:
-  simulator output vs conservative bootstrap values;
-- validator rotation and election: reputation-weighted selection vs a
-  verifiable randomized committee.
+- enrollment `difficulty_bits` and the Argon2id cost profile: benchmark-derived
+  fixed values vs epoch values bounded by governance. Both must be chosen
+  together, because with a memory-hard primitive the cost of one evaluation and
+  the expected number of evaluations are independent knobs;
+- the per-epoch existence fund, work reward curves, hosting prices, and
+  subscription minimums: simulator output vs conservative bootstrap values;
+- validator rotation and election: the algorithm is open, but eligibility is
+  not. Eligibility MUST be anchored to finalized, hard-to-forge work evidence
+  and MUST NOT rest on uptime or availability alone.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds; the validator-election specification is
@@ -323,5 +377,6 @@ Coblox mainnet.
 - [JSON Canonicalization Scheme, RFC 8785](https://www.rfc-editor.org/rfc/rfc8785)
 - [Ed25519, RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)
 - [ZIP-215 Ed25519 validation](https://zips.z.cash/zip-0215)
+- [Argon2 memory-hard function, RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)
 - [libp2p Peer IDs and keys](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md)
 - [CometBFT light-client trust model](https://github.com/cometbft/cometbft/blob/main/spec/light-client/README.md)

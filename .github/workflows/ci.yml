@@ -50,13 +50,11 @@ jobs:
         with:
           workspaces: ". -> target"
       - uses: android-actions/setup-android@v3
-      - name: Install Android NDK and Gradle
+      - name: Install Android NDK and cargo-ndk
         run: |
-          sdkmanager --install "ndk;27.2.12479018"
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
-          sudo apt-get update
-          sudo apt-get install --yes gradle
-          cargo install cargo-ndk --version 3.5.4 --locked
+          sdkmanager --install "ndk;28.2.13676358"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          cargo install cargo-ndk --version 4.1.2 --locked
       - name: Build Android library and test generated Kotlin binding
         run: ./scripts/build-android.sh
       - uses: actions/upload-artifact@v4
@@ -78,6 +76,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ". -> target"
@@ -90,8 +90,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      # src-tauri is excluded from the root Cargo workspace (see the root
+      # Cargo.toml `exclude`), so the workspace-wide rust job never lints it.
+      # Run its own fmt/clippy gate once, on Linux, to keep it covered.
+      - if: runner.os == 'Linux'
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - if: runner.os == 'Linux'
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
       - run: npm ci
       - run: npm run build
-      - run: npm run tauri -- build --bundles none
+      - run: npm run tauri -- build --no-bundle
       - name: Verify core version command is compiled into the desktop shell
         run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features core_version -- --nocapture

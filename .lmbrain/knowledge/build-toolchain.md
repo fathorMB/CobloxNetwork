@@ -90,6 +90,28 @@ shell invokes the Rust `core_version` Tauri command and displays the returned
 `0.1.0`. Bundling and signing are intentionally excluded from this
 specification.
 
+`apps/desktop/src-tauri` is excluded from the root Cargo workspace (its own
+`target/` sits alongside it, separate from the workspace `target/`), so
+`cargo fmt --all` / `cargo clippy --workspace` at the repository root never
+touch it. Lint it explicitly:
+
+```bash
+cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check
+cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --no-default-features core_version -- --nocapture
+```
+
+The `icons/` directory under `src-tauri/` is a required build input, not
+product design: `tauri-build`'s build script embeds `icons/icon.ico` into the
+Windows binary resource even when bundling is skipped entirely, and fails
+without it. It was generated once with `npm run tauri -- icon <source.png>`
+from a neutral placeholder square and trimmed down to the desktop-relevant
+outputs (`icon.ico`, `icon.icns`, `icon.png`, and the PNG sizes Tauri's default
+config references); the command's Android/iOS/Windows-Store output was
+discarded since this app does not target those platforms through Tauri.
+Replace it with real product artwork once a design system exists — that
+replacement is out of this specification's scope.
+
 ## Common failures
 
 - **Android linker cannot be found:** confirm `ANDROID_NDK_HOME` points to the

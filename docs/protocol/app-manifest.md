@@ -7,8 +7,10 @@ and byte-exact distribution container accepted by Coblox runtimes.
 
 A Coblox app is one WebAssembly module plus a signed canonical manifest in a
 deterministic `.cobloxapp` container. Installing a package does not grant its
-requested capabilities: the host validates the package, shows the request to
-the operator, and records an explicit local grant bounded by the manifest.
+requested capabilities: the host validates the package and then applies one of
+two consent paths — an explicit operator grant for a voluntary installation, or
+evaluation against a declared machine-readable policy for an assignment the
+protocol made. Neither path ever grants by default.
 
 App identity is content-addressed and chain-bound:
 

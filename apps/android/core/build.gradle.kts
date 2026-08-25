@@ -16,6 +16,14 @@ android {
 
   sourceSets["main"].java.srcDir(layout.buildDirectory.dir("generated/uniffi"))
   sourceSets["test"].resources.srcDir(layout.buildDirectory.dir("native-test"))
+
+  // Must match the Kotlin jvmTarget below: AGP defaults javac's target to 1.8,
+  // which fails `compileDebugKotlin` with "Inconsistent JVM-target
+  // compatibility detected" once Kotlin targets a newer bytecode level.
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
 }
 
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
@@ -51,6 +59,17 @@ val stageHostLibraryForTests by tasks.registering(Copy::class) {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   dependsOn(generateUniFFIBindings)
+}
+// `sourceSets["test"].resources.srcDir(nativeTestDir)` (above) makes AGP's
+// processDebugUnitTestJavaRes read from nativeTestDir, but Gradle can't infer
+// that from a plain srcDir() call, so task-graph validation flags it as an
+// undeclared/implicit dependency unless that task is wired to
+// stageHostLibraryForTests by name (AGP's merge-resources task type isn't a
+// public Gradle type, so matching by `withType` is not reliable here).
+afterEvaluate {
+  tasks.named("processDebugUnitTestJavaRes") {
+    dependsOn(stageHostLibraryForTests)
+  }
 }
 tasks.withType<Test>().configureEach {
   dependsOn(stageHostLibraryForTests)

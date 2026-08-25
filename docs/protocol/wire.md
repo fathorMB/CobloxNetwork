@@ -154,11 +154,19 @@ The response MUST NOT echo the proof or expose validation internals.
 {
   "challenge_id": sha256-string,
   "kind": "availability" | "storage" | "compute",
+  "issuer_node_id": string,
   "subject_node_id": string,
   "issued_at_ms": u64-string,
   "deadline_ms": u64-string,
   "randomness": base64url(32 bytes),
-  "assignment": AvailabilityAssignment | StorageAssignment | ComputeAssignment
+  "randomness_source": {
+    "beacon_height": u64-string,
+    "beacon_block_id": sha256-string,
+    "commitment_epoch": u64-string
+  },
+  "issuer_commitment": sha256-string,
+  "assignment": AvailabilityAssignment | StorageAssignment | ComputeAssignment,
+  "issuer_signature": base64url(64 bytes)
 }
 ```
 
@@ -180,15 +188,38 @@ ComputeAssignment = {
 ```
 
 The `challenge_id` is `request_hash` from the hash registry over the JCS request
-without `challenge_id`. Only
-an assigned validator or ledger-selected auditor may issue a challenge.
-`randomness` MUST derive from finalized consensus randomness plus an issuer
-secret committed before subject selection; a subject-chosen nonce is invalid.
+without `challenge_id` and without `issuer_signature`. The issuer signature uses
+domain `coblox-challenge-request-v0`, the global chain binding, and payload
+`raw_32_bytes(challenge_id)`, so the issuer is bound to the request itself and
+not merely to the envelope that carried it. Only an assigned validator or
+ledger-selected auditor may issue a challenge.
+
+`randomness` MUST equal the `challenge_randomness` of the hash registry, derived
+from the finalized beacon named by `randomness_source`, the issuer's committed
+secret, and the subject. A subject-chosen nonce is invalid, and so is an
+issuer-chosen one: the value is a function of published data plus one secret
+that was committed on-chain beforehand, so anyone can recompute it once the
+secret is revealed in the challenge evidence. `issuer_commitment` MUST match a
+finalized `challenge_commitment` transaction for `(issuer_node_id,
+commitment_epoch)` whose height is strictly below `beacon_height`.
+
+The subject-to-issuer assignment is likewise derived, not chosen: the
+`(issuer_node_id, subject_node_id)` pair MUST be one the epoch's assignment
+function produces from the same finalized beacon over the eligible sets, and
+every subject MUST be covered by at least two distinct issuers per epoch, none
+of which is the subject. The assignment function is deterministic, recomputable
+by any observer from finalized data, and specified with the challenge engine in
+M-03; the fields it needs are fixed here so that adding it later is not a
+breaking format change.
+
+Verification of all of the above happens against the finalized evidence and is
+specified in [ledger.md](ledger.md#challenge-evidence). A request whose
+randomness a verifier cannot reproduce backs no reward.
 
 Canonical availability example:
 
 ```json
-{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"}
+{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","issuer_commitment":"sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5","issuer_node_id":"cblx1issuerfixture","issuer_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","randomness_source":{"beacon_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af","beacon_height":"40","commitment_epoch":"17"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"}
 ```
 
 ### `challenge_response`

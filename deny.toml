@@ -9,7 +9,7 @@ ignore = []
 version = 2
 allow = [
   "Apache-2.0",
-  "LLVM-exception",
+  "Apache-2.0 WITH LLVM-exception",
   "LGPL-2.1-or-later",
   "MIT",
   "MPL-2.0",
@@ -21,4 +21,11 @@ confidence-threshold = 0.8
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# coblox-ffi/coblox-node depend on the in-workspace coblox-core crate via a
+# bare `path = "../coblox-core"` with no version. None of these crates are
+# published to crates.io (private = true), so this is a private path
+# dependency: allow-wildcard-paths exempts exactly that case per cargo-deny's
+# documented behaviour, without weakening the wildcard check for any real
+# external (published) dependency.
+allow-wildcard-paths = true
 highlight = "all"

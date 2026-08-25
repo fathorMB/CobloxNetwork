@@ -50,7 +50,8 @@ All transaction objects share:
 {
   "schema_version":"0.1",
   "network_id":string,
-  "kind":"mint"|"burn"|"fund_app"|"challenge_evidence"|"revoke_identity",
+  "kind":"mint"|"burn"|"fund_app"|"challenge_commitment"|"challenge_evidence"
+        |"revoke_identity",
   "created_at_ms":u64-string,
   "expires_at_ms":u64-string,
   "body":object,
@@ -97,23 +98,64 @@ MintBody = {
   "reward_epoch":u64-string,
   "policy_hash":sha256-string,
   "evidence_tx_ids":[sha256-string],              // existence/work only
+  "eligible_node_count":u64-string,               // existence only
   "work_kind":"availability"|"storage"|"compute", // work only
   "app_id":sha256-string,                         // publisher only
   "active_subscriber_count":u64-string,           // publisher only
-  "active_subscription_root":sha256-string        // publisher only
+  "active_subscription_root":sha256-string,       // publisher only
+  "counted_subscription_burn_microtokens":u64-string // publisher only
 }
 MintAuthorization = {"quorum_certificate":TransactionQuorumCertificate}
 ```
 
-For `existence_income`, `work_kind` is absent and evidence MUST establish the
-configured availability threshold for that node and epoch. For
-`work_compensation`, `work_kind` is required and evidence MUST establish the
-measured resource contribution. Evidence IDs are unique and sorted bytewise.
-The reward function in the signed `policy_hash` deterministically yields the
-amount; validators recompute it. Evidence cannot be consumed by two mints.
+For `existence_income`, `work_kind` is absent, `eligible_node_count` is
+required, and evidence MUST establish the configured availability threshold for
+that node and epoch. For `work_compensation`, `work_kind` is required and
+evidence MUST establish the measured resource contribution. Evidence IDs are
+unique and sorted bytewise. The reward function in the signed `policy_hash`
+deterministically yields the amount; validators recompute it. Evidence cannot be
+consumed by two mints.
 
-For `publisher_reward`, `evidence_tx_ids` and `work_kind` are absent; `app_id`,
-`active_subscriber_count`, and `active_subscription_root` are required. The
+#### Existence income is a share of a capped fund
+
+Existence income is **not** a fixed amount per node. Per [ADR-007] it is a fund
+whose size is fixed per epoch by governance, divided among the nodes that met
+the threshold. For an epoch with `existence_fund_microtokens_per_epoch = F` from
+the active reward policy and `eligible_node_count = E`:
+
+```text
+E > 0
+amount_microtokens = F / E          // integer division, remainder discarded
+```
+
+The remainder is **not** minted and is not carried forward; total existence
+emission for an epoch is therefore at most `F` by construction, not by
+convention. Validators recompute `E` from the finalized evidence of that epoch
+and reject a mint whose `eligible_node_count` differs or whose amount is not the
+exact quotient. At most one `existence_income` mint exists per
+`(beneficiary_node_id, reward_epoch)`, and the sum of existence mints for an
+epoch MUST NOT exceed `F`.
+
+This is the format-level consequence of the anti-Sybil position, and it is worth
+stating why it matters: with a per-node amount, `N` emulated identities
+**increase** total emission, so a fleet mints. With a capped fund, the same
+fleet can only dilute the share of honest nodes — the attack degrades from
+forgery to redistribution, and the fraction of total emission reachable that way
+is bounded by how much of emission flows through this channel at all. That
+fraction is a governance quantity monitored under `SEC-REQ-18`, owned by M-02
+and M-03, and is deliberately not a schema field here: it is an observed ratio
+between channels, not a knob.
+
+Declared limit: `eligible_node_count` is committed in the mint and recomputed by
+full validators from finalized evidence, but v0 does not commit a per-epoch
+eligible-set root, so a light client verifies the arithmetic and the quorum
+rather than independently recomputing eligibility. A per-epoch eligibility
+commitment is M-02 work.
+
+For `publisher_reward`, `evidence_tx_ids`, `eligible_node_count`, and
+`work_kind` are absent; `app_id`, `active_subscriber_count`,
+`active_subscription_root`, and `counted_subscription_burn_microtokens` are
+required. The
 beneficiary MUST equal the enrolled publisher committed by that app's finalized
 catalog record. For an epoch, validators select finalized `app_subscription`
 burns for the app whose half-open paid service period contains the entire reward
@@ -130,18 +172,52 @@ subscription_empty = H(0x22)
 
 The tree preserves sorted order and pads to a power of two with
 `subscription_empty`; zero entries use `H(0x23)` as the root and are not reward
-eligible. `active_subscriber_count` is the number of retained leaves. Full
-validators recompute both count and root from finalized burns, then apply the
-creator-reward curve selected by `policy_hash`. At most one publisher-reward
-mint exists per `(app_id, reward_epoch)`. The commitment prevents a proposer
-from inventing or double-counting subscribers; defenses against publisher-owned
-Sybil subscribers remain an explicit threat-model and policy concern under
-[ADR-006].
+eligible. `active_subscriber_count` is the number of retained leaves and
+`counted_subscription_burn_microtokens` is the checked `u128` sum of
+`amount_microtokens` over exactly those retained burns, rejected if it exceeds
+`u64::MAX`. Full validators recompute the count, the sum, and the root from
+finalized burns, then apply the creator-reward curve selected by `policy_hash`.
+At most one publisher-reward mint exists per `(app_id, reward_epoch)`. The
+commitment prevents a proposer from inventing or double-counting subscribers.
+
+#### Creator-share cap: a validity rule, not a policy note
+
+The reward curve alone permits a publisher to be its own subscribers and collect more
+than it burns, which is a token-printing cycle. v0 closes it with a consensus
+constraint rather than a recommendation. Let `kn` and `kd` be
+`publisher_reward_cap_numerator` and `publisher_reward_cap_denominator` from the
+active reward policy, with `kd > 0` and `kn < kd` enforced when the document is
+accepted. For every `(app_id, reward_epoch)`:
+
+```text
+amount_microtokens * kd  <=  kn * counted_subscription_burn_microtokens
+```
+
+Both products use checked `u128` intermediates; overflow rejects the block. A
+mint violating the inequality is **invalid** — validators recompute and enforce
+it exactly like any other validity rule, and the entire proposed block fails.
+
+Because `kn < kd` is strict, the marginal effect of one self-owned subscriber per
+period is `-S + P <= -S(1 - kn/kd) < 0`: strictly negative whatever curve the
+economic simulator later selects. The cycle is structurally lossy, so the
+constraint does not depend on tuning to be sound. Boundary conformance: with
+`kn/kd` and a counted burn sum `B`, a mint of exactly `floor(kn * B / kd)` is
+valid and that value plus one is invalid.
+
+Declared limit, because the cap does not close everything: `active_subscriber_count`
+remains a public finalized number and therefore a popularity signal, so a
+publisher can still buy *reputation* at a cost of `S(1 - kn/kd)` per fake
+subscriber per period, funded by existence income. Weighting subscribers by
+demonstrated contribution, or not exposing the count in discovery, are the
+candidate answers; both are economic and catalog decisions owned by the Project
+Lead and AGENT-002 under [ADR-006], and the relation is on the economic
+simulator's mandatory checklist. What this document guarantees is only that the
+*ledger* cycle cannot be net positive.
 
 Canonical existence-income mint:
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"amount_microtokens":"250000","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","evidence_tx_ids":["sha256:313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"],"policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"existence_income","reward_epoch":"17"},"created_at_ms":"1787654500000","expires_at_ms":"1787740900000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"amount_microtokens":"250000","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","eligible_node_count":"4000","evidence_tx_ids":["sha256:313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"],"policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"existence_income","reward_epoch":"17"},"created_at_ms":"1787654500000","expires_at_ms":"1787740900000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 Canonical storage-work mint:
@@ -156,7 +232,7 @@ Availability and compute use the identical serialized schema with
 Canonical publisher-reward mint:
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"active_subscriber_count":"128","active_subscription_root":"sha256:fc9cd19c4f7b32970a7c870e821dbca915d204c09a496d60b17f66ec8790ad3a","amount_microtokens":"6400000","app_id":"sha256:77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"publisher_reward","reward_epoch":"17"},"created_at_ms":"1787654502000","expires_at_ms":"1787740902000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"active_subscriber_count":"128","active_subscription_root":"sha256:fc9cd19c4f7b32970a7c870e821dbca915d204c09a496d60b17f66ec8790ad3a","amount_microtokens":"6400000","app_id":"sha256:77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","counted_subscription_burn_microtokens":"38400000","policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"publisher_reward","reward_epoch":"17"},"created_at_ms":"1787654502000","expires_at_ms":"1787740902000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 ### Fund app escrow
@@ -246,6 +322,35 @@ Canonical subscription burn:
 {"authorization":{"public_key":"11qYAYdk9J0L5Z-6hB4qMTPBSAE5nK1G0IU2n6z1V9g","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"body":{"account_nonce":"9","amount_microtokens":"300000","app_id":"sha256:77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8","payer_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","pricing_hash":"sha256:2d1e35bf61f89fc50cb9cafe158f44ad63d522898971e0211d59708331c4b404","reason":"app_subscription","service_period_end_ms":"1790332800000","service_period_start_ms":"1787654400000"},"created_at_ms":"1787654520000","expires_at_ms":"1787654820000","kind":"burn","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
+### Challenge issuer commitment
+
+A challenge is only meaningful if nobody could steer it. The commitment that
+makes `randomness` verifiable is itself a ledger object, so that "committed
+before subject selection" is a checkable fact rather than a claim.
+
+```text
+ChallengeCommitmentBody = {
+  "issuer_node_id":string,
+  "commitment_epoch":u64-string,
+  "issuer_commitment":sha256-string
+}
+ChallengeCommitmentAuthorization = {
+  "public_key":base64url(32 bytes),
+  "signature":base64url(64 bytes)
+}
+```
+
+The key MUST derive the enrolled, unrevoked `issuer_node_id`. At most one
+commitment exists per `(issuer_node_id, commitment_epoch)`; a second is invalid,
+so an issuer cannot hold several secrets and reveal whichever suits the outcome.
+This transaction moves no value and touches no balance or nonce.
+
+Canonical serialized example:
+
+```json
+{"authorization":{"public_key":"11qYAYdk9J0L5Z-6hB4qMTPBSAE5nK1G0IU2n6z1V9g","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"body":{"commitment_epoch":"17","issuer_commitment":"sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5","issuer_node_id":"cblx1issuerfixture"},"created_at_ms":"1787654400000","expires_at_ms":"1787654700000","kind":"challenge_commitment","network_id":"coblox-devnet-0","schema_version":"0.1"}
+```
+
 ### Challenge evidence
 
 ```text
@@ -258,6 +363,7 @@ ChallengeEvidenceBody = {
   "request_hash":sha256-string,
   "response":ChallengeResponse,              // absent only for no_response
   "response_hash":sha256-string,             // absent only for no_response
+  "issuer_reveal":base64url(32 bytes),
   "outcome":"passed"|"failed"|"late"|"no_response",
   "measured_units":u64-string,
   "completed_at_ms":u64-string,
@@ -274,10 +380,39 @@ embedding the raw objects makes them retrievable with the finalized transaction.
 `measured_units` is 1 for availability, verified
 bytes for storage, and verified fuel units for compute.
 
+`issuer_reveal` is the issuer secret behind the commitment. Every verifier —
+not only validators — MUST recompute, from the registry formulas and the
+embedded request:
+
+1. `issuer_commitment` from `issuer_reveal`, `request.issuer_node_id`, and
+   `request.randomness_source.commitment_epoch`, and require it to equal
+   `request.issuer_commitment`;
+2. that a finalized `challenge_commitment` transaction carries exactly that
+   `(issuer_node_id, commitment_epoch, issuer_commitment)` triple, and that it
+   was finalized at a height **strictly below** `beacon_height`, so the secret
+   was fixed before the beacon existed;
+3. `challenge_randomness` from the beacon, the commitment, the reveal, and the
+   subject, and require it to equal `request.randomness`;
+4. that `beacon_block_id` is the finalized canonical block at `beacon_height`;
+5. that the `(issuer, subject)` pair is the pair the epoch's assignment
+   function produces from that beacon.
+
+Evidence failing any of these is invalid and cannot back a mint. This is what
+turns "randomness MUST derive from finalized consensus randomness" from an
+unenforceable instruction into a rule: previously no verifier held the data
+needed to contradict a colluding issuer who picked the one chunk its subject had
+kept.
+
+Declared limit: in v0 the beacon value is a finalized `block_id`, so the
+proposer of the beacon block has a bounded grinding advantage — it can discard a
+candidate block and try another. The commit-before-beacon ordering removes the
+issuer's freedom but not the proposer's, and a dedicated randomness beacon is
+M-02 work. The residual is stated rather than assumed away.
+
 Canonical serialized example:
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","kind":"availability","measured_units":"1","outcome":"passed","request":{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"request_hash":"sha256:e14d4c02c41a950c9f4f4464e9f98a6652c64e6c992efc36c97f01d2f4ca2dc2","response":{"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","result":{"kind":"availability","response":"MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","subject_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"auditor_signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","issuer_node_id":"cblx1issuerfixture","issuer_reveal":"REREREREREREREREREREREREREREREREREREREREREQ","kind":"availability","measured_units":"1","outcome":"passed","request":{"assignment":{"response_bytes":"32"},"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","deadline_ms":"1787654420000","issued_at_ms":"1787654415000","issuer_commitment":"sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5","issuer_node_id":"cblx1issuerfixture","issuer_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","kind":"availability","randomness":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","randomness_source":{"beacon_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af","beacon_height":"40","commitment_epoch":"17"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"request_hash":"sha256:e14d4c02c41a950c9f4f4464e9f98a6652c64e6c992efc36c97f01d2f4ca2dc2","response":{"challenge_id":"sha256:3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21","completed_at_ms":"1787654416000","result":{"kind":"availability","response":"MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM"},"subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","subject_signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},"response_hash":"sha256:8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f","subject_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka"},"created_at_ms":"1787654420000","expires_at_ms":"1787740820000","kind":"challenge_evidence","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 ### Identity revocation
@@ -400,6 +535,43 @@ rotate the old consensus private key; re-entry requires a fresh binding.
 This continuity rule specifies safe authentication but not how members are
 elected or rotated.
 
+### Revocation forces a validator set transition
+
+Continuity alone has a hole: the active set is pinned by hash and changes only
+through `next_validator_set_hash`, so a finalized `revoke_identity` naming a
+sitting validator would remove nothing. The compromised consensus key would keep
+voting, with its full weight counted toward quorum, until some later transition
+that no rule obliges anyone to make — and a light client, which checks only
+set-hash continuity and never sees transactions, could not even detect it.
+
+The rule is therefore a validity condition on the set itself:
+
+1. a `ValidatorSet` with `activation_height >= effective_height` that contains a
+   `node_id` revoked with that `effective_height` is **invalid**;
+2. a block at height `>= effective_height` whose active validator set contains
+   that `node_id` is **invalid**, and so is any quorum certificate counted
+   against such a set;
+3. the revoked entry's voting power is never counted in either `signed_power` or
+   `total_power` — it is not reweighted, the set is simply rejected;
+4. `effective_height` MUST be at least `min_revocation_effective_delay_blocks`
+   above the height of the block proposing the revocation, so the surviving
+   members have a bounded, declared window in which to commit a compliant
+   successor set.
+
+A light client needs no new field to see this. Because the set must change, it
+observes the transition through the mechanism it already verifies: it fetches the
+new set, hashes it, and checks every `key_binding_signature`. That is why this
+rule is preferable to adding a revocation commitment to `BlockHeader` — it costs
+nothing on the wire and reuses a verification path the client already performs.
+
+Declared consequence, stated rather than discovered later: if the remaining
+validators fail to commit a compliant successor set within the delay window, the
+chain **stalls** at `effective_height` instead of finalizing blocks signed by a
+set containing a revoked key. That is a deliberate choice of safety over
+liveness, and `min_revocation_effective_delay_blocks` exists to make the window
+long enough that the choice is rarely exercised. Which members replace the
+revoked one is an election question, out of scope here and open in M-02.
+
 ## Sparse Merkle account state
 
 The account tree is a depth-256 binary sparse Merkle tree.
@@ -498,7 +670,8 @@ alerts, but cryptographic acceptance depends on the authenticated header.
 ## State transition order
 
 Within a block, transactions execute in this deterministic order after all
-static checks: (0) `challenge_evidence` and `revoke_identity`, ordered by raw
+static checks: (0) `challenge_commitment`, `challenge_evidence`, and
+`revoke_identity`, ordered by raw
 transaction ID; (1) `fund_app` and `burn`, ordered by
 `(account_kind, raw_account_key, debit_nonce, raw_tx_id)`; then (2) `mint`,
 ordered by raw transaction ID. A mint may reference evidence from class 0 of
@@ -515,12 +688,22 @@ transactions or fees in v0.
 
 Two matters are intentionally open but fully bounded:
 
-- committee selection alternatives are reputation/uptime-weighted rotation or
-  a finalized-randomness lottery with eligibility thresholds. AGENT-002 owns the
-  M-02 consensus specification and the Project Lead decides the accepted ADR;
-- reward and price values, including the publisher-reward curve, come from the
-  economic simulator, either as fixed epoch tables or bounded governance curves.
-  AGENT-002 and the Project Lead own the decision under ADR-005 and ADR-006.
+- committee selection alternatives are a weighted rotation or a
+  finalized-randomness lottery, in both cases over an eligibility set. The
+  selection algorithm is open; the **eligibility basis is not**. Per [ADR-007],
+  eligibility MUST be anchored to finalized, hard-to-forge work — demonstrated
+  storage and compute — and MUST NOT rest on uptime or availability alone, which
+  a rented VPS with an SLA beats by construction against any real phone. The
+  election rule itself, its randomness source, and its rotation cap are owned by
+  AGENT-002 in M-02 and tracked in [DEBT-005]; nothing in this document fixes
+  them;
+- reward and price values, including the publisher-reward curve and the
+  per-epoch existence fund, come from the economic simulator, either as fixed
+  epoch tables or bounded governance curves. AGENT-002 and the Project Lead own
+  the decision under ADR-005, ADR-006, and ADR-007. The curve is free only
+  within the creator-share cap above, which is a validity rule and not a
+  tuning parameter.
 
 Neither open decision changes transaction kinds, mint/burn separation, signed
-policy hashes, validator-set continuity, or the light-client proof algorithm.
+policy hashes, validator-set continuity, the revocation transition rule, or the
+light-client proof algorithm.

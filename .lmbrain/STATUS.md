@@ -9,7 +9,7 @@ updated: 2026-08-25
 
 ## Current focus
 
-**Decisioni dell'operatore necessarie per sbloccare M-01.** La review di sicurezza di SPEC-001 ([REVIEW-002]) non ha superato `GATE-SECREVIEW`: 18 finding, 8 gravi, tra cui una violazione di safety BFT verificata indipendentemente dal Lead e la dimostrazione quantitativa che il proof of work SHA-256 non regge l'anti-Sybil su hardware commodity. Quest'ultima **contraddice una metrica di successo dichiarata in [[PROJECT]]** ("zero accrediti a nodi emulati nei test di attacco"): serve una scelta di prodotto, non una correzione tecnica. SPEC-003 è consegnata e attende review del Lead più il gate estetico dell'operatore. SPEC-002 è ferma su un blocco reale (nessun push, quindi CI mai eseguita) più due difetti trovati dal Lead.
+**Sessione autonoma del Lead, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead opera senza attendere conferme. Risultati finora: **[SPEC-004] chiusa** (prima spec `done` del progetto), **[ADR-007] accettato** con la decisione anti-Sybil presa su delega, metrica di successo di [[PROJECT]] riformulata, **[SPEC-003] accettata tecnicamente** ([REVIEW-004]) ma bloccata dal gate dell'operatore, tre debiti nuovi registrati, primo commit di chiusura spinto su `main`. In lavorazione: Lotto B su SPEC-001 e remediation su SPEC-002.
 
 ## Current milestone
 
@@ -21,26 +21,44 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 
 ## In progress
 
-- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. [REVIEW-001] chiusa. Su [REVIEW-002] il **Lotto A è rimediato e verificato dal Lead** (14 finding su 18, inclusi tutti i gravi tranne RF-005 e RF-007): documenti passati da 1327 a 1709 righe, 18 esempi JSON canonici, 16 link risolti, e le fixture di identità ora derivano davvero il node ID dalla chiave. **Restano due condizioni per `done`:** (1) il Lotto B, subordinato alla decisione anti-Sybil; (2) la ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007, oggi impegnata su [SPEC-004].
+- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. Lotto A rimediato e verificato. **Lotto B dispacciato dal Lead nella notte** (modello Opus), ora sbloccato da [ADR-007]: Argon2id al posto di SHA-256 con controlli riordinati contro il DoS, vincolo `k < 1` sulla quota al creatore, revoca che forza la transizione del validator set, casualità delle challenge verificabile, consenso dell'host valutabile automaticamente. Poi resta la sola ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007, ora libera. **In corso.**
 - [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). In `working`. **Remediation dispacciata dal Lead il 2026-08-25 su autorizzazione dell'operatore, modello Sonnet**: chiusura dei tre difetti trovati dal Lead (script `build-android.sh` rotto per `-p` invece di `--platform`, wrapper Gradle mancante, `.gitignore` di root assente) più le verifiche locali, il cui standard si alza perché con la CI ferma `GATE-LOCAL-REPRO` è l'unica verifica reale che la spec produce. **In corso.**
-- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **Consegnata**, ora in `review`. `GATE-CONTRAST` chiuso con 130/130 coppie AA; interfaccia interamente in inglese come da correzione del Lead. Su richiesta dell'operatore il pacchetto è stato spostato in **`.lmbrain/design/coblox-design-system/`** secondo la convenzione del brain, così da essere visibile nell'app; generatori e link verificati dopo lo spostamento. Attende la review del Lead e il gate `GATE-OPERATOR-LOOK` dell'operatore.
-- [SPEC-004] Threat model → AGENT-007 (Greta Threatmodel). Dispacciata dal Lead il 2026-08-25, modello Opus, su decisione dell'operatore di stabilire la posizione anti-Sybil **dopo** il threat model. Il documento dovrà istruire quella decisione con numeri e conseguenze per ciascuna opzione, incluse le riformulazioni candidate della metrica di [[PROJECT]]. **In corso.**
+- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). In `review`, **accettata tecnicamente** dal Lead con [REVIEW-004]: sette criteri su sette verificati meccanicamente, un solo finding di severità bassa che non blocca. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`. **Bloccata dal solo `GATE-OPERATOR-LOOK`:** il sistema rifiuta `spec_done` finché l'operatore non attesta di aver visto e approvato la direzione estetica, e il Lead non può farlo al suo posto.
+
+## Done
+
+- [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
 
 ## Blockers and risks
 
-- **BLOCCO 1 — conflitto tra sicurezza e metrica di prodotto.** [REVIEW-002] RF-005 dimostra numericamente (rapporto telefono/GPU ~2.750×) che nessun valore di `difficulty_bits` nell'intervallo 18–40 è insieme tollerabile su Android e costoso per un attaccante. Ne segue che la metrica di successo di [[PROJECT]] "zero accrediti a nodi emulati nei test di attacco" **non è raggiungibile per via crittografica** con il design attuale. *Decisione dell'operatore del 2026-08-25: si sceglie dopo il threat model. [SPEC-004] è stata avviata proprio per istruire questa scelta; PROJECT.md resta invariato fino ad allora.*
+- **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Da rivedere con l'operatore al risveglio:** è una decisione di prodotto presa in sua assenza e, se non concorda, va superata con una nuova ADR e non modificata in silenzio.
+- **Attenzione, decisione delegata di rilievo:** il progetto ora dichiara di essere robusto contro la falsificazione ma **non** resistente ai Sybil per via crittografica. È una rinuncia esplicita a una promessa, resa in cambio di onestà verificabile.
 - **BLOCCO 2 — risolto per ora con una deroga.** La prima run CI (commit `4ea0db9`) è fallita in 6 secondi **senza eseguire alcun job**: `The job was not started because recent account payments have failed or your spending limit needs to be increased`. Problema dell'account GitHub, non del codice. L'operatore ha concesso il 2026-08-25 la deroga su `GATE-CI-GREEN`, registrata come **[DEBT-001]** (open, owner AGENT-008, severità high). I criteri che richiedevano la verifica *in CI* sono marcati `[~] ... | waived=DEBT-001`; la verifica locale equivalente **non** è derogata. Alla ripresa della fatturazione, DEBT-001 impone una run verde e la ri-attestazione del gate.
-- Violazione di safety BFT ([REVIEW-002] RF-002) verificata indipendentemente dal Lead: con potere di voto totale 101 la regola `2f+1` dà 67 e la regola "due terzi più uno" dà 68; due certificati di quorum in conflitto possono essere entrambi validi. Correzione a costo zero, ma va fatta prima che due implementazioni divergano.
 - Nome del token non ancora deciso (placeholder: `◇`). Lia propone JetBrains Mono come monospace: decisione dell'operatore.
+
+## Debiti aperti
+
+| ID | Severità | Owner | Questione |
+| --- | --- | --- | --- |
+| [DEBT-005] | critical | AGENT-002 | Il set di validatori è auto-perpetuante: manca la regola di elezione. Nessuna devnet deve accumulare storia conservabile prima che sia scritta. |
+| [DEBT-001] | high | AGENT-008 | La pipeline CI non è mai stata eseguita, `GATE-CI-GREEN` derogato. Sbloccabile solo dalla fatturazione GitHub dell'operatore. |
+| [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
+| [DEBT-007] | high | AGENT-002 | La forma del reddito di esistenza non è decisa e determina `α`, il parametro più importante dell'economia. |
 
 ## Next recommended actions
 
-1. Alla consegna di [SPEC-004]: decisione anti-Sybil dell'operatore, poi remediation del **Lotto B** e ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007. Sono le ultime due condizioni per chiudere SPEC-001.
-2. Operatore: sbloccare la fatturazione GitHub per chiudere [DEBT-001]; nel frattempo AGENT-008 sta correggendo i tre difetti trovati dal Lead.
-3. Lead: recensire SPEC-003 (consegnata); l'operatore attesta poi `GATE-OPERATOR-LOOK`.
-4. Operatore: decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
-5. Alla decisione anti-Sybil: riformulare la metrica di successo in [[PROJECT]].
-6. **Alla prima spec che passa a `done`:** il Lead committa e pusha, includendo lo spostamento del pacchetto di design in `.lmbrain/design/` (19 rinomine oggi non ancora committate, per volontà dell'operatore).
+**Per l'operatore, al risveglio:**
+
+1. **Rivedere [ADR-007]**, la decisione anti-Sybil presa su delega: riformula una promessa di prodotto. Se non concordi va superata con una nuova ADR, non modificata a mano.
+2. **Attestare `GATE-OPERATOR-LOOK`** guardando `.lmbrain/design/coblox-design-system/index.html`: è l'unico passo che separa SPEC-003 da `done`.
+3. **Sbloccare la fatturazione GitHub** per chiudere [DEBT-001] e far girare finalmente la pipeline.
+4. Decidere nome del token/unità e font monospace (AGENT-006 propone JetBrains Mono).
+
+**Per il Lead, in autonomia:**
+
+5. Alla consegna del Lotto B: verificare, poi chiedere ad AGENT-007 la ri-attestazione di `GATE-SECREVIEW` e chiudere SPEC-001.
+6. Alla consegna di SPEC-002: recensire; `GATE-CI-GREEN` è derogato, quindi la chiusura dipende solo da `GATE-LOCAL-REPRO` e dai tre difetti.
+7. A ogni spec che passa a `done`: commit e push su `main`.
 
 ## Strategia di branching
 

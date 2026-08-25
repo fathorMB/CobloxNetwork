@@ -13,6 +13,10 @@ edition = "2024"
 rust-version = "1.96"
 license = "Apache-2.0"
 repository = "https://github.com/cobloxnetwork/coblox"
+# Internal workspace crates only; none of them are published to crates.io.
+# This also makes coblox-ffi/coblox-node's path dependency on coblox-core a
+# "private path dependency" for cargo-deny's allow-wildcard-paths check.
+publish = false
 
 [workspace.lints.rust]
 # UniFFI generates `#[unsafe(no_mangle)]` exports in its build output. Source
