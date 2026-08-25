@@ -32,3 +32,13 @@ apps/android/core/src/main/jniLibs/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Per-machine agent-harness configuration. These files hold absolute paths and
+# the local username, and the repository is public: they are excluded rather
+# than left untracked by convention. If a harness configuration ever needs to
+# be shared, commit a portable copy with relative paths instead, the way
+# .lmbrain/mcp/lmbrain-mcp.json already does.
+.codex/
+.pi/
+.mcp.json
+opencode.json
