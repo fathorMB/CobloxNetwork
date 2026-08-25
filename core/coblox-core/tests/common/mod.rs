@@ -45,8 +45,35 @@ pub fn identity_fixture_public_key() -> [u8; 32] {
 /// The base64url spelling of the identity fixture public key.
 pub const IDENTITY_FIXTURE_PUBLIC_KEY: &str = "L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s";
 
-/// The signed-object Peer ID of the same key.
-pub const IDENTITY_FIXTURE_PEER_ID: &str = "12D3KooWD3eckifWpRn9wQpMG9R9hX3sD158z7EqHWmweQAJU5SA";
+/// The libp2p Peer ID of the **transport** fixture key, from
+/// `identity.md#canonical-libp2p-peer-id`.
+///
+/// There is deliberately no constant for a Peer ID of the identity fixture key:
+/// the identity key is published on the ledger and never authenticates a
+/// connection, so a Peer ID derived from it is not a protocol value but the
+/// correlation [ADR-015] exists to remove.
+pub const TRANSPORT_FIXTURE_PEER_ID: &str = "12D3KooWLY9nerKo6xGVcRVjDRdqLh7oMgz3tJk61oSgCo5kKWmM";
+
+/// The base64url spelling of the **transport** fixture public key of
+/// `identity.md#transport-key-attestation`.
+///
+/// It is a different key from [`IDENTITY_FIXTURE_PUBLIC_KEY`], and that is the
+/// whole point of it existing: `identity.md#key-hierarchy` makes the two keys
+/// distinct as a validity rule, so a fixture that spelled them the same would
+/// publish, in the normative document, the one configuration that annuls
+/// [ADR-015]. It is the Ed25519 public key of the all-`0x54` seed, so it is a
+/// real curve point and not 32 arbitrary bytes.
+pub const TRANSPORT_FIXTURE_PUBLIC_KEY: &str = "n0lDnp2wlbxBEe0l01eV2DG8VaBH9LHX9q7jd3u0EiA";
+
+/// The transport fixture public key, decoded to 32 bytes.
+#[must_use]
+pub fn transport_fixture_public_key() -> [u8; 32] {
+    coblox_core::encoding::base64url_decode_fixed::<32>(
+        TRANSPORT_FIXTURE_PUBLIC_KEY,
+        "transport fixture public key",
+    )
+    .expect("the transport fixture key is 32 unpadded base64url bytes")
+}
 
 /// The node identifier `identity.md` shows for that key.
 pub const IDENTITY_FIXTURE_NODE_ID: &str =
@@ -60,7 +87,7 @@ pub fn zero_signature_base64url() -> String {
 
 /// Fixture `ER-0`: the exact enrollment-request schema, with all timestamps and
 /// recent height set to `"1"`, nonce `"0"`, network `"fixture"`, the identity
-/// fixture Peer ID / public key, algorithm `argon2id-leading-zero-bits-v0`,
+/// fixture public key, algorithm `argon2id-leading-zero-bits-v0`,
 /// `difficulty_bits:"4"`, the RFC 9106 second recommended cost profile,
 /// parameter hash `11` repeated 32 bytes, recent block hash `22` repeated 32
 /// bytes, and a 64-zero-byte base64url signature.
@@ -82,13 +109,31 @@ pub fn enrollment_request_er0() -> JsonObject {
         .str("schema_version", "0.1")
         .str("network_id", "fixture")
         .str("node_id", IDENTITY_FIXTURE_NODE_ID)
-        .str("libp2p_peer_id", IDENTITY_FIXTURE_PEER_ID)
         .str("public_key", IDENTITY_FIXTURE_PUBLIC_KEY)
         .object("pow", pow)
         .uint("created_at_ms", 1)
         .str("signature", &zero_signature_base64url())
         .build()
         .expect("ER-0")
+}
+
+/// Fixture `TKA-0`: the canonical `TransportKeyAttestation` of
+/// `identity.md#transport-key-attestation`.
+///
+/// `transport_public_key` is [`TRANSPORT_FIXTURE_PUBLIC_KEY`] and **not** the
+/// identity fixture key of `ER-0` above. The two are required to differ.
+#[must_use]
+pub fn transport_key_attestation_tka0() -> JsonObject {
+    JsonObject::builder()
+        .uint("created_at_ms", 1_787_654_400_000)
+        .uint("expires_at_ms", 1_787_654_460_000)
+        .str("network_id", "coblox-devnet-0")
+        .str("node_id", IDENTITY_FIXTURE_NODE_ID)
+        .str("schema_version", "0.1")
+        .str("signature", &zero_signature_base64url())
+        .str("transport_public_key", TRANSPORT_FIXTURE_PUBLIC_KEY)
+        .build()
+        .expect("TKA-0")
 }
 
 /// The four `PD-0` document kinds.
@@ -187,6 +232,8 @@ pub fn consensus_parameters_pd0() -> ConsensusParameters {
     ConsensusParameters {
         max_clock_drift_ms: 1,
         max_envelope_validity_ms: 1,
+        max_transport_attestation_validity_ms: 1,
+        max_transport_attestation_future_skew_ms: 1,
         replay_cache_entries_per_peer: 1,
         replay_cache_entries_global: 1,
         max_weak_subjectivity_age_ms: 1,
@@ -218,6 +265,14 @@ pub fn consensus_body(parameters: &ConsensusParameters) -> JsonObject {
         .uint(
             "max_envelope_validity_ms",
             parameters.max_envelope_validity_ms,
+        )
+        .uint(
+            "max_transport_attestation_validity_ms",
+            parameters.max_transport_attestation_validity_ms,
+        )
+        .uint(
+            "max_transport_attestation_future_skew_ms",
+            parameters.max_transport_attestation_future_skew_ms,
         )
         .uint(
             "replay_cache_entries_per_peer",
@@ -451,6 +506,8 @@ pub fn worked_example_parameters() -> ValidatedConsensusParameters {
     let parameters = ConsensusParameters {
         max_clock_drift_ms: 1,
         max_envelope_validity_ms: 1,
+        max_transport_attestation_validity_ms: 1,
+        max_transport_attestation_future_skew_ms: 1,
         replay_cache_entries_per_peer: 1,
         replay_cache_entries_global: 1,
         max_weak_subjectivity_age_ms: 1,

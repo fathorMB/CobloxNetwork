@@ -309,8 +309,8 @@ source is never sufficient.
 Fixture `HASH-0` uses 32 zero bytes for `chain_id`; byte fixtures use
 `00 01 02`. `ER-0` is the exact enrollment-request schema with all timestamps
 and recent height set to `"1"`, nonce `"0"`, network `"fixture"`,
-node `"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq"`, the Peer ID/public key fixture from
-[identity.md](identity.md#canonical-libp2p-peer-id), algorithm
+node `"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq"`, the public key fixture from
+[identity.md](identity.md#node-identifier), algorithm
 `"argon2id-leading-zero-bits-v0"`, `difficulty_bits:"4"`, the RFC 9106 second
 recommended cost profile (`memory_kib:"65536"`, `iterations:"3"`, `lanes:"4"`),
 parameter hash `11` repeated 32 bytes, recent block hash `22` repeated 32 bytes,
@@ -393,11 +393,11 @@ definitions are exact after JCS; no omitted/default fields are implied.
 
 | Hash | Fixture | Expected value |
 | --- | --- | --- |
-| `enrollment_request_hash` | `ER-0` | `sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f` |
+| `enrollment_request_hash` | `ER-0` | `sha256:52118f65908736ec7fd837a4d6c1b8c2b3ba28e2f0127cea6e282b311e401e58` |
 | `parameter_set_hash` | enrollment `PD-0` | `sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63` |
 | `policy_hash` | reward `PD-0` | `sha256:89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48` |
 | `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
-| `consensus_parameters_hash` | consensus `PD-0` | `sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5` |
 | `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
 | `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
 | `issuer_commitment` | `CMT-0` | `sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5` |
@@ -512,6 +512,8 @@ HostingRateCardBody = {
 ConsensusParametersBody = {
   "max_clock_drift_ms":u64-string,
   "max_envelope_validity_ms":u64-string,
+  "max_transport_attestation_validity_ms":u64-string,
+  "max_transport_attestation_future_skew_ms":u64-string,
   "replay_cache_entries_per_peer":u64-string,
   "replay_cache_entries_global":u64-string,
   "max_weak_subjectivity_age_ms":u64-string,

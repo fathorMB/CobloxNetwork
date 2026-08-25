@@ -11,16 +11,19 @@ This is a concise, prioritized index of opportunities and work areas. Implementa
 
 ## Now — M-02, nell'ordine
 
-[SPEC-010], [SPEC-011] e [SPEC-012] sono `done` dal 2026-08-25. Owner AGENT-001, tier `sol`.
+**[SPEC-010] … [SPEC-013] sono tutte `done` dal 2026-08-25**, e con esse il lavoro che doveva precedere la devnet. Nessuna spec redatta in attesa.
 
-1. **[SPEC-013] — Separazione della chiave di trasporto**, attuazione di [ADR-015]. **Prima che la devnet emetta il primo certificato**: dopo e una migrazione, non una decisione.
+Il prossimo lavoro, da redigere:
 
-Poi devnet BFT, light client con prove Merkle e mint & burn — dipendono dalle API fissate da [SPEC-008].
+1. Una spec piccola che raggruppi i due cambiamenti breaking dell'API di `coblox-core`, [DEBT-015] e [DEBT-016], **prima del primo chiamante del verificatore**: oggi non ne esiste alcuno e non costera mai meno di adesso.
+2. Poi devnet BFT, light client con prove Merkle e mint & burn — dipendono dalle API fissate da [SPEC-008].
 
 ## Debiti aperti
 
 - [DEBT-013] Nessuna regola impone il passo di produzione dei blocchi — medium, owner AGENT-007, M-02.
 - [DEBT-014] `validator_set_hash` e l'unica preimmagine a dominio separato non legata a `chain_id` — medium, owner AGENT-007, M-02. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010].
+- [DEBT-017] La finestra di esposizione dell'attestazione e tolleranza piu durata, e solo la durata e limitata — medium, owner AGENT-007, M-02.
+- [DEBT-018] Nella matrice del threat model l'argomento non puo scrivere quindi n/a confonde falsificazione e perdita — medium, owner AGENT-007, M-02.
 - [DEBT-016] Il verificatore accetta una fetta di byte dove il contratto impone un messaggio — medium, owner AGENT-001, M-02. **Da chiudere con [DEBT-015] in una sola spec**, prima del primo chiamante: sono due cambiamenti breaking della stessa API.
 - [DEBT-015] I sotto-controlli della reward policy sono pubblici e invocabili al posto della validazione — low, owner AGENT-001, M-02. Cambiamento breaking, da raggruppare con altri.
 

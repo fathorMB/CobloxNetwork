@@ -178,6 +178,17 @@ pub struct ConsensusParameters {
     pub max_clock_drift_ms: u64,
     /// Maximum `expires_at_ms - created_at_ms` of a wire envelope.
     pub max_envelope_validity_ms: u64,
+    /// Maximum `expires_at_ms - created_at_ms` of a `TransportKeyAttestation`.
+    ///
+    /// The cap is a signed network parameter and not local policy: the property
+    /// that a leaked transport key stops being usable on its own depends on the
+    /// magnitude of the window, not on the ordering of its two timestamps
+    /// (`identity.md#bounded-validity-in-time`).
+    pub max_transport_attestation_validity_ms: u64,
+    /// Tolerance granted to a `TransportKeyAttestation` whose `created_at_ms`
+    /// is ahead of the receiver's clock. No tolerance is granted past
+    /// `expires_at_ms`; the two directions are deliberately asymmetric.
+    pub max_transport_attestation_future_skew_ms: u64,
     /// Replay cache cap per peer.
     pub replay_cache_entries_per_peer: u64,
     /// Global replay cache cap.
@@ -254,6 +265,8 @@ impl ConsensusParameters {
         body.reject_unknown_fields(&[
             "max_clock_drift_ms",
             "max_envelope_validity_ms",
+            "max_transport_attestation_validity_ms",
+            "max_transport_attestation_future_skew_ms",
             "replay_cache_entries_per_peer",
             "replay_cache_entries_global",
             "max_weak_subjectivity_age_ms",
@@ -274,6 +287,10 @@ impl ConsensusParameters {
         Ok(Self {
             max_clock_drift_ms: body.uint("max_clock_drift_ms")?,
             max_envelope_validity_ms: body.uint("max_envelope_validity_ms")?,
+            max_transport_attestation_validity_ms: body
+                .uint("max_transport_attestation_validity_ms")?,
+            max_transport_attestation_future_skew_ms: body
+                .uint("max_transport_attestation_future_skew_ms")?,
             replay_cache_entries_per_peer: body.uint("replay_cache_entries_per_peer")?,
             replay_cache_entries_global: body.uint("replay_cache_entries_global")?,
             max_weak_subjectivity_age_ms: body.uint("max_weak_subjectivity_age_ms")?,

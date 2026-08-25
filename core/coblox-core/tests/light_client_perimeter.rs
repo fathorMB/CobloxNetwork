@@ -33,7 +33,7 @@ use common::{
 /// registry table. Quoted rather than recomputed, so the header below commits
 /// to a value that came from the specification.
 const PD0_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9";
+    "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5";
 
 /// The `policy_hash` of the PD-0 reward document, from the same published
 /// table and quoted for the same reason.

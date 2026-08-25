@@ -59,8 +59,10 @@ scope. Nodes SHOULD randomize reconnect backoff and bound address-book entries.
 | challenge-evidence announcements | `/coblox/<network_id>/evidence/0.1` | GossipSub |
 
 The enrollment stream accepts unauthenticated transport peers; all other
-Coblox protocols require a valid enrollment certificate. Topic names are exact
-UTF-8 strings. A node MUST NOT bridge messages between network IDs.
+Coblox protocols require a valid finalized enrollment certificate and a valid
+`TransportKeyAttestation` presented in-session ([identity.md](identity.md#authentication-on-a-connection)).
+Topic names are exact UTF-8 strings. A node MUST NOT bridge messages between
+network IDs.
 
 ## Framing
 
@@ -420,12 +422,45 @@ Codes are `invalid_request`, `unauthorized`, `not_found`, `conflict`,
 `internal_unavailable`. Human text is intentionally absent from the wire.
 
 ## Gossip validation and backpressure
-
+ 
 Nodes validate topic/network, canonical envelope, size, ID, signature,
 certificate, expiry, replay cache, and payload schema before accepting gossip.
 Block announcements additionally require a valid quorum certificate. Evidence
 announcements require an enrolled validator sender but are treated as hints.
 Application objects MUST NOT use libp2p's anonymous author mode.
+
+### Transport rotation, attribution, and rate limits
+
+Because transport keys are decoupled from node identities ([ADR-015]), a node may
+rotate its libp2p Peer ID without re-enrolling on the ledger. Protocol accounting
+and backpressure interact with transport rotation as follows:
+
+1. **Identity-bound attribution:** Gossip envelopes (`SignedEnvelope`) carry
+   `sender_node_id` in the signed cleartext. Gossip authorization, spam scoring,
+   and validator status checks bind to `sender_node_id`, never to ephemeral
+   transport Peer IDs.
+2. **Replay prevention:** The replay cache indexes `(sender_node_id, nonce)` pairs
+   up to `replay_cache_entries_per_peer`. An attacker cannot bypass replay limits
+   or flood duplicates by reconnecting under a freshly generated transport Peer ID.
+3. **Queue lifecycle and rotation backpressure:** Transport disconnects tear down
+   the per-connection transport queue. When a node reconnects under a new
+   `TransportKeyAttestation`, a fresh transport queue is established, but
+   node-level rate limiters and replay caches remain active. Nodes enforce a
+   minimum rotation interval (rate limit on verifying new `TransportKeyAttestation`
+   presentations per `node_id`) to bound the computational cost of session
+   re-establishment.
+4. **The enrollment stream is the exception, and it is named rather than left
+   to exclusion.** Points 1 to 3 all anchor to `sender_node_id`, and the
+   enrolling peer is by definition the one that has no verified `node_id`: its
+   envelope and signature are checked against the key inside the request, not
+   against a certificate, and it presents no `TransportKeyAttestation` at all.
+   Transport rotation is therefore free on that stream, and nothing in this
+   section limits it. What limits it is
+   [identity.md](identity.md#the-admission-shield-and-why-bounded-memory-is-not-enough):
+   the admission shield counts against the **observed remote address** — never
+   against the libp2p Peer ID, which [ADR-015] made free — and the memory-hard
+   stage admits at most one in-flight evaluation per enrolling public key.
+   Neither anchor is reset by a `keygen`.
 
 Per-peer queues are bounded. When full, nodes drop duplicate/low-priority hints
 before finalized headers or direct responses. Enrollment, challenge request, and

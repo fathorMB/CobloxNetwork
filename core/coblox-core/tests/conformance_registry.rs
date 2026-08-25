@@ -29,7 +29,7 @@ use common::{
 // --- README.md#hash-conformance-fixtures, the published table ---------------
 
 const EXPECTED_ENROLLMENT_REQUEST_HASH: &str =
-    "sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f";
+    "sha256:52118f65908736ec7fd837a4d6c1b8c2b3ba28e2f0127cea6e282b311e401e58";
 const EXPECTED_PARAMETER_SET_HASH: &str =
     "sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63";
 const EXPECTED_POLICY_HASH: &str =
@@ -37,7 +37,7 @@ const EXPECTED_POLICY_HASH: &str =
 const EXPECTED_HOSTING_RATE_CARD_HASH: &str =
     "sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8";
 const EXPECTED_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9";
+    "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5";
 const EXPECTED_OBJECT_ID: &str =
     "sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c";
 const EXPECTED_INPUT_HASH: &str =
@@ -377,4 +377,378 @@ fn the_registry_is_covered_in_full() {
         "app_leaf / APP-0",
     ];
     assert_eq!(covered.len(), REGISTRY_ROW_COUNT);
+}
+
+fn sign_test_attestation(
+    seed: &[u8; 32],
+    chain_id: &ChainId,
+    attestation: &mut coblox_core::identity::TransportKeyAttestation,
+) -> [u8; 32] {
+    use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
+    use curve25519_dalek::scalar::Scalar;
+    use sha2::{Digest, Sha512};
+
+    let mut h = Sha512::new();
+    h.update(seed);
+    let az = h.finalize();
+
+    let mut a_bytes = [0u8; 32];
+    a_bytes.copy_from_slice(&az[..32]);
+    a_bytes[0] &= 0b1111_1000;
+    a_bytes[31] &= 0b0111_1111;
+    a_bytes[31] |= 0b0100_0000;
+
+    let mut a_wide = [0u8; 64];
+    a_wide[..32].copy_from_slice(&a_bytes);
+    let a_scalar = Scalar::from_bytes_mod_order_wide(&a_wide);
+    let a_point = ED25519_BASEPOINT_POINT * a_scalar;
+    let identity_public_key = a_point.compress().to_bytes();
+
+    let unsigned = attestation.to_unsigned_json().unwrap();
+    let preimage = registry::transport_key_attestation_signing_preimage(chain_id, &unsigned);
+
+    let mut h = Sha512::new();
+    h.update(&az[32..]);
+    h.update(&preimage);
+    let r_wide = h.finalize();
+    let r_scalar = Scalar::from_bytes_mod_order_wide(&r_wide.into());
+    let r_point = ED25519_BASEPOINT_POINT * r_scalar;
+    let r_bytes = r_point.compress().to_bytes();
+
+    let mut h = Sha512::new();
+    h.update(r_bytes);
+    h.update(identity_public_key);
+    h.update(&preimage);
+    let k_wide = h.finalize();
+    let k_scalar = Scalar::from_bytes_mod_order_wide(&k_wide.into());
+
+    let s_scalar = r_scalar + (k_scalar * a_scalar);
+    let s_bytes = s_scalar.to_bytes();
+
+    let mut sig = [0u8; 64];
+    sig[..32].copy_from_slice(&r_bytes);
+    sig[32..].copy_from_slice(&s_bytes);
+    attestation.signature = sig;
+
+    identity_public_key
+}
+
+/// GATE-NO-ATTESTATION-REJECTED:
+/// A peer presenting a transport key without a valid attestation is rejected.
+/// Exercising all failure paths: missing attestation, invalid signature,
+/// mismatched node ID, mismatched transport key, expired/inactive time window,
+/// and wrong network ID.
+#[test]
+#[allow(clippy::too_many_lines)]
+fn gate_no_attestation_rejected() {
+    use coblox_core::ConsensusVerifier;
+    use coblox_core::error::AttestationError;
+    use coblox_core::identity::{AttestationBounds, TransportKeyAttestation};
+
+    let chain_id = zero_chain_id();
+    let network_id = "coblox-devnet-0";
+    let transport_pk = [0x55u8; 32];
+    let other_transport_pk = [0x66u8; 32];
+    let verifier = ConsensusVerifier;
+
+    let seed = [0x42u8; 32];
+    let created_at_ms = 1_000_000;
+    let expires_at_ms = 2_000_000;
+    let now_ms = 1_500_000;
+    // The two signed network parameters of `identity.md#bounded-validity-in-time`.
+    // The window of this attestation is exactly `max_validity_ms`, so the
+    // over-long case below is one millisecond away and not an order of
+    // magnitude away.
+    let bounds = AttestationBounds {
+        max_validity_ms: 1_000_000,
+        max_future_skew_ms: 5_000,
+    };
+
+    let mut attestation = TransportKeyAttestation::new(
+        network_id.to_owned(),
+        NodeId::from_string("placeholder".to_owned()),
+        transport_pk,
+        created_at_ms,
+        expires_at_ms,
+        [0u8; 64],
+    );
+
+    // Compute real identity public key and sign
+    let identity_public_key = sign_test_attestation(&seed, &chain_id, &mut attestation);
+    let real_node_id = NodeId::derive(&identity_public_key);
+    attestation.node_id = real_node_id;
+    // Re-sign with matching node_id
+    sign_test_attestation(&seed, &chain_id, &mut attestation);
+
+    // Valid attestation passes
+    assert!(
+        attestation
+            .verify(
+                &chain_id,
+                network_id,
+                &identity_public_key,
+                &transport_pk,
+                now_ms,
+                &bounds,
+                &verifier
+            )
+            .is_ok()
+    );
+
+    // Failure Path 1: Mismatched transport key
+    let err = attestation
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &other_transport_pk,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::TransportKeyMismatch)
+    );
+
+    // Failure Path 2: Mismatched network ID
+    let err = attestation
+        .verify(
+            &chain_id,
+            "coblox-mainnet",
+            &identity_public_key,
+            &transport_pk,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::NetworkIdMismatch { .. })
+    ));
+
+    // Failure Path 3: Expired attestation (now_ms > expires_at_ms)
+    let err = attestation
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            2_500_000,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // Failure Path 4: Attestation not yet active (now_ms < created_at_ms)
+    let err = attestation
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            500_000,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // Failure Path 5: Mismatched node ID
+    let other_node_id = NodeId::from_string("cblx1otheridentity".to_owned());
+    let mut bad_node_att = attestation.clone();
+    bad_node_att.node_id = other_node_id;
+    let err = bad_node_att
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::NodeIdMismatch { .. })
+    ));
+
+    // Failure Path 6: Invalid signature
+    let mut bad_sig_att = attestation.clone();
+    bad_sig_att.signature[0] ^= 0xff;
+    let err = bad_sig_att
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::InvalidSignature)
+    );
+
+    // Failure Path 7: the attested transport key IS the enrolled identity key.
+    //
+    // This is the path that carries the privacy property of [ADR-015]. Without
+    // it a fully conformant node can present its identity key as its transport
+    // key, and any offline reader of the ledger recomputes its Peer ID from the
+    // published certificate — TM-28 in its original form, with every gate still
+    // green. Remove the check in `identity.rs` and this assertion fails.
+    let mut reused_key_att = attestation.clone();
+    reused_key_att.transport_public_key = identity_public_key;
+    sign_test_attestation(&seed, &chain_id, &mut reused_key_att);
+    let err = reused_key_att
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            // The handshake proves possession of exactly this key, so the
+            // rejection cannot come from the transport-key comparison: it must
+            // come from the distinctness rule.
+            &identity_public_key,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::TransportKeyEqualsIdentityKey)
+    );
+
+    // Failure Path 8: inverted validity window, `expires_at_ms < created_at_ms`.
+    //
+    // The first clause of the MUST in `identity.md#bounded-validity-in-time`.
+    // It was implemented before this gate existed and exercised by nothing.
+    let mut inverted_att = attestation.clone();
+    inverted_att.created_at_ms = 2_000_000;
+    inverted_att.expires_at_ms = 1_000_000;
+    sign_test_attestation(&seed, &chain_id, &mut inverted_att);
+    let err = inverted_att
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            1_500_000,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::InvalidValidityWindow { .. })
+    ));
+
+    // Failure Path 9: a window one millisecond longer than the signed cap.
+    //
+    // The second clause of the same MUST. Without it an attestation with
+    // `expires_at_ms = u64::MAX` verifies, the binding is permanent, and the
+    // stated reason for choosing timestamps — that a compromised transport key
+    // expires on its own — is false.
+    let mut long_att = attestation.clone();
+    long_att.expires_at_ms = created_at_ms + bounds.max_validity_ms + 1;
+    sign_test_attestation(&seed, &chain_id, &mut long_att);
+    let err = long_att
+        .verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            now_ms,
+            &bounds,
+            &verifier,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err,
+        coblox_core::Error::Attestation(AttestationError::ValidityWindowTooLong {
+            duration_ms: bounds.max_validity_ms + 1,
+            maximum_ms: bounds.max_validity_ms,
+        })
+    );
+
+    let mut unbounded_att = attestation.clone();
+    unbounded_att.expires_at_ms = u64::MAX;
+    sign_test_attestation(&seed, &chain_id, &mut unbounded_att);
+    assert!(matches!(
+        unbounded_att
+            .verify(
+                &chain_id,
+                network_id,
+                &identity_public_key,
+                &transport_pk,
+                now_ms,
+                &bounds,
+                &verifier,
+            )
+            .unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::ValidityWindowTooLong { .. })
+    ));
+
+    // The clock-skew tolerance, at both of its edges, and its asymmetry.
+    //
+    // A receiver whose clock is behind by no more than `max_future_skew_ms`
+    // still accepts a freshly issued attestation. If it did not, it would lose
+    // `ledger-sync` — the only source from which it could correct its clock —
+    // and the isolation would be self-sustaining.
+    let earliest_accepting_clock = created_at_ms - bounds.max_future_skew_ms;
+    assert!(
+        attestation
+            .verify(
+                &chain_id,
+                network_id,
+                &identity_public_key,
+                &transport_pk,
+                earliest_accepting_clock,
+                &bounds,
+                &verifier,
+            )
+            .is_ok()
+    );
+    assert!(matches!(
+        attestation
+            .verify(
+                &chain_id,
+                network_id,
+                &identity_public_key,
+                &transport_pk,
+                earliest_accepting_clock - 1,
+                &bounds,
+                &verifier,
+            )
+            .unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+    // No slack is granted past `expires_at_ms`: one millisecond after expiry is
+    // a rejection whatever the future-skew tolerance is.
+    assert!(matches!(
+        attestation
+            .verify(
+                &chain_id,
+                network_id,
+                &identity_public_key,
+                &transport_pk,
+                expires_at_ms + 1,
+                &bounds,
+                &verifier,
+            )
+            .unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
 }

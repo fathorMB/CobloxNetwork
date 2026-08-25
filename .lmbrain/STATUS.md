@@ -53,14 +53,21 @@ Il criterio che ha ordinato tutto il lavoro finora, e che vale ancora per l'ulti
 
 ## Ready for handoff
 
-**[SPEC-013]** — separazione della chiave di trasporto dalla chiave di identità, attuazione di [ADR-015]. `sol`/`extended`, AGENT-001. Nessuna dipendenza aperta. **Scadenza dura: prima che la devnet emetta il primo certificato**, dopo la quale non è più una decisione ma una migrazione.
+Nessuna. **Il lavoro che doveva precedere la devnet è completo**: le regole di consenso sono scritte, applicate e verificate; il verificatore di firme esiste ed è misurato contro un oracolo upstream; il legame fra identità e indirizzo non è più pubblicato né ricalcolabile.
+
+Il prossimo lavoro è M-02 nella sua parte residua — **devnet BFT, light client con prove Merkle, mint & burn** — più una spec piccola che raggruppi i due cambiamenti breaking dell'API di `coblox-core`, [DEBT-015] e [DEBT-016], **prima del primo chiamante del verificatore**.
 
 ## In progress
 
-Nessuna. Dodici spec redatte, undici `done`.
+Nessuna. **Tredici spec redatte, tredici `done`.**
 
 ## Done
 
+- [SPEC-013] Separazione della chiave di trasporto dalla chiave di identità → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-020] e con `GATE-SECREVIEW` attestato su [REVIEW-021], dopo un giro di remediation e **sei finding, due `high` bloccanti**. Attua [ADR-015]: il legame fra identità di ledger e indirizzo di rete non è più un fatto di dominio pubblico.
+
+  **Il finding portante smonta la spec che lo contiene, e la gate del Lead non lo vedeva.** `identity.md` diceva *«uses a distinct Ed25519 key pair»* come **frase descrittiva** — nessun MUST, nessuna regola, nessun confronto nel codice — e **la fixture canonica usava la stessa chiave per i due ruoli**. Il Lead ha ricalcolato il corollario: dalla sola chiave pubblicata sul ledger si ottiene il Peer ID pubblicato in `identity.md`, quindi TM-28 nella forma originale, gratis e retroattivo. `GATE-NO-PUBLISHED-LINK` restava verde perché **misurava l'assenza di un campo, non la proprietà che quel campo doveva togliere**: il legame non era pubblicato, era **ricalcolabile**. Settima occorrenza della famiglia 1, e la più grave — la fixture insegnava la forma che annulla la spec.
+
+  Chiuso con **una regola applicata a runtime da ogni ricevente**, provata in negativo. Il secondo `high`: il tetto sulla finestra di validità esisteva solo come esempio fra parentesi, ed è diventato un **parametro governato**. Apre [DEBT-017] e [DEBT-018].
 - [SPEC-012] Verificatore Ed25519 con i vettori speccheck come oracolo → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-018] e con `GATE-SECREVIEW` attestato su [REVIEW-019], dopo **due giri di review e quattro finding fra `high` e `medium`, nessuno a carico di `verifier.rs`**. Il progetto ha ora un verificatore di firme; prima non ne aveva alcuno.
 
   **Due difetti trovati, entrambi negli artefatti e non nel codice, ed entrambi previsti dalla spec.** Il primo: **la tabella pubblicata era sbagliata al vettore 8**, scritta in [SPEC-001] e mai eseguita da nessuno — sesta occorrenza della famiglia 1, e la prima trovata da una review. Il secondo, di AGENT-007 e più grave: **la regola 1 ha due metà e i dodici vettori ne esercitavano una**. Nessuna delle 24 codifiche della fixture aveva `y ≥ p`; le quattro dette «non canoniche» hanno `y = p−1`, che è canonica. Un'implementazione identica a Coblox salvo il rifiuto di `y ≥ p` **passa tutti e dodici i vettori** e diverge su una firma che qualunque possessore di chiave costruisce in tempo costante, su un voto di finalità. Ha aperto la **famiglia 4** in `recurring-defects.md`.
@@ -92,6 +99,8 @@ Nessuna. Dodici spec redatte, undici `done`.
 | --- | --- | --- | --- |
 | [DEBT-013] | medium | AGENT-007 | Nessuna regola impone il passo di produzione dei blocchi: il set attivo decide la durata reale delle proprie epoche, quindi la propria incumbency. Aperto con [ADR-013]. |
 | [DEBT-014] | medium | AGENT-007 | `validator_set_hash` è **l'unica preimmagine a dominio separato non legata a `chain_id`**: un set identico su due catene produce lo stesso hash. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010]. |
+| [DEBT-017] | medium | AGENT-007 | La finestra reale di accettazione dell'attestazione è **tolleranza + durata**, e solo la durata è limitata. Famiglia 3. Segnalata dall'implementatore fermandosi. |
+| [DEBT-018] | medium | AGENT-007 | Nella matrice del threat model l'argomento *«non può scrivere, quindi `n/a`»* confonde falsificazione e perdita. La cella `A-04` poggia sullo stesso argomento appena caduto. |
 | [DEBT-016] | medium | AGENT-001 | Il verificatore accetta `message: &[u8]` dove il contratto impone la preimmagine: un chiamante che passasse un digest **compilerebbe e passerebbe ogni test**. Nessun chiamante esiste ancora, quindi il primo fissa la convenzione. Da chiudere con [DEBT-015] in una sola passata. |
 | [DEBT-015] | low | AGENT-001 | I sotto-controlli della reward policy sono `pub` mentre i gemelli del lato consenso sono privati: un chiamante può invocarne uno solo e credere di aver validato. Secondo cambiamento breaking, da raggruppare. |
 

@@ -120,6 +120,12 @@ propria, non incorporato qui per completezza apparente.
   hash che ne discendono — quindi `enrollment_request_hash` e le fixture
   pubblicate. **La gate di [ADR-012] si applica**, e con essa l'inventario degli
   artefatti pubblicati che oggi non esiste.
+- **La distinzione fra le due chiavi e una regola di validita, non una
+  descrizione**, e la prima attuazione non lo era ([REVIEW-021] RF-001). Se
+  nessuna regola impedisce a un nodo conforme di presentare la propria chiave di
+  identita come chiave di trasporto, il legame non e *pubblicato* ma resta
+  **ricalcolabile** dal solo ledger, e per TM-28 e la stessa cosa. La proprieta
+  che questa decisione compra vive interamente in quel confronto di 32 byte.
 - **Deve atterrare prima che la devnet emetta il primo certificato.** Dopo, non
   e piu questa decisione: e una migrazione.
 - **Un'interazione da attaccare in review, non da assumere risolta.** Le code per
@@ -132,7 +138,27 @@ propria, non incorporato qui per completezza apparente.
   piu probabile fonte di un difetto**, ed e segnalata come tale a chi fara la
   review.
 - La revoca continua a funzionare senza modifiche, perche opera sull'identita e
-  l'identita e presentata in sessione.
+  l'identita e presentata in sessione. **Perde pero un punto di applicazione, e
+  il costo va nominato** ([REVIEW-021] RF-006): non e piu applicabile *prima*
+  dell'handshake. Quando il Peer ID derivava dall'identita, chiunque poteva
+  costruire dal solo ledger l'elenco dei Peer ID revocati e rifiutare la
+  connessione a costo zero; dopo questa decisione il Peer ID di un nodo revocato
+  e indistinguibile per costruzione, quindi ogni peer paga handshake,
+  certificato, attestazione e interrogazione del ledger a **ogni** tentativo,
+  indefinitamente, senza poter pre-filtrare. E un costo che questa decisione
+  compra ed e la contropartita diretta della proprieta che compra.
+- **Il baratto sulla compromissione, che questa ADR non aveva scritto**
+  ([REVIEW-021] RF-005). Una chiave di trasporto compromessa vale, per tutta la
+  finestra di validita dell'attestazione, il posto della vittima verso ogni peer
+  che apra una connessione diretta: l'attaccante non puo forgiare envelope ne
+  firmare risposte — gli oggetti applicativi restano firmati dall'identita — ma
+  puo occupare quel posto e non rispondere, facendo scadere le challenge a
+  spese economiche della vittima. Prima di questa decisione la stessa cosa
+  richiedeva la chiave di identita: compromissione totale, ma **revocabile**.
+  Oggi e una chiave dichiarata a basso valore, e **non esiste alcuna
+  invalidazione anticipata di un'attestazione in circolazione**: l'unico limite
+  e la lunghezza della finestra, che e per questo un parametro di rete firmato e
+  non una preferenza locale. Lo scenario e TM-37 del threat model.
 - `identity.md` §*Key hierarchy* va riscritta, non annotata. La frase sulla
   doppia derivazione verificata obbligatoriamente diventa falsa nel momento in
   cui questa ADR e attuata, ed e esattamente la forma della famiglia 2 di

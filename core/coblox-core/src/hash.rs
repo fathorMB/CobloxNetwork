@@ -153,6 +153,8 @@ impl Domain {
     pub const SIG_BLOCK_VOTE: Self = Self("coblox-block-vote-v0");
     /// Validator consensus key binding proof of possession.
     pub const SIG_CONSENSUS_KEY_BINDING: Self = Self("coblox-consensus-key-binding-v0");
+    /// Transport key attestation signature.
+    pub const SIG_TRANSPORT_KEY_ATTESTATION: Self = Self("coblox-transport-key-attestation-v0");
     /// Challenge evidence auditor signature.
     pub const SIG_CHALLENGE_EVIDENCE: Self = Self("coblox-challenge-evidence-v0");
     /// Challenge request issuer signature.

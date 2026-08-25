@@ -33,8 +33,9 @@ const CANONICAL_CHALLENGE_EVIDENCE: &str = r#"{"authorization":{"quorum_certific
 const CANONICAL_ACCOUNT_PROOF: &str = r#"{"account_key":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8","account_kind":"node","account_nonce":"0","balance_microtokens":"0","present":false,"sibling_bitmap":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","siblings":[],"subject_id":"cblx1absentfixture"}"#;
 
 // --- identity.md -----------------------------------------------------------
-const CANONICAL_ENROLLMENT_REQUEST: &str = r#"{"created_at_ms":"1787654400000","libp2p_peer_id":"12D3KooWD3eckifWpRn9wQpMG9R9hX3sD158z7EqHWmweQAJU5SA","network_id":"coblox-devnet-0","node_id":"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq","pow":{"algorithm":"argon2id-leading-zero-bits-v0","difficulty_bits":"4","iterations":"3","lanes":"4","memory_kib":"65536","nonce":"11","parameter_set_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","recent_block_height":"41","recent_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af"},"public_key":"L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s","schema_version":"0.1","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}"#;
-const CANONICAL_ENROLLMENT_CERTIFICATE: &str = r#"{"enrollment_request_hash":"sha256:44dc2df246a89f42d9a9da10f621c86f5141b597b1a6f08cc78b5e61a8388eb1","issued_at_ms":"1787654405000","libp2p_peer_id":"12D3KooWD3eckifWpRn9wQpMG9R9hX3sD158z7EqHWmweQAJU5SA","network_id":"coblox-devnet-0","node_id":"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq","public_key":"L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s","schema_version":"0.1","signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"valid_from_height":"42","validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}"#;
+const CANONICAL_ENROLLMENT_REQUEST: &str = r#"{"created_at_ms":"1787654400000","network_id":"coblox-devnet-0","node_id":"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq","pow":{"algorithm":"argon2id-leading-zero-bits-v0","difficulty_bits":"4","iterations":"3","lanes":"4","memory_kib":"65536","nonce":"11","parameter_set_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","recent_block_height":"41","recent_block_id":"sha256:7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af"},"public_key":"L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s","schema_version":"0.1","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}"#;
+const CANONICAL_ENROLLMENT_CERTIFICATE: &str = r#"{"enrollment_request_hash":"sha256:44dc2df246a89f42d9a9da10f621c86f5141b597b1a6f08cc78b5e61a8388eb1","issued_at_ms":"1787654405000","network_id":"coblox-devnet-0","node_id":"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq","public_key":"L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s","schema_version":"0.1","signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"valid_from_height":"42","validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}"#;
+const CANONICAL_TRANSPORT_KEY_ATTESTATION: &str = r#"{"created_at_ms":"1787654400000","expires_at_ms":"1787654460000","network_id":"coblox-devnet-0","node_id":"cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq","schema_version":"0.1","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","transport_public_key":"n0lDnp2wlbxBEe0l01eV2DG8VaBH9LHX9q7jd3u0EiA"}"#;
 
 // --- wire.md ---------------------------------------------------------------
 const CANONICAL_ENVELOPE: &str = r#"{"created_at_ms":"1787654410000","expires_at_ms":"1787654470000","message_id":"sha256:56d2aa0cd4c2ff0b06c47b478b6bfc2dff88b2c162c6cff1e33f9bf3284c7308","message_type":"ledger_status_request","network_id":"coblox-devnet-0","nonce":"AAECAwQFBgcICQoLDA0ODw","payload":{"finalized_height":"41","want_validator_set":true},"schema_version":"0.1","sender_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}"#;
@@ -69,6 +70,10 @@ fn published_canonical_examples() -> Vec<(&'static str, &'static str)> {
         (
             "identity.md enrollment certificate",
             CANONICAL_ENROLLMENT_CERTIFICATE,
+        ),
+        (
+            "identity.md transport key attestation",
+            CANONICAL_TRANSPORT_KEY_ATTESTATION,
         ),
         ("wire.md signed envelope", CANONICAL_ENVELOPE),
         ("wire.md challenge request", CANONICAL_CHALLENGE_REQUEST),
@@ -243,6 +248,36 @@ fn non_canonical_field_encodings_are_rejected_by_the_typed_accessors() {
             "7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af"
         )
         .is_err()
+    );
+}
+
+/// `TKA-0` is built by the fixture module to exactly the bytes the document
+/// publishes, and its transport key is **not** the identity fixture key.
+///
+/// The second assertion is the one that matters. `identity.md#key-hierarchy`
+/// makes the two keys distinct as a validity rule, so a fixture that spelled
+/// them the same would teach, from the normative document, the configuration
+/// that annuls [ADR-015]: the ledger publishes the identity key, the canonical
+/// Peer ID derivation is fully specified, and the `node_id`-to-Peer-ID link
+/// becomes recomputable offline by anybody. The fixture is a published
+/// artifact, so this is asserted rather than trusted.
+#[test]
+fn tka0_is_the_published_attestation_and_its_transport_key_is_distinct() {
+    let fixture = common::transport_key_attestation_tka0();
+    assert_eq!(
+        fixture.to_jcs(),
+        CANONICAL_TRANSPORT_KEY_ATTESTATION.as_bytes(),
+        "the TKA-0 fixture and the published canonical example disagree"
+    );
+    assert_ne!(
+        common::TRANSPORT_FIXTURE_PUBLIC_KEY,
+        common::IDENTITY_FIXTURE_PUBLIC_KEY,
+        "the TKA-0 transport key is the identity fixture key: the fixture          publishes the one configuration identity.md forbids"
+    );
+    assert_ne!(
+        common::transport_fixture_public_key(),
+        common::identity_fixture_public_key(),
+        "the two fixture keys decode to the same 32 bytes"
     );
 }
 

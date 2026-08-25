@@ -107,6 +107,7 @@ pub mod election;
 pub mod encoding;
 pub mod error;
 pub mod hash;
+pub mod identity;
 pub mod json;
 pub mod light_client;
 pub mod merkle;
@@ -117,6 +118,7 @@ pub mod validator_set;
 pub mod verifier;
 
 pub use error::{Error, Result};
+pub use identity::TransportKeyAttestation;
 pub use verifier::{ConsensusVerifier, verify_consensus_ed25519};
 
 /// Returns the semantic version exposed by every native shell.

@@ -225,6 +225,12 @@ site = "README.md"
 purpose = "object_id"
 
 [[domain]]
+name = "coblox-transport-key-attestation-v0"
+kind = "signature-domain"
+site = "identity.md"
+purpose = "transport key attestation"
+
+[[domain]]
 name = "coblox-tx-id-v0"
 kind = "hash-preimage"
 site = "README.md"
@@ -473,6 +479,11 @@ site = "ledger.md"
 covers = "the negative sparse-Merkle proof with an explicit default sibling"
 
 [[fixture]]
+id = "TKA-0"
+site = "identity.md"
+covers = "the canonical transport key attestation, whose transport key is required to differ from the identity fixture key"
+
+[[fixture]]
 id = "WSC-0"
 site = "README.md"
 covers = "the unsigned weak subjectivity checkpoint"
@@ -594,6 +605,13 @@ name = "empty revocation_root H(0x33)"
 mirrors = ["sim/tools/protocol_hashes.py", "core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
+hex = "52118f65908736ec7fd837a4d6c1b8c2b3ba28e2f0127cea6e282b311e401e58"
+class = "registry"
+site = "README.md"
+name = "enrollment_request_hash | ER-0"
+mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
 hex = "547132161f56f2361faf3caae90224e1b5c04ae1986ab871703b7003693c5fdd"
 class = "registry"
 site = "ledger.md"
@@ -614,7 +632,7 @@ name = "candidate_node level 2 [1] | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
-hex = "628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9"
+hex = "87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5"
 class = "registry"
 site = "README.md"
 name = "consensus_parameters_hash | consensus PD-0"
@@ -775,13 +793,6 @@ name = "candidate_leaf 08 | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
-hex = "cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f"
-class = "registry"
-site = "README.md"
-name = "enrollment_request_hash | ER-0"
-mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
-
-[[value]]
 hex = "cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41"
 class = "registry"
 site = "README.md"
@@ -884,6 +895,19 @@ class = "registry"
 site = "README.md"
 name = "the wire presentation of challenge_randomness RND-0"
 
+# The role recorded below is load-bearing and not decoration. The entry above
+# for `L_o1qZ06...` names it "the identity fixture public key", and identity.md
+# presents this second key in the transport role of the TKA-0 attestation:
+# identity.md#key-hierarchy requires the two roles to be held by different keys,
+# so a manifest in which one text carried both names would be recording the
+# defect rather than the inventory. That is the shape REVIEW-021 found, and the
+# reason both entries spell their role out.
+[[presentation]]
+text = "n0lDnp2wlbxBEe0l01eV2DG8VaBH9LHX9q7jd3u0EiA"
+class = "registry"
+site = "identity.md"
+name = "the transport fixture public key of identity.md, TKA-0"
+
 # --- preimages, and whether a published fixture covers them ----------------
 # This table is the written answer to the general question of [DEBT-012].
 
@@ -908,7 +932,7 @@ id = "enrollment_request_hash"
 site = "README.md"
 coverage = "fixture"
 fixture = "ER-0"
-expected = "sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f"
+expected = "sha256:52118f65908736ec7fd837a4d6c1b8c2b3ba28e2f0127cea6e282b311e401e58"
 uncovered_reason = ""
 
 [[preimage]]
@@ -940,7 +964,7 @@ id = "consensus_parameters_hash"
 site = "README.md"
 coverage = "fixture"
 fixture = "PD-0"
-expected = "sha256:628c66f9ca8ac1a3161a0159201f7b6c6bf4c7500b390bc89b9b65a6c50ccbe9"
+expected = "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5"
 uncovered_reason = ""
 
 [[preimage]]
@@ -1408,3 +1432,38 @@ site = "README.md"
 pattern = "MUST pass \\*\\*both\\*\\* tables before it can participate in a Coblox network"
 count = 1
 why = "REVIEW-019 RF-001: an implementation that passes only the upstream twelve has demonstrated nothing about clause 1a, so conformance has to name both tables or the second one is decoration."
+
+[[probe]]
+id = "transport-key-distinct-from-identity"
+site = "identity.md"
+pattern = 'the transport public key MUST NOT equal'
+count = 1
+why = "REVIEW-021 RF-001: the whole privacy property of ADR-015 rests on this one comparison. While it was only a descriptive 'uses a distinct Ed25519 key pair', a fully conformant node could reuse one key for both roles and hand every offline reader of the ledger its Peer ID. If this MUST NOT ever softens back into prose, the separation buys nothing and no other check would notice."
+
+[[probe]]
+id = "transport-attestation-validity-cap"
+site = "identity.md"
+pattern = '\*\*`max_transport_attestation_validity_ms`\*\*'
+count = 1
+why = "REVIEW-021 RF-002: the cap on the attestation window used to exist only as an example in parentheses, so an attestation with an arbitrarily distant expiry verified and the binding was permanent. It must stay a named signed parameter; an 'e.g.' reads as a rule and is not one."
+
+[[probe]]
+id = "transport-attestation-skew-tolerance"
+site = "identity.md"
+pattern = 'max_transport_attestation_future_skew_ms'
+count = 3
+why = "REVIEW-021 RF-003: without a declared future-skew tolerance a node whose clock is slightly slow rejects every fresh attestation, loses ledger-sync, and thereby loses the only source from which it could correct its clock. Every mention is pinned: the rejection rules, the bounded-validity reasoning, and the connection-authentication list."
+
+[[probe]]
+id = "admission-shield-source-is-address"
+site = "identity.md"
+pattern = 'means the observed remote address, normatively, and never the libp2p'
+count = 1
+why = "REVIEW-021 RF-004: ADR-015 made a fresh Peer ID cost one keygen. An admission limit anchored to the Peer ID is a limit the attacker resets for free, and before this sentence the document left the anchor to be inferred from an explanatory paragraph."
+
+[[probe]]
+id = "revocation-applies-to-live-connections"
+site = "identity.md"
+pattern = '\*\*Revocation applies to live connections, not only to new ones\.\*\*'
+count = 1
+why = "REVIEW-021 RF-006: verification is specified at connection setup, and ADR-015 moved the whole verification into the session. Without a re-evaluation rule a session opened one block before a revocation is finalized outlives it for as long as the peer keeps it open."

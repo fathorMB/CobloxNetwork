@@ -22,6 +22,8 @@ activity:
     action: "transitioned proposed -> accepted"
   - date: 2026-08-25
     action: "registered sixth occurrence (SPEC-012 / REVIEW-018): the ed25519-speccheck outcome table"
+  - date: 2026-08-25
+    action: "registered seventh occurrence (SPEC-013 / REVIEW-021): the TKA-0 fixture whose transport key was the identity key"
 ---
 # Ogni regola di validità nuova impone una passata su tutti gli artefatti pubblicati
 
@@ -29,7 +31,7 @@ activity:
 
 ## Context
 
-Sei volte, in cinque spec diverse, un artefatto **pubblicato** del protocollo ha insegnato una forma che le regole del protocollo rendono inammissibile. Ogni volta è emerso per caso, quando una regola nuova ha reso quell'artefatto verificabile, e mai perché qualcuno lo stesse cercando.
+Sette volte, in sei spec diverse, un artefatto **pubblicato** del protocollo ha insegnato una forma che le regole del protocollo rendono inammissibile. Ogni volta è emerso per caso, quando una regola nuova ha reso quell'artefatto verificabile, e mai perché qualcuno lo stesse cercando.
 
 | Artefatto | Portava | Reso inammissibile da | Trovato in |
 | --- | --- | --- | --- |
@@ -39,12 +41,15 @@ Sei volte, in cinque spec diverse, un artefatto **pubblicato** del protocollo ha
 | Fixture `PD-0` della reward policy | `availability_microtokens_per_unit = 1` | La regola di validità di [ADR-010], che rifiuta quella tariffa positiva | [SPEC-009], remediation |
 | Esempio canonico di `challenge_evidence` in `ledger.md` | `request_hash` diverso da `challenge_id`, rispecchiato in `canonical_serialization.rs` | La regola di `README.md` §*Hash preimage registry*, che impone `challenge_id == request_hash` — **una regola che c'era già** | [SPEC-010], **prima esecuzione dello strumento** |
 | Tabella degli esiti `ed25519-speccheck` in `README.md` §*Consensus-critical Ed25519 verification* | `accept` al vettore 8, rispecchiato in `tests/fixtures/README.md` | La regola dei quattro punti scritta **due paragrafi sopra la tabella stessa**, che impone l'hash di `k` sulle codifiche originali — **una regola che c'era già, nello stesso documento** | [SPEC-012], **[REVIEW-018]**, cioè una review |
+| Fixture `TKA-0` della `TransportKeyAttestation` in `identity.md` §*Transport key attestation*, rispecchiata in `tests/common/mod.rs` | `transport_public_key` uguale alla chiave di **identità** della stessa fixture | La proprietà di privacy di [ADR-015], che la spec introduttiva non aveva però scritto come regola di validità — quindi l'artefatto era inammissibile rispetto alla **decisione**, non ancora rispetto a una regola | [SPEC-013], **[REVIEW-021]**, di nuovo una review |
 
-**Le ultime due righe sono di natura diversa dalle prime quattro, e la differenza è il punto.** Le prime quattro emersero per caso, quando una regola nuova rese verificabile un artefatto che nessuno stava guardando. La quinta è stata **trovata dal meccanismo che questa ADR istituisce**, alla sua prima esecuzione, contro una regola che esisteva da [SPEC-001] — cioè un difetto che nessuna spec successiva avrebbe avuto motivo di cercare. È la prima evidenza che la gate fa ciò per cui è stata scritta, ed è registrata qui perché una ADR che elenca solo i propri fallimenti non dice se il rimedio funziona.
+**Le ultime tre righe sono di natura diversa dalle prime quattro, e la differenza è il punto.** Le prime quattro emersero per caso, quando una regola nuova rese verificabile un artefatto che nessuno stava guardando. La quinta è stata **trovata dal meccanismo che questa ADR istituisce**, alla sua prima esecuzione, contro una regola che esisteva da [SPEC-001] — cioè un difetto che nessuna spec successiva avrebbe avuto motivo di cercare. È la prima evidenza che la gate fa ciò per cui è stata scritta, ed è registrata qui perché una ADR che elenca solo i propri fallimenti non dice se il rimedio funziona.
 
 **La sesta riga dice invece dove il meccanismo non arriva, e va letta accanto alla quinta.** La tabella degli esiti `ed25519-speccheck` dichiarava `accept` al vettore 8, dove la regola scritta due paragrafi sopra di essa produce `reject`: il vettore verifica soltanto se `k` è calcolato su un `R` ridotto, che è esattamente ciò che la regola vieta. Era stata compilata a mano in [SPEC-001] e non era mai stata eseguita da nessuno. **Non l'ha trovata lo strumento**, e non poteva: `published_artifacts.py` verifica forme e coerenze fra copie, e dichiara nella propria intestazione di non verificare la correttezza semantica di alcun valore. L'ha trovata **[REVIEW-018]**, eseguendo un oracolo indipendente scritto da zero — cioè la review adversariale, non una guardia. È la prima occorrenza della famiglia trovata da una review.
 
 La conseguenza pratica è che una tabella di esiti **con un oracolo eseguibile** è meccanizzabile, ma non da questo strumento: appartiene alla suite di conformità, che è il luogo a cui `published_artifacts.py` assegna esplicitamente la ricomputazione. La remediation di [SPEC-012] l'ha fatto — `speccheck_conformance.rs` **estrae la tabella dal documento a tempo di compilazione** invece di trascriverla, e fallisce se il documento e un'implementazione conforme divergono. La copia trascritta che quella remediation ha rimosso era la causa meccanica per cui la gate non poteva accorgersene: confrontava l'implementazione con sé stessa attraverso due copie.
+
+**La settima riga è la peggiore delle sette, ed è la prima in cui l'artefatto contraddiceva la spec che lo pubblicava nella stessa passata.** La fixture canonica dell'oggetto che [SPEC-013] introduceva assegnava alla chiave di trasporto la costante `IDENTITY_FIXTURE_PUBLIC_KEY`: insegnava, dentro il documento normativo, l'unica configurazione che annulla [ADR-015], perché dalla sola chiave che il certificato pubblica sul ledger si ricostruiscono il protobuf e il Peer ID pubblicati due sezioni più sopra. Lo strumento non poteva trovarla, e questa volta non per il limite semantico della sesta riga: l'inventario **conteneva già il dato**, perché registra quella stringa come *"the identity fixture public key of identity.md"* mentre `identity.md` la presentava anche come chiave di trasporto. Mancava la classe che confronta i due **ruoli**. La remediation ha rigenerato la fixture con una chiave distinta, ha reso la distinzione una regola di validità con la sua prova in negativo, e ha scritto il ruolo di entrambe le chiavi nel manifesto; la classe dichiarativa che renderebbe il difetto non ripetibile — un ruolo per `presentation` e un elenco di coppie di ruoli mutuamente esclusivi — è la proposta che [REVIEW-021] lascia al Lead e non appartiene a quella spec.
 
 Il quarto è il più istruttivo: la spec che *introduceva* quella regola ha corretto due fixture e ne ha lasciata una che la violava, e a trovarla è stato uno strumento versionato che un finding minore aveva imposto di scrivere. **Uno script non versionato non l'avrebbe mai trovata.**
 

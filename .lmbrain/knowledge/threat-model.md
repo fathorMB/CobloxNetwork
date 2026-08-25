@@ -125,20 +125,20 @@ cella è vuota. Questa matrice è l'evidenza richiesta da `GATE-COVERAGE`.
 | | `T-01` egoista | `T-02` Sybil | `T-03` validatore | `T-04` cartello | `T-05` publisher | `T-06` osservatore | `T-07` insider |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **A-01** ledger | TM-04 | n/a — nessuna identità, per quanto numerosa, altera saldi altrui: ogni burn è firmato dal debitato e ogni mint richiede quorum | TM-16 | TM-17, TM-20 | n/a — il publisher non ha percorso verso saldi altrui: `BurnBody` esige la firma del pagatore | n/a — attore senza potere di scrittura sul ledger | TM-20 |
-| **A-02** emissione | TM-01, TM-02, TM-03, TM-05 | TM-08 | TM-14 | TM-20 | TM-22 | n/a — l'emissione non dipende da dati osservabili sul filo | TM-35 |
+| **A-02** emissione | TM-01, TM-02, TM-03, TM-05 | TM-08 | TM-14 | TM-20 | TM-22 | TM-37 | TM-35 |
 | **A-03** consenso | TM-04 | TM-11 | TM-12, TM-16 | TM-17, TM-21 | n/a — nessun percorso dal manifest al voto di finalità | TM-31 | TM-19 |
 | **A-04** set validatori | n/a — un singolo nodo egoista non altera la composizione del set | TM-09 | n/a — un validatore singolo non decide il set successivo, che richiede quorum | TM-18 | n/a — nessun percorso dalla pubblicazione all'elezione | n/a — nessun potere sulla composizione | TM-19 |
 | **A-05** verità all'utente | n/a — un nodo egoista non serve prove: non ha vantaggio a falsificare ciò che l'utente vede | TM-10 | TM-12 | TM-21 | n/a — il manifest non alimenta la verifica del saldo | TM-31 | TM-36 |
-| **A-06** challenge | TM-02, TM-05 | TM-08 | TM-13, TM-14 | TM-19 | n/a — il publisher non emette né valuta challenge | TM-30 | TM-19 |
+| **A-06** challenge | TM-02, TM-05 | TM-08 | TM-13, TM-14 | TM-19 | n/a — il publisher non emette né valuta challenge | TM-30, TM-37 | TM-19 |
 | **A-07** identità e chiavi | n/a — l'egoista abusa della propria identità, non ne attacca altre | TM-06, TM-07 | n/a — nessun percorso verso la chiave privata di un altro nodo: le chiavi non transitano mai (`identity.md` §"Key hierarchy") | TM-21 | n/a — nessun percorso verso chiavi altrui | TM-28 (legame identità ↔ persona, non furto di chiave) | TM-35 |
 | **A-08** risorse dell'operatore | n/a — l'egoista risparmia le proprie risorse, non consuma quelle altrui | TM-11 | n/a — un validatore non assegna carico agli host: lo fa la politica di assegnazione | TM-19 | TM-23, TM-24, TM-25 | n/a — l'osservatore non impone carico oltre il traffico ordinario | TM-33 |
 | **A-09** sandbox | n/a — l'egoista non pubblica moduli | n/a — moltiplicare identità non aggiunge alcun percorso verso il runtime | n/a — nessun percorso dal ruolo di validatore al runtime di un host | n/a — come sopra; il cartello agisce sul ledger, non sul runtime | TM-23, TM-27 | n/a — nessun percorso verso il runtime | n/a — l'insider agisce su parametri e liste, non sul runtime |
 | **A-10** disponibilità | n/a — l'egoista vuole la rete viva, ci guadagna | TM-10, TM-11 | TM-15 | TM-17 | TM-24 | TM-31, TM-32 | TM-33 |
-| **A-11** privacy | n/a — non ha accesso a dati altrui oltre quelli pubblici | TM-29 (con molte identità osservatrici) | TM-30 | TM-29 | TM-26 | TM-28, TM-29, TM-30 | TM-34 |
+| **A-11** privacy | n/a — non ha accesso a dati altrui oltre quelli pubblici | TM-29 (con molte identità osservatrici) | TM-30 | TM-29 | TM-26 | TM-28, TM-29, TM-30, TM-37 | TM-34 |
 | **A-12** accesso | n/a — nessun potere di esclusione | TM-09 | TM-13, TM-15 | TM-18, TM-19 | n/a — il publisher non esclude altri publisher | TM-31 | TM-33, TM-34, TM-35 |
 | **A-13** catalogo e moduli | n/a — nessun percorso di scrittura sul catalogo | n/a — il contenuto è indirizzato per hash e firmato: moltiplicare identità non aiuta | n/a — un validatore singolo non altera un record di catalogo finalizzato | TM-20 | TM-25 | n/a — il trasporto non è fidato per costruzione (`app-manifest.md` §"Deterministic container") | TM-33, TM-36 |
 
-Delle 91 celle, 59 hanno almeno uno scenario e 32 sono `n/a` con motivo. Quattro fra
+Delle 91 celle, 60 hanno almeno uno scenario e 31 sono `n/a` con motivo. La cella `A-02` × `T-06` era fra le `n/a` fino a [REVIEW-021] — «l'emissione non dipende da dati osservabili sul filo» — e TM-37 la falsifica: chi detiene la chiave di trasporto di un nodo non osserva soltanto, ne occupa il posto e ne fa scadere le challenge, che è emissione mancata. È la famiglia 2: un'`n/a` scritta prima della regola che l'ha resa falsa. Quattro fra
 queste ultime lo sono per una ragione che vale la pena isolare, perché sono
 **proprietà di design conquistate** e non coincidenze: il
 divieto strutturale di trasferimento (`A-01` × `T-02`/`T-05`), il fatto che le chiavi
@@ -965,18 +965,37 @@ definizione persone attente all'indipendenza, questo è un rischio reputazionale
 che personale. Va detto con chiarezza: **il design attuale è pseudonimo, non anonimo,
 e la pseudonimia è stabile e quindi debole.**
 
-**Contromisura.** Nessuna è a costo basso, e la scelta è di prodotto.
+**Contromisura.** 
 (a) *Dichiarare*: la documentazione pubblica dice che partecipare espone IP e attività
 a chiunque partecipi. Costo: zero, ed è **il minimo indispensabile e va fatto in ogni
-caso**. (b) *Rotazione dell'identità di trasporto*: separare la chiave di trasporto
-libp2p dalla chiave di identità Coblox, ruotando la prima. Costo: contraddice
-direttamente `identity.md` §"Key hierarchy", che **richiede** che siano la stessa
-chiave e che entrambe le derivazioni siano verificate — è una riprogettazione, non
-una regolazione, e va valutata come tale prima che la rete abbia utenti. (c) *Relay
-obbligatorio per i nodi domestici*: il Circuit Relay v2 già previsto da `wire.md`
+caso**. 
+(b) *Separazione della chiave di trasporto* (**adottata in ADR-015 e implementata in SPEC-013**):
+la chiave di trasporto libp2p è distinta dalla chiave di identità permanente ed è
+ruotabile; il legame tra chiave di trasporto e `node_id` avviene tramite `TransportKeyAttestation`
+presentata in sessione e non è mai pubblicato sul ledger pubblico. Questo **toglie
+all'osservatore offline che legge solo il ledger il legame già fatto**, e sposta il
+costo dell'attacco da lettura gratuita e retroattiva a partecipazione attiva e
+contemporanea. Non lo *elimina*, e la parola è stata corretta dopo [REVIEW-021]: la
+misura tiene solo perché `identity.md` §"Key hierarchy" impone come **regola di
+validità** che la chiave di trasporto non sia la chiave di identità, e perché
+`TransportKeyAttestation::verify` rifiuta l'attestazione che le eguaglia. Finché
+quella regola non esisteva, la contromisura era una preferenza dell'implementatore:
+un nodo che riusasse la stessa chiave rendeva il Peer ID **ricalcolabile** dal solo
+certificato pubblicato, il che ai fini di questa minaccia equivale a pubblicarlo.
+La misura **non** è una rotazione: ciò che i documenti specificano è la *possibilità*
+di ruotare e un intervallo **minimo** fra rotazioni (`wire.md` §"Transport rotation");
+nessun pavimento, nessuna cadenza raccomandata. Un nodo che non ruota mai ha un Peer
+ID stabile a vita, e una sola sessione con un peer ostile fissa la coppia per sempre.
+(c) *Relay obbligatorio per i nodi domestici*: il Circuit Relay v2 già previsto da `wire.md`
 nasconde l'IP di origine al peer remoto. Costo: latenza, carico sui relay, e un nuovo
 insieme di nodi privilegiati che vedono tutto — sposta la fiducia invece di
 eliminarla. `SEC-REQ-22`.
+
+*Residuo aperto*: un interlocutore attivo che apre una connessione P2P con il nodo riceve
+comunque l'attestazione e il certificato recante il `node_id` e vede `sender_node_id`
+negli envelope firmati, associando l'indirizzo IP di trasporto all'identità (a meno di relay).
+La minaccia resta pertanto **aperta** e la pseudonimia nei confronti dei peer attivi resta
+soggetta a correlazione.
 
 #### TM-29 — Il ledger pubblico come grafo permanente dei consumi
 
@@ -1060,6 +1079,60 @@ peer connection". È una proprietà conquistata e va protetta da erosioni future
 **Contromisura:** già presente. **Costo:** nessuno. Nota: la frase di `ledger.md` va
 comunque corretta come chiede [RF-003], perché oggi implica che i sette passi siano
 *sufficienti*, mentre sono necessari.
+
+#### TM-37 — Compromissione della chiave di trasporto: impersonificazione in sessione senza revoca
+
+**Asset:** A-02, A-06, A-11 · **Severità:** media · **Stato:** aperto · **Rif:**
+[ADR-015], `identity.md` §"Bounded validity in time", §"Anti-reuse property",
+[REVIEW-021] RF-005
+
+**Origine.** È una superficie **creata** da [ADR-015], e va registrata come tale: la
+separazione che chiude metà di TM-28 introduce una chiave nuova, dichiarata "a basso
+valore", il cui possesso vale in sessione il posto della vittima.
+
+**Attacco.** (1) L'avversario ottiene la chiave privata di trasporto di un nodo —
+esfiltrazione dal dispositivo, backup, chiave lasciata fuori dal credential store,
+tutti casi che il documento stesso considera routine, perché è la ragione per cui la
+chiave è dichiarata ephemera. (2) Intercetta o riceve la `TransportKeyAttestation`
+corrispondente, che non è un segreto e non è legata a un destinatario. (3) Completa
+l'handshake Noise/QUIC — che prova esattamente ciò che l'avversario ha — presenta
+l'attestazione, ed è accettato come il nodo vittima da ogni peer che apre una
+connessione diretta. (4) Non risponde. Un `challenge_request` è diretto a
+`subject_node_id`: l'issuer che chiama la vittima raggiunge l'avversario, la challenge
+scade, e l'evidenza entra nel ledger come `failed` o `late`.
+
+**Impatto.** Perdita di `existence_income` e di eleggibilità a validatore per la
+vittima: un attacco mirato con impatto economico misurabile. Ciò che l'avversario
+**non** può fare è la parte solida del design e va detto: gli oggetti applicativi
+restano firmati dalla chiave di identità, quindi non può forgiare un `SignedEnvelope`
+né produrre un `subject_signature` valido. Il baratto rispetto a prima di [ADR-015] è
+questo: allora la stessa cosa richiedeva la chiave di identità — compromissione
+totale, ma **revocabile**; oggi è una chiave a basso valore e **non esiste alcuna
+invalidazione anticipata di un'attestazione in circolazione**: nessun contatore di
+epoca, nessun numero di serie, nessuna lista.
+
+**Contromisura.** (a) *Finestra breve e limitata come regola*: il tetto
+`max_transport_attestation_validity_ms` è un parametro di rete firmato dopo
+[REVIEW-021], quindi l'esposizione è limitata dal protocollo e non dalla prudenza
+dell'operatore. È l'unico limite che esista. **Con una riserva, e va detta qui
+perché altrimenti questa frase promette più di quanto la regola tenga:** il tetto
+vincola la *durata dichiarata* dall'attestazione, mentre la finestra in cui un
+verificatore la accetta è quella durata **più** la tolleranza di orologio — e la
+somma non è vincolata da nulla. Vedi [DEBT-017]. Finché quel debito è aperto,
+l'esposizione è limitata dal protocollo *sul valore che il documento nomina*, non
+sulla grandezza da cui la proprietà dipende. Costo: rotazioni più frequenti, cioè
+verifiche di firma in più a ogni ristabilimento di sessione. (b) *Revoca
+dell'identità*: funziona, ma distrugge identità, saldo e reputazione per una chiave
+subordinata, ed è il rimedio sproporzionato che [ADR-015] esisteva per evitare. (c)
+*Invalidazione anticipata dell'attestazione* — epoca o numero di serie pubblicati
+sull'identità: **non adottata**, perché un contatore per identità osservabile in
+sessione è un identificatore stabile in più, cioè ricrea in piccolo la correlazione
+che [ADR-015] ha tolto. Va valutata come decisione propria se la finestra dovesse
+essere allungata.
+
+*Residuo aperto*: per tutta la durata della finestra la compromissione non è
+revocabile, e la vittima non ha alcun segnale che la riveli se non l'esito delle
+proprie challenge.
 
 ### 5.7 `T-07` — Insider di governance
 

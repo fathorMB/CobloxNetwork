@@ -57,6 +57,7 @@ README = (
 
 # The row of the registry table that publishes each value, by its `Hash` cell.
 REGISTRY_ROWS = {
+    "enrollment_request_hash": "`enrollment_request_hash`",
     "enrollment_parameters": "`parameter_set_hash`",
     "reward_policy": "`policy_hash`",
     "hosting_rate_card": "`hosting_rate_card_hash`",
@@ -131,6 +132,8 @@ HOSTING_BODY = {
 CONSENSUS_BODY = {
     "max_clock_drift_ms": "1",
     "max_envelope_validity_ms": "1",
+    "max_transport_attestation_validity_ms": "1",
+    "max_transport_attestation_future_skew_ms": "1",
     "replay_cache_entries_per_peer": "1",
     "replay_cache_entries_global": "1",
     "max_weak_subjectivity_age_ms": "1",
@@ -211,6 +214,33 @@ def app0_account_key() -> bytes:
     ).digest()
 
 
+ER0_REQUEST = {
+    "schema_version": "0.1",
+    "network_id": "fixture",
+    "node_id": "cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq",
+    "public_key": "L_o1qZ06PPuxe7fB3FVhsYqNzKTfONxhPqhZw36xM2s",
+    "pow": {
+        "algorithm": "argon2id-leading-zero-bits-v0",
+        "difficulty_bits": "4",
+        "memory_kib": "65536",
+        "iterations": "3",
+        "lanes": "4",
+        "nonce": "0",
+        "parameter_set_hash": "sha256:" + ("11" * 32),
+        "recent_block_height": "1",
+        "recent_block_id": "sha256:" + ("22" * 32),
+    },
+    "created_at_ms": "1",
+    "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+}
+
+
+def er0_hash() -> str:
+    domain = b"coblox-enrollment-request-hash-v0\x00"
+    digest = hashlib.sha256(domain + CHAIN_ID + jcs(ER0_REQUEST)).hexdigest()
+    return "sha256:" + digest
+
+
 def report(label: str, computed: str, published: str) -> bool:
     ok = computed == published
     print(f"  {label:<28} {'MATCH' if ok else 'MISMATCH'}")
@@ -222,8 +252,15 @@ def report(label: str, computed: str, published: str) -> bool:
 def main() -> int:
     ok = True
 
-    print("Governed protocol documents. None of the four changed in this pass,")
-    print("so all four are method validation:")
+    print("Enrollment request fixture ER-0:")
+    ok &= report("enrollment_request_hash ER-0", er0_hash(), PUBLISHED["enrollment_request_hash"])
+
+    print()
+    print("Governed protocol documents. Three of the four are untouched by this")
+    print("pass and are therefore method validation; consensus_parameters is the")
+    print("one that changed, because the SPEC-013 remediation adds")
+    print("max_transport_attestation_validity_ms and")
+    print("max_transport_attestation_future_skew_ms to its body:")
     for kind, body in (
         ("enrollment_parameters", ENROLLMENT_BODY),
         ("hosting_rate_card", HOSTING_BODY),

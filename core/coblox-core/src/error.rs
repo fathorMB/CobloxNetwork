@@ -23,6 +23,8 @@ pub enum Error {
     DigestString,
     /// An integer field was not the shortest unsigned base-10 form.
     NonCanonicalUint,
+    /// A transport key attestation failed verification.
+    Attestation(AttestationError),
     /// A JSON document violated the I-JSON/JCS subset the protocol defines.
     Json(JsonError),
     /// A Merkle tree input was rejected before any hashing happened.
@@ -208,6 +210,43 @@ pub enum ElectionError {
     EntropyWindow { expected: u64, actual: usize },
 }
 
+/// Reasons a transport key attestation is rejected.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AttestationError {
+    /// Schema version was not "0.1".
+    UnsupportedVersion(String),
+    /// Network ID did not match the expected network ID.
+    NetworkIdMismatch { expected: String, actual: String },
+    /// Attestation node ID does not match the derived node ID of the identity public key.
+    NodeIdMismatch { expected: String, actual: String },
+    /// The transport public key does not match the authenticated peer's transport key.
+    TransportKeyMismatch,
+    /// The attested transport key *is* the enrolled identity key.
+    ///
+    /// `identity.md#key-hierarchy` makes the two keys distinct as a validity
+    /// rule and not as a description: a node that reuses one key for both roles
+    /// makes the `node_id`-to-Peer-ID link recomputable by any offline reader of
+    /// the ledger, which is TM-28 in its original form.
+    TransportKeyEqualsIdentityKey,
+    /// `created_at_ms` exceeds `expires_at_ms`.
+    InvalidValidityWindow {
+        created_at_ms: u64,
+        expires_at_ms: u64,
+    },
+    /// `expires_at_ms - created_at_ms` exceeds
+    /// `max_transport_attestation_validity_ms`.
+    ValidityWindowTooLong { duration_ms: u64, maximum_ms: u64 },
+    /// The attestation timestamp is expired or not yet active.
+    Expired {
+        now_ms: u64,
+        created_at_ms: u64,
+        expires_at_ms: u64,
+    },
+    /// Attestation signature failed verification under the enrolled identity public key.
+    InvalidSignature,
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -219,6 +258,7 @@ impl fmt::Display for Error {
             Self::NonCanonicalUint => {
                 f.write_str("integer is not the shortest unsigned base-10 form")
             }
+            Self::Attestation(e) => write!(f, "transport key attestation rejected: {e:?}"),
             Self::Json(e) => write!(f, "canonical JSON rejected: {e:?}"),
             Self::Merkle(e) => write!(f, "merkle input rejected: {e:?}"),
             Self::Parameter(e) => write!(f, "parameter validation failed: {e:?}"),
@@ -230,6 +270,12 @@ impl fmt::Display for Error {
 }
 
 impl core::error::Error for Error {}
+
+impl From<AttestationError> for Error {
+    fn from(value: AttestationError) -> Self {
+        Self::Attestation(value)
+    }
+}
 
 impl From<JsonError> for Error {
     fn from(value: JsonError) -> Self {

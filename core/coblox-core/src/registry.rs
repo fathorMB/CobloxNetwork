@@ -342,3 +342,16 @@ pub fn block_vote_preimage(
     payload.extend_from_slice(block_id.as_bytes());
     signing_preimage(Domain::SIG_BLOCK_VOTE, chain_id, &payload)
 }
+
+/// The exact bytes a transport key attestation signs.
+#[must_use]
+pub fn transport_key_attestation_signing_preimage(
+    chain_id: &ChainId,
+    unsigned_attestation: &JsonObject,
+) -> Vec<u8> {
+    signing_preimage(
+        Domain::SIG_TRANSPORT_KEY_ATTESTATION,
+        chain_id,
+        &unsigned_attestation.to_jcs(),
+    )
+}
