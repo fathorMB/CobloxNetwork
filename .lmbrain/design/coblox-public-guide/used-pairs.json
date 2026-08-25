@@ -1,0 +1,30 @@
+{
+  "$meta": {
+    "description": "Ogni accostamento colore che la guida pubblica usa davvero. Non e una seconda dichiarazione di legittimita: e la SOTTOLISTA di ../coblox-design-system/tokens/contrast-pairs.json che questa pagina impegna. tools/check-guide-pairs.mjs fallisce se una voce qui non e dichiarata la, e check-contrast.mjs del design system e cio che prova che quelle coppie passano WCAG AA in entrambi i temi.",
+    "spec": "SPEC-015",
+    "owner": "AGENT-006",
+    "source": "../coblox-design-system/tokens/contrast-pairs.json"
+  },
+  "pairs": [
+    { "fg": "color.text.primary", "bg": "color.bg.app", "type": "text", "where": "guide__title, thread__question, plainly p, strong nel filo" },
+    { "fg": "color.text.secondary", "bg": "color.bg.app", "type": "text", "where": "guide__standfirst, prosa del filo" },
+    { "fg": "color.text.muted", "bg": "color.bg.app", "type": "text", "where": "thread__ordinal, plainly__label, colophon" },
+    { "fg": "color.text.primary", "bg": "color.bg.surface", "type": "text", "where": "detail__summary, testo dei diagrammi (dg-text)" },
+    { "fg": "color.text.secondary", "bg": "color.bg.surface", "type": "text", "where": "detail__body p e li" },
+    { "fg": "color.text.muted", "bg": "color.bg.surface", "type": "text", "where": "figcaption, dg-text--sub, trattino di elenco" },
+    { "fg": "color.accent.primary", "bg": "color.bg.surface", "type": "text", "where": "il segno + / − del blocco apribile" },
+    { "fg": "color.text.primary", "bg": "color.bg.hover", "type": "text", "where": "detail__summary sotto il puntatore" },
+    { "fg": "color.border.strong", "bg": "color.bg.app", "type": "non-text", "where": "riga verticale del blocco 'Plainly'" },
+    { "fg": "color.border.strong", "bg": "color.bg.surface", "type": "non-text", "where": "contorni e frecce neutre dei diagrammi" },
+    { "fg": "color.chart.series-1", "bg": "color.bg.surface", "type": "non-text", "where": "percorso di emissione nel diagramma 1" },
+    { "fg": "color.chart.series-2", "bg": "color.bg.surface", "type": "non-text", "where": "riquadri di cio che la rete tiene" },
+    { "fg": "color.chart.series-3", "bg": "color.bg.surface", "type": "non-text", "where": "percorso di spesa e riquadro dell'indirizzo osservato" }
+  ],
+  "decorative": [
+    {
+      "tokens": ["color.border.default"],
+      "where": "contorno di .detail e di .figure",
+      "reason": "Stesso trattamento che il design system da gia a .cbx-card: il contorno separa e non informa. Cio che porta l'affordance del blocco apribile e il testo del riassunto, il segno + / − (color.accent.primary, verificato) e l'anello di focus (color.focus.ring, verificato)."
+    }
+  ]
+}

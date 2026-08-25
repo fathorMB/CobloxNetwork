@@ -1467,3 +1467,536 @@ site = "identity.md"
 pattern = '\*\*Revocation applies to live connections, not only to new ones\.\*\*'
 count = 1
 why = "REVIEW-021 RF-006: verification is specified at connection setup, and ADR-015 moved the whole verification into the session. Without a re-evaluation rule a session opened one block before a revocation is finalized outlives it for as long as the peer keeps it open."
+
+# --- passages the public guide depends on -----------------------------------
+#
+# Added by [SPEC-015]. Each probe pins the rule that holds one property claim of
+# .lmbrain/design/coblox-public-guide/index.html, so that changing the rule turns
+# CI red ON THE GUIDE instead of on a reminder to reread it. The `claims` field
+# carries the guide's own sentence and is checked in the other direction by
+# .lmbrain/design/coblox-public-guide/tools/check-guide-pairs.mjs, which fails if
+# a probe here no longer corresponds to anything the page says.
+#
+# `claims` is not read by this tool. It is data for the guide's own checker, and
+# it lives here rather than beside the page so that the sentence and the rule it
+# rests on are one record and cannot drift into two.
+
+[[probe]]
+id = "guide-sybil-not-cryptographic"
+site = "identity.md"
+pattern = "while not being Sybil-resistant by cryptographic means"
+count = 1
+claims = "It can prove that a balance was not invented, that a signature is genuine, that nothing was spent twice."
+why = "The guide's first uncomfortable sentence says the network is good at stopping forgery and not at stopping crowds. This is the passage that says both halves and requires them to be said together; if it softens, the guide is claiming a resistance the protocol does not have."
+
+[[probe]]
+id = "guide-emulated-nodes-indistinguishable"
+site = "identity.md"
+pattern = "does not distinguish `N` emulated nodes on one host from `N`"
+count = 1
+claims = "It cannot tell a thousand devices apart from one computer pretending to be a thousand devices."
+why = "The plain-language form of the same limit. A reader cannot verify it, so the sentence has to keep pointing at the rule that concedes it."
+
+[[probe]]
+id = "guide-sybil-gap-is-permanent"
+site = "identity.md"
+pattern = "MUST NOT be described as a temporary gap"
+count = 1
+claims = "That is a deliberate and permanent property of this version, not a gap waiting for a patch."
+why = "The guide says 'permanent', not 'not yet'. That word is the whole difference between a declared limit and a promise, and this is the rule that forbids the softer reading."
+
+[[probe]]
+id = "guide-availability-proves-a-key-not-a-device"
+site = "identity.md"
+pattern = "proves that \\*a key is online\\*, not that \\*a device exists\\*"
+count = 1
+claims = "Answering \"are you there?\" proves that a key is online, not that a device exists."
+why = "The guide repeats this distinction almost verbatim because it is the mechanism behind the crowd limit rather than a restatement of it."
+
+[[probe]]
+id = "guide-enrolment-is-memory-hard"
+site = "identity.md"
+pattern = "The primitive is \\*\\*Argon2id\\*\\*"
+count = 1
+claims = "Joining costs a one-time proof of work: your device has to do a deliberately expensive memory-heavy calculation before it is enrolled."
+why = "'Memory-heavy' is the load-bearing adjective: with a compute-bound primitive the same sentence would be false on a phone. If the primitive changes, the guide's description of what joining costs stops being true."
+
+[[probe]]
+id = "guide-one-time-cost-cannot-price-a-flow"
+site = "identity.md"
+pattern = "\\*\\*A one-time cost cannot price a perpetual flow\\.\\*\\*"
+count = 1
+claims = "A one-time cost cannot price something that pays out for ever."
+why = "The guide declines to present the joining cost as the Sybil answer. This is the declared limit it is deferring to."
+
+[[probe]]
+id = "guide-existence-income-is-a-shared-pot"
+site = "ledger.md"
+pattern = "Existence income is \\*\\*not\\*\\* a fixed amount per node"
+count = 1
+claims = "the reward for merely existing is a fixed pot shared out among everyone who qualifies, not an amount per device"
+why = "This is the arithmetic that turns the Sybil position from an intention into a rule, and the guide leans on it twice: to say what containment there is, and to say why your own income falls when more devices qualify."
+
+[[probe]]
+id = "guide-existence-fund-capped-by-construction"
+site = "ledger.md"
+pattern = "emission for an epoch is therefore at most `F` by construction, not by"
+count = 1
+claims = "The remainder is not minted at all, so the period's presence emission is capped by construction rather than by anyone's restraint."
+why = "The guide says 'by construction rather than by anyone's restraint'. Without this sentence the cap would be a convention, and the guide would be promising a governance habit as though it were a rule."
+
+[[probe]]
+id = "guide-remainder-is-not-minted"
+site = "ledger.md"
+pattern = "The remainder is \\*\\*not\\*\\* minted and is not carried forward"
+count = 1
+claims = "that total divided by their number, rounded down"
+why = "Rounding down only caps the fund because the remainder is destroyed rather than carried. The guide states the division in one line and would be wrong about the cap if this changed."
+
+[[probe]]
+id = "guide-fleet-dilutes-rather-than-mints"
+site = "ledger.md"
+pattern = "fleet can only dilute the share of honest nodes"
+count = 1
+claims = "Ten fake devices do not create more credits; they only take smaller shares of the same pot"
+why = "The guide gives the reader the consequence in the reader's own terms. This is the sentence in the rules that says the attack degrades to redistribution instead of forgery."
+
+[[probe]]
+id = "guide-eligible-count-is-falsifiable"
+site = "ledger.md"
+pattern = "the root makes the count \\*\\*falsifiable\\*\\*"
+count = 1
+claims = "an inflated count can be contradicted by recomputation instead of merely disputed"
+why = "The guide is careful to say 'contradicted', not 'prevented'. The rule supports exactly the weaker verb."
+
+[[probe]]
+id = "guide-challenge-kinds"
+site = "ledger.md"
+pattern = "\"kind\":\"availability\"\\|\"storage\"\\|\"compute\""
+count = 1
+claims = "prove it still holds a piece of data it agreed to keep, or to run a small computation and hand back the result"
+why = "The three kinds of question the guide describes are an enumeration in the evidence schema. A fourth kind, or one removed, makes the guide's description of what your device is asked incomplete."
+
+[[probe]]
+id = "guide-challenge-outcomes-include-late"
+site = "ledger.md"
+pattern = "\"outcome\":\"passed\"\\|\"failed\"\\|\"late\"\\|\"no_response\""
+count = 1
+claims = "An answer that does not arrive in time counts as an answer that did not arrive."
+why = "'late' and 'no_response' are distinct recorded outcomes. The guide tells a reader that a missed deadline is not forgiven, which is only true while those outcomes exist and are not treated as passes."
+
+[[probe]]
+id = "guide-secret-fixed-before-randomness"
+site = "ledger.md"
+pattern = "was fixed before the beacon existed"
+count = 1
+claims = "The asker has to lock in its secret before the randomness that picks the question exists"
+why = "This is the ordering the whole unpredictability claim rests on, and it is checkable rather than asserted. If the commitment stops having to precede the beacon, the guide's promise that nobody steers the question is empty."
+
+[[probe]]
+id = "guide-every-verifier-recomputes"
+site = "ledger.md"
+pattern = "not only validators — MUST recompute"
+count = 1
+claims = "reader — not only validators — recomputes all of it"
+why = "The guide tells the reader that they are not asked to trust the validators on this. The rule has to keep saying 'every verifier' rather than 'validators'."
+
+[[probe]]
+id = "guide-bad-evidence-pays-nobody"
+site = "ledger.md"
+pattern = "Evidence failing any of these is invalid and cannot back a mint\\."
+count = 1
+claims = "evidence that fails any step cannot pay anybody"
+why = "The guide's answer to 'what happens if somebody cheats' is mostly this sentence: the cheating does not count. It is the rule that makes that answer true rather than hopeful."
+
+[[probe]]
+id = "guide-grinding-degrades-to-one-of-two"
+site = "ledger.md"
+pattern = "to \"pass one of two\""
+count = 2
+claims = "the attack is reduced from \"pass the question\" to \"pass one of two\""
+why = "The guide publishes the residual rather than the reassurance. Both occurrences are pinned: the one that states it for the reward channel and the one that states it does not transfer to validator eligibility, because dropping either would let the guide keep a mitigation that no longer covers what it claims."
+
+[[probe]]
+id = "guide-paying-more-for-more-is-mining"
+site = "ledger.md"
+pattern = "is mining wearing a different hat"
+count = 1
+claims = "the network is not allowed to reward a device for simply burning more electricity than its neighbour"
+why = "A promise a phone owner will read as being about their battery. It is held by the exclusion of mining, stated here in the form that governs eligibility."
+
+[[probe]]
+id = "guide-no-user-to-user-transfer"
+site = "ledger.md"
+pattern = "A direct user-to-user transfer is therefore unrepresentable"
+count = 1
+claims = "There is no transaction in Coblox that takes credits from one person and gives them to another"
+why = "The strongest property claim on the page and the one the first diagram draws crossed out. It is an absence, so it is held by the invariant that makes the shape unrepresentable rather than by any rule forbidding an act."
+
+[[probe]]
+id = "guide-not-a-currency"
+site = "ledger.md"
+pattern = "It is not a transferable currency\\."
+count = 1
+claims = "they are not a currency the network can move around"
+why = "The guide deliberately does not claim credits can never be worth money, which no protocol rule holds. It claims only what the ledger's own model states about itself."
+
+[[probe]]
+id = "guide-closed-transaction-kinds"
+site = "ledger.md"
+pattern = "\"kind\":\"mint\"\\|\"burn\"\\|\"fund_app\"\\|\"challenge_commitment\"\\|\"challenge_evidence\""
+count = 1
+claims = "The register has a closed list of entry types and none of them confiscates."
+why = "An absence claim needs a positive anchor. The closed enumeration is that anchor: there is no confiscating entry because there is no entry outside this list."
+
+[[probe]]
+id = "guide-mint-and-burn-are-the-only-supply-changes"
+site = "ledger.md"
+pattern = "`mint` is the only supply-increasing transaction"
+count = 1
+claims = "Credits only ever appear against something the network verified, and only ever disappear when they are spent."
+why = "The caption of the first diagram. Two arrows and no third one is exactly this invariant, drawn."
+
+[[probe]]
+id = "guide-mint-needs-checkable-evidence"
+site = "ledger.md"
+pattern = "every mint is linked to finalized, validator-verifiable eligibility evidence"
+count = 1
+claims = "Work the network checked"
+why = "The first box of the first diagram. A mint with no evidence behind it would make the diagram's left-hand arrow a decoration."
+
+[[probe]]
+id = "guide-work-mint-needs-measured-contribution"
+site = "ledger.md"
+pattern = "evidence MUST establish the measured resource contribution"
+count = 1
+claims = "Some of it is for work that was checked: storage you proved you still hold, computation you actually ran."
+why = "'Proved' and 'actually' are the two words this rule pays for. Without it the guide would be describing self-reported work."
+
+[[probe]]
+id = "guide-subscription-burn-needs-your-signature"
+site = "ledger.md"
+pattern = "the key MUST derive `payer_node_id`; the signature is"
+count = 1
+claims = "the only entries that reduce your balance are ones you signed yourself"
+why = "Half of the 'nobody can take your credits' claim, which the guide states in the thread next to the fact that everyone can see them. If the signature requirement weakens, the comforting half of that sentence goes first."
+
+[[probe]]
+id = "guide-funding-an-app-needs-your-signature"
+site = "ledger.md"
+pattern = "The key MUST derive the enrolled, unrevoked `payer_node_id`\\."
+count = 1
+claims = "paying for an app subscription, and moving credits into an app's funding account"
+why = "The other half. These are the only two entries that debit a node account, and the guide enumerates them rather than saying 'nothing else can'."
+
+[[probe]]
+id = "guide-escrow-is-debited-without-asking-again"
+site = "ledger.md"
+pattern = "quorum authorizes the deterministic charge, and the app escrow is debited"
+count = 1
+claims = "the validators spend them on that app's hosting on a schedule, without asking you again"
+why = "The exception the guide refuses to leave out of the previous claim. Credits inside an app escrow are debited by consensus and not by their original owner's signature, and a reader who was told only the comfortable half would be misled about what funding an app means."
+
+[[probe]]
+id = "guide-no-fees"
+site = "ledger.md"
+pattern = "transactions or fees in v0"
+count = 1
+claims = "There is no entry that confiscates, and there is no fee."
+why = "'No fee' is a property claim like any other and would be quietly false the first time a fee existed."
+
+[[probe]]
+id = "guide-burn-pays-nobody"
+site = "ledger.md"
+pattern = "the burn never names or credits a provider"
+count = 1
+claims = "A burn destroys the credits rather than handing them to anyone: whoever provided the service is paid separately, by the protocol, against proof."
+why = "The guide explains spending twice, in the thread and in a caption, because it is the least intuitive part of the economy. This invariant is what makes both descriptions accurate."
+
+[[probe]]
+id = "guide-anyone-can-ask-for-a-balance"
+site = "wire.md"
+pattern = "\"account_kind\":\"node\"\\|\"app\", \"subject_id\":string,"
+count = 1
+claims = "Your balance is public. It sits in a register that anyone can read, next to your node identifier, permanently."
+why = "The second uncomfortable sentence. A balance proof is requested by subject identifier with no relationship to the subject required, which is what makes 'anyone can read' literal rather than rhetorical."
+
+[[probe]]
+id = "guide-account-key-is-your-node-id"
+site = "ledger.md"
+pattern = "account_key = H\\(\"coblox-account-key-v0\\\\0\" \\|\\| 0x00 \\|\\| node_id_utf8\\)"
+count = 1
+claims = "next to your node identifier, permanently"
+why = "The balance is indexed by a value derived from the node identifier, which is what joins the balance to everything else that identifier did. Without this derivation the correlation claim would be weaker than the guide states it."
+
+[[probe]]
+id = "guide-node-id-is-a-stable-pseudonym"
+site = "identity.md"
+pattern = "It is stable for the life of the key, case-sensitive, and contains no account or"
+count = 1
+claims = "It carries no name, no email address and no postal address, but it never changes for as long as you keep the same key"
+why = "The third uncomfortable sentence, and the one where the reassuring half and the uncomfortable half live in the same rule. The guide keeps them in the same sentence for that reason."
+
+[[probe]]
+id = "guide-identity-key-is-on-the-ledger"
+site = "identity.md"
+pattern = "the enrollment certificate publishes the"
+count = 1
+claims = "The design is pseudonymous, not anonymous. A stable pseudonym is a weak one."
+why = "The identity public key is published on the ledger, so the pseudonym is not merely stable but stable and already written down. That is what makes 'weak' the accurate adjective."
+
+[[probe]]
+id = "guide-subscription-burn-names-the-payer"
+site = "ledger.md"
+pattern = "\"reason\":\"app_hosting\"\\|\"app_subscription\""
+count = 1
+claims = "Paying for one writes your node identifier, the app, the amount and the dates into the shared register"
+why = "A subscription burn is the entry that carries the payer's identifier, and it exists because the payer's signature authorises the debit. The exposure is the mechanism, not a side effect of it."
+
+[[probe]]
+id = "guide-subscribers-are-grouped-by-identity"
+site = "ledger.md"
+pattern = "group them by payer node ID"
+count = 1
+claims = "and joined up with everything else that identifier ever did"
+why = "Counting subscribers per identity is what the creator reward requires, and it is why the list is not merely present but has to be usable. If this grouping ever disappeared the exposure would remain, so the guide claims the exposure and not the grouping."
+
+[[probe]]
+id = "guide-history-cannot-be-erased"
+site = "ledger.md"
+pattern = "cannot erase evidence or consensus history"
+count = 1
+claims = "The register is immutable, so there is no way to take it back later."
+why = "The guide says the statement must reach you before you subscribe rather than after, and this is the rule that makes 'after' worthless."
+
+[[probe]]
+id = "guide-publisher-cannot-price-hosting"
+site = "ledger.md"
+pattern = "publisher cannot supply or lower a hosting rate\\."
+count = 1
+claims = "a publisher cannot set or lower its own hosting price"
+why = "A claim about what a publisher cannot do to the people hosting its app. It is a validity rule, not a marketplace convention."
+
+[[probe]]
+id = "guide-suspended-app-is-not-deleted"
+site = "ledger.md"
+pattern = "it is never silently deleted"
+count = 1
+claims = "it is never silently deleted, and funding it brings it back"
+why = "The guide promises that running out of credits does not destroy your app. This is the rule that keeps the promise."
+
+[[probe]]
+id = "guide-publisher-cannot-subscribe-to-itself"
+site = "ledger.md"
+pattern = "The publisher's own node ID is excluded\\."
+count = 1
+claims = "capped so that you cannot profitably subscribe to yourself"
+why = "Both halves are rules: the publisher is excluded from its own subscriber count, and the reward is capped as a fraction of what was actually burned."
+
+[[probe]]
+id = "guide-capability-absence-is-denial"
+site = "app-manifest.md"
+pattern = "Absence means denial\\."
+count = 1
+claims = "Anything not asked for is denied, and asking is not the same as getting."
+why = "The first half of the sentence. An app's permissions are an allowlist, so a capability that is simply not mentioned is refused rather than inherited."
+
+[[probe]]
+id = "guide-no-capability-by-default"
+site = "app-manifest.md"
+pattern = "Neither path ever grants by default\\."
+count = 1
+claims = "An app you install gets nothing by default."
+why = "The second half. Installing is not consenting, on either of the two consent paths, and the guide would be describing a different product if this stopped holding."
+
+[[probe]]
+id = "guide-app-storage-is-a-private-directory"
+site = "app-manifest.md"
+pattern = "exposes only a per-app virtual directory"
+count = 1
+claims = "a private folder of its own, a monotonic clock, a fixed list of HTTPS addresses"
+why = "'Private folder' is the reader's word for a per-app virtual directory with no host path and no reach into another app's storage."
+
+[[probe]]
+id = "guide-quorum-is-strictly-more-than-two-thirds"
+site = "ledger.md"
+pattern = "quorum\\(signed_power, total_power\\) := signed_power \\* 3 > total_power \\* 2"
+count = 1
+claims = "A block of entries counts as settled when more than two thirds of their voting power has signed it"
+why = "The one predicate every quorum in the protocol uses. The guide's sentence about when something is settled is this formula in words."
+
+[[probe]]
+id = "guide-quorum-predicate-is-strict"
+site = "ledger.md"
+pattern = "This strict predicate is not `>=`"
+count = 1
+claims = "strictly more, not two thirds exactly"
+why = "The guide spends a clause on the difference between > and >= because that clause is the difference between a rule and a rounding. It is stated in the rules for the same reason."
+
+[[probe]]
+id = "guide-term-limit-is-stamped"
+site = "ledger.md"
+pattern = "\\*\\*The floor is a term limit, stamped and not derived\\.\\*\\*"
+count = 1
+claims = "Every seat carries an expiry stamped on it when it is filled"
+why = "'Stamped' is doing work the guide could easily have dropped: a recomputed limit would let a sitting quorum extend its own members' terms, and the guide's promise that validators are not a permanent committee would survive the change in wording while ceasing to be true."
+
+[[probe]]
+id = "guide-turnover-is-arithmetic"
+site = "ledger.md"
+pattern = "Turnover is consequently not a target but an arithmetic certainty"
+count = 1
+claims = "gives up at least"
+why = "The guide gives the reader the division rather than a reassurance about intent, because the rules give the same."
+
+[[probe]]
+id = "guide-cooldown-applies-for-any-reason"
+site = "ledger.md"
+pattern = "\\*\\*for any reason whatsoever\\*\\*"
+count = 1
+claims = "A departing member sits out a cooling-off period and then competes for re-entry like anyone else."
+why = "'A departing member' with no qualification. An earlier version of the rule said 'through term expiry' and was evadable by leaving voluntarily; the guide's unqualified sentence is only true under the unqualified rule."
+
+[[probe]]
+id = "guide-no-conscription"
+site = "ledger.md"
+pattern = "A node cannot be conscripted into the set"
+count = 1
+claims = "Nobody can be made a validator without standing for it"
+why = "A claim about what cannot be done to you, which is the kind a reader has no way to check."
+
+[[probe]]
+id = "guide-quorum-cannot-name-its-successors"
+site = "ledger.md"
+pattern = "\\*\\*cannot name its members\\*\\*"
+count = 1
+claims = "the sitting validators cannot name their successors: they can narrow the field of candidates"
+why = "The guide states the limit and its residual in one sentence, in the same order the invariant does. Dropping the second half would be the overstatement; dropping the first would be the understatement."
+
+[[probe]]
+id = "guide-uptime-counts-for-nothing"
+site = "ledger.md"
+pattern = "### Eligibility: demonstrated storage and compute, never availability"
+count = 1
+claims = "not by having been switched on, which is what a rented server in a data centre beats a real phone at"
+why = "The heading is the rule. The guide keeps the comparison with the data centre because that comparison is the reason the rule exists."
+
+[[probe]]
+id = "guide-availability-scores-zero"
+site = "ledger.md"
+pattern = "Evidence of kind `availability` contributes"
+count = 1
+claims = "You qualify by having proved storage and computation"
+why = "The arithmetic form of the same rule: availability evidence contributes zero to the score. A non-zero weight would make the guide's sentence false without changing any heading."
+
+[[probe]]
+id = "guide-eligibility-is-not-a-ranking"
+site = "ledger.md"
+pattern = "\\*\\*Eligibility is a predicate, not a ranking, and this is the whole design\\.\\*\\*"
+count = 1
+claims = "Above the threshold, more storage buys nothing: no seat, no better odds, no extra weight."
+why = "The guide enumerates the three things extra contribution does not buy, because a rule that quietly became a ranking would still be describable as a threshold."
+
+[[probe]]
+id = "guide-uniform-voting-power"
+site = "ledger.md"
+pattern = "and uniform voting power\\.\\*\\*"
+count = 1
+claims = "Every validator counts as exactly one."
+why = "Uniform power is what stops influence being bought with contribution. It is a validity rule on elected sets, not a convention about how sets happen to be built."
+
+[[probe]]
+id = "guide-eligibility-is-expensive-not-impossible-to-fake"
+site = "ledger.md"
+pattern = "\\*\\*expensive to fake and not impossible to fake\\*\\*"
+count = 1
+claims = "qualifying is expensive to fake, not impossible to fake"
+why = "The guide uses the rules' own phrase because a paraphrase of it is almost always stronger than it. This is the formulation the specification chose after retracting a stronger one."
+
+[[probe]]
+id = "guide-score-needs-distinct-issuers"
+site = "ledger.md"
+pattern = "the score must draw"
+count = 1
+claims = "The score must draw on several independent askers, which raises the price of faking it in proportion, and does not remove it."
+why = "The guide states the mitigation and its limit together. The rule states them in the same breath for the same reason."
+
+[[probe]]
+id = "guide-overstated-safety-claim-refused"
+site = "ledger.md"
+pattern = "would be the overstated safety claim this document refuses to make\\."
+count = 1
+claims = "Writing \"cannot be faked without spending real resources\" would claim more than the rules deliver."
+why = "The guide quotes the retracted sentence and says why it is not used. A retraction that is deleted is a rehabilitation, and this guide would then be free to reprint the stronger claim."
+
+[[probe]]
+id = "guide-transport-key-not-on-the-ledger"
+site = "identity.md"
+pattern = "\\*\\*never published on the ledger\\*\\*"
+count = 1
+claims = "Your network address is never written into the shared register"
+why = "The one privacy reassurance on this page, so the one most in need of an anchor. It holds only while the transport key and its binding stay off the ledger."
+
+[[probe]]
+id = "guide-attestation-may-not-name-the-identity-key"
+site = "identity.md"
+pattern = "as its `transport_public_key` MUST be rejected"
+count = 1
+claims = "the key your device uses to make connections is deliberately a different key from the one that identifies you"
+why = "The separation is only worth what its enforcement is worth. This is the receiver-side rejection that makes it a validity rule rather than a recommendation a node could ignore about itself."
+
+[[probe]]
+id = "guide-envelopes-carry-your-node-id-in-clear"
+site = "wire.md"
+pattern = "in the signed cleartext"
+count = 1
+claims = "every node you actually talk to sees the address you are connecting from, and your messages carry your node identifier in the clear"
+why = "The correction the guide puts immediately after the reassurance. Messages are attributed to the node identifier in the clear, so taking part links the pseudonym to an address for every peer, whatever the ledger does or does not publish."
+
+[[probe]]
+id = "guide-revocation-transfers-nothing"
+site = "ledger.md"
+pattern = "receives no balance, nonce, or privileges from the old"
+count = 1
+claims = "a replacement identity inherits nothing: no balance, no history, no standing"
+why = "A reader might reasonably assume a replacement key carries the old one's balance across. It does not, and the guide says so in the same paragraph as the revocation power."
+
+[[probe]]
+id = "guide-validator-misconduct-is-a-revocation-reason"
+site = "ledger.md"
+pattern = "\"reason\":\"key_compromise\"\\|\"validator_misconduct\"\\|\"operator_request\""
+count = 1
+claims = "a validator that misbehaves can have its identity revoked by the others and loses its seat"
+why = "The enumerated reasons are the whole of what revocation is for. The guide names two of the three to a reader and would be inventing a power if the enumeration changed."
+
+[[probe]]
+id = "guide-no-partially-applied-blocks"
+site = "ledger.md"
+pattern = "execution invalidates the entire proposed block"
+count = 1
+claims = "A block that contains a single entry which does not execute is rejected whole: there are no half-applied blocks."
+why = "The all-or-nothing rule is what lets the guide tell a reader that a bad entry cannot leave a partial effect behind."
+
+[[probe]]
+id = "guide-light-client-validates-its-checkpoint"
+site = "ledger.md"
+pattern = "\\*\\*Validate the external checkpoint\\.\\*\\*"
+count = 1
+claims = "It holds a recent checkpoint signed by a key it already trusts"
+why = "The guide's account of what a phone checks starts here. If the checkpoint stopped being validated the rest of the description would still read correctly and be worthless."
+
+[[probe]]
+id = "guide-light-client-fails-closed"
+site = "ledger.md"
+pattern = "unknown-key checkpoints fail closed"
+count = 1
+claims = "It fails closed rather than open"
+why = "The distinction a reader cannot check for themselves, and the one that decides whether a stale checkpoint is a refusal or a silent downgrade."
+
+[[probe]]
+id = "guide-light-client-refuses-to-regress"
+site = "ledger.md"
+pattern = "\\*\\*Enforce non-regression\\.\\*\\*"
+count = 1
+claims = "it will not accept a lower height than the highest it has already trusted, nor a different block at a height it has already seen"
+why = "Non-regression is what stops a device being walked backwards onto a different history. The guide describes both halves because the rule states both."

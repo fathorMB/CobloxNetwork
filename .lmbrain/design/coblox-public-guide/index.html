@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How Coblox works</title>
+    <meta
+      name="description"
+      content="What the Coblox network does, what your device does in it, and what it records about you."
+    />
+    <link rel="stylesheet" href="../coblox-design-system/tokens/tokens.css" />
+    <link rel="stylesheet" href="../coblox-design-system/css/base.css" />
+    <link rel="stylesheet" href="../coblox-design-system/css/components.css" />
+    <link rel="stylesheet" href="./guide.css" />
+    <!--
+      Written under SPEC-015 by AGENT-006. Framework-free, script-free, and
+      free of network requests: it opens from disk.
+
+      Rule of this page: the openable blocks carry precision, never news. Read
+      with every block closed, the page has already said the three things that
+      are least comfortable to say. If one of them only appears on opening,
+      this page has failed however good it looks.
+    -->
+  </head>
+  <body>
+    <main class="guide">
+      <header class="guide__masthead">
+        <p class="cbx-label">Coblox &middot; public guide</p>
+        <h1 class="guide__title">How Coblox works</h1>
+        <p class="guide__standfirst">
+          Coblox is a network made of ordinary devices. This page explains what it does, what your
+          device does inside it, and what it records about you &mdash; without assuming you have
+          read a protocol specification.
+        </p>
+        <p class="guide__standfirst">
+          Read it straight through and you will have the whole shape of it. The blocks marked
+          <strong>+</strong> open on the exact version of something the paragraph above has
+          already told you. They are for people who want the mechanism; nothing that matters
+          to a decision is hidden inside one.
+        </p>
+      </header>
+
+      <div class="thread">
+        <!-- ============================================================ 1 -->
+        <section class="thread__step" aria-labelledby="q-what">
+          <h2 class="thread__question" id="q-what">
+            <span class="thread__ordinal" aria-hidden="true">01</span>
+            <span>What is Coblox?</span>
+          </h2>
+
+          <p>
+            It is a network of ordinary machines &mdash; laptops, desktops, spare computers,
+            Android phones &mdash; that keep pieces of each other's data and run small programs
+            for each other. No company owns it. There is no central server that everything passes
+            through; if you switch your device off, the network is smaller and nothing else
+            changes.
+          </p>
+          <p>
+            The devices share one register of who did what. A rotating group of them, called
+            validators, write the register; everybody else can read it and check the writing.
+            The programs that run on the network are called apps, and anybody can publish one.
+          </p>
+
+          <div class="plainly">
+            <p class="plainly__label">Plainly</p>
+            <p>
+              Coblox is good at stopping forgery and not at stopping crowds. It can prove that a
+              balance was not invented, that a signature is genuine, that nothing was spent twice.
+              It cannot tell a thousand devices apart from one computer pretending to be a
+              thousand devices. That is a deliberate and permanent property of this version, not a
+              gap waiting for a patch.
+            </p>
+          </div>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              Why the crowd problem is not solved, and what is used instead
+            </summary>
+            <div class="detail__body">
+              <p>
+                Joining costs a one-time proof of work: your device has to do a deliberately
+                expensive memory-heavy calculation before it is enrolled. That makes creating a
+                thousand identities a thousand times as expensive as creating one, and no more
+                than that.
+              </p>
+              <p>
+                A one-time cost cannot price something that pays out for ever. However hard the
+                joining puzzle is made, an identity that keeps earning eventually pays for itself.
+                So the containment is economic rather than cryptographic: the reward for merely
+                existing is a fixed pot shared out among everyone who qualifies, not an amount per
+                device. Ten fake devices do not create more credits; they only take smaller shares
+                of the same pot &mdash; including from you.
+              </p>
+              <p>
+                Nothing in the protocol attests that a key belongs to a distinct physical machine
+                or to a person. Answering &ldquo;are you there?&rdquo; proves that a key is
+                online, not that a device exists.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 2 -->
+        <section class="thread__step" aria-labelledby="q-device">
+          <h2 class="thread__question" id="q-device">
+            <span class="thread__ordinal" aria-hidden="true">02</span>
+            <span>What does your device actually do?</span>
+          </h2>
+
+          <p>
+            It stays on and connected, and it answers questions it cannot see coming. Another node
+            asks it to prove it is reachable, or to prove it still holds a piece of data it agreed
+            to keep, or to run a small computation and hand back the result. Each question has a
+            deadline. An answer that does not arrive in time counts as an answer that did not
+            arrive.
+          </p>
+          <p>
+            You do not choose which questions you get, and neither does the node asking them. The
+            asker has to lock in its secret before the randomness that picks the question exists,
+            so it cannot go looking for a question you happen to be able to answer.
+          </p>
+          <p>
+            On a phone this is meant to be survivable: the work is sampled rather than continuous,
+            and the network is not allowed to reward a device for simply burning more electricity
+            than its neighbour.
+          </p>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              How a question is made unpredictable, and where that stops
+            </summary>
+            <div class="detail__body">
+              <p>
+                The asker publishes a commitment to a secret. Later, a finalised block supplies
+                public randomness. The actual question is derived from both, and the secret is
+                only revealed afterwards, together with the evidence. Every reader &mdash; not
+                only validators &mdash; recomputes all of it, and evidence that fails any step
+                cannot pay anybody.
+              </p>
+              <p>
+                The limit, stated with its size: someone who proposes blocks and colludes with the
+                asker can search for a favourable question, because a block's timestamp has some
+                legal room and each value produces different randomness at the cost of one hash.
+                The remaining defence is that every device is questioned by at least two
+                independent askers per period, so the attack is reduced from &ldquo;pass the
+                question&rdquo; to &ldquo;pass one of two&rdquo;. It is a reduction, not a fix,
+                and it is written down as one.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 3 -->
+        <section class="thread__step" aria-labelledby="q-earn">
+          <h2 class="thread__question" id="q-earn">
+            <span class="thread__ordinal" aria-hidden="true">03</span>
+            <span>What do you get for it?</span>
+          </h2>
+
+          <p>
+            Credits. They are written the way a measurement is written &mdash;
+            <span class="cbx-num">1&#8239;240</span><span class="cbx-unit">cr</span>, with the unit
+            after the number, the way you write <span class="cbx-num">512</span
+            ><span class="cbx-unit">GB</span> &mdash; because that is what they are. A credit
+            records that the network used your machine. There is no transaction in Coblox that
+            takes credits from one person and gives them to another: that shape does not exist in
+            the register, so credits cannot be sent, and they are not a currency the network can
+            move around.
+          </p>
+          <p>
+            You are paid in two ways. Some of it is for work that was checked: storage you proved
+            you still hold, computation you actually ran. Some of it is for being present and
+            reachable at all, and that part is a fixed pot for each period, divided among everyone
+            who qualified.
+          </p>
+
+          <div class="plainly">
+            <p class="plainly__label">Plainly</p>
+            <p>
+              Your balance is public. It sits in a register that anyone can read, next to your node
+              identifier, permanently. Nobody can take credits away from you &mdash; the only
+              entries that reduce your balance are ones you signed yourself &mdash; but
+              &ldquo;nobody can take them&rdquo; and &ldquo;nobody can see them&rdquo; are
+              different sentences, and only the first one is true.
+            </p>
+            <p>
+              And that identifier is a pseudonym, not a disguise. It carries no name, no email
+              address and no postal address, but it never changes for as long as you keep the same
+              key, so everything it ever does stays tied together under it. The design is
+              pseudonymous, not anonymous. A stable pseudonym is a weak one.
+            </p>
+          </div>
+
+          <figure class="figure">
+            <div class="figure__scroll" tabindex="0" role="group" aria-label="Diagram: where a credit comes from and where it goes. Scrollable sideways.">
+            <svg
+              class="figure__canvas"
+              viewBox="0 0 720 312"
+              role="img"
+              aria-labelledby="fig1-title fig1-desc"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <title id="fig1-title">Where a credit comes from and where it goes</title>
+              <desc id="fig1-desc">
+                Work that the network checked leads, by a minting entry, to your account. Your
+                account leads, by a burning entry that you sign, to the credits ceasing to exist.
+                A third path, from your account to another person's account, is drawn crossed out:
+                no such entry exists in the register.
+              </desc>
+
+              <defs>
+                <marker
+                  id="ah-mint"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path class="dg-arrow dg-arrow--mint" d="M 0 0 L 10 5 L 0 10 z" />
+                </marker>
+                <marker
+                  id="ah-burn"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path class="dg-arrow dg-arrow--burn" d="M 0 0 L 10 5 L 0 10 z" />
+                </marker>
+              </defs>
+
+              <rect class="dg-box dg-box--held" x="10" y="20" width="190" height="64" rx="6" />
+              <text class="dg-text" x="26" y="46">Work the network checked</text>
+              <text class="dg-text--sub" x="26" y="66">storage &middot; computation</text>
+
+              <rect class="dg-box dg-box--mint" x="265" y="20" width="190" height="64" rx="6" />
+              <text class="dg-text" x="281" y="46">Your account</text>
+              <text class="dg-text--sub" x="281" y="66">node id &middot; balance</text>
+
+              <rect class="dg-box dg-box--burn" x="520" y="20" width="190" height="64" rx="6" />
+              <text class="dg-text" x="536" y="46">The credits stop existing</text>
+              <text class="dg-text--sub" x="536" y="66">nobody receives them</text>
+
+              <line
+                class="dg-edge dg-edge--mint"
+                x1="200"
+                y1="60"
+                x2="261"
+                y2="60"
+                marker-end="url(#ah-mint)"
+              />
+              <text class="dg-text--sub" x="230" y="46" text-anchor="middle">mint</text>
+
+              <line
+                class="dg-edge dg-edge--burn"
+                x1="455"
+                y1="60"
+                x2="516"
+                y2="60"
+                marker-end="url(#ah-burn)"
+              />
+              <text class="dg-text--sub" x="485" y="46" text-anchor="middle">burn</text>
+
+              <line class="dg-edge dg-edge--forbidden" x1="360" y1="84" x2="360" y2="186" />
+              <line class="dg-edge" x1="350" y1="125" x2="370" y2="145" />
+              <line class="dg-edge" x1="370" y1="125" x2="350" y2="145" />
+              <text class="dg-text--sub" x="384" y="130">no entry of this shape</text>
+              <text class="dg-text--sub" x="384" y="148">exists in the register</text>
+
+              <rect
+                class="dg-box"
+                x="265"
+                y="190"
+                width="190"
+                height="64"
+                rx="6"
+                stroke-dasharray="4 4"
+              />
+              <text class="dg-text" x="281" y="216">Another person</text>
+              <text class="dg-text--sub" x="281" y="236">cannot be sent credits</text>
+
+              <text class="dg-text--sub" x="10" y="280">
+                solid = created by the protocol &nbsp;&middot;&nbsp; dashed = destroyed by spending
+              </text>
+              <text class="dg-text--sub" x="10" y="298">dotted and crossed = does not exist</text>
+            </svg>
+            </div>
+            <figcaption>
+              Credits only ever appear against something the network verified, and only ever
+              disappear when they are spent. There is no third arrow. A burn destroys the credits
+              rather than handing them to anyone: whoever provided the service is paid separately,
+              by the protocol, against proof.
+            </figcaption>
+          </figure>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              What &ldquo;a fixed pot, divided&rdquo; means for the amount you see
+            </summary>
+            <div class="detail__body">
+              <p>
+                For each period the network sets one total for presence income. Everyone who met
+                the threshold that period gets that total divided by their number, rounded down.
+                The remainder is not minted at all, so the period's presence emission is capped by
+                construction rather than by anyone's restraint.
+              </p>
+              <p>
+                Two consequences worth knowing. Your presence income falls when more devices
+                qualify, without anybody doing anything wrong. And because the count is a divisor,
+                it is committed to the actual list of qualifying devices, so an inflated count can
+                be contradicted by recomputation instead of merely disputed.
+              </p>
+            </div>
+          </details>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              Why &ldquo;nobody can take your credits&rdquo; is exactly, and only, true
+            </summary>
+            <div class="detail__body">
+              <p>
+                Two kinds of entry can lower your balance, and both require your signature: paying
+                for an app subscription, and moving credits into an app's funding account. There
+                is no entry that confiscates, and there is no fee.
+              </p>
+              <p>
+                One thing this does not cover, and it is the reason the sentence is worded this
+                way: credits you have moved into an app's funding account are no longer yours to
+                hold. From there, the validators spend them on that app's hosting on a schedule,
+                without asking you again. That is what funding an app means.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 4 -->
+        <section class="thread__step" aria-labelledby="q-spend">
+          <h2 class="thread__question" id="q-spend">
+            <span class="thread__ordinal" aria-hidden="true">04</span>
+            <span>What can you do with them?</span>
+          </h2>
+
+          <p>
+            You subscribe to apps. An app declares its own subscription price; you pay it, and the
+            credits are destroyed rather than handed over. The people whose machines actually host
+            the app are paid separately by the protocol, once they have proved they did the work.
+          </p>
+
+          <div class="plainly">
+            <p class="plainly__label">Plainly</p>
+            <p>
+              A subscription is a public and permanent fact. Paying for one writes your node
+              identifier, the app, the amount and the dates into the shared register, where they
+              stay for ever and can be read by anyone, and joined up with everything else that
+              identifier ever did. The register is immutable, so there is no way to take it back
+              later. Credits having no monetary value does not change this: what is exposed is not
+              money, it is what you use.
+            </p>
+          </div>
+
+          <p>
+            Publishing an app is the other direction. You fund an account attached to the app, and
+            the network bills that account for hosting at a price the validators set &mdash; a
+            publisher cannot set or lower its own hosting price. If the account runs dry the app
+            goes into a grace period, then is suspended; it is never silently deleted, and funding
+            it brings it back. If people subscribe to your app, you are paid for that separately,
+            capped so that you cannot profitably subscribe to yourself.
+          </p>
+          <p>
+            An app you install gets nothing by default. It can only touch what its manifest asks
+            for and you agreed to: a private folder of its own, a monotonic clock, a fixed list of
+            HTTPS addresses. Anything not asked for is denied, and asking is not the same as
+            getting.
+          </p>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              The full statement of what the network publishes about you
+            </summary>
+            <div class="detail__body">
+              <p>
+                This page states the fact; it is not the statement. The project has committed to
+                publishing one document that sets out, in full, what is public, permanent and
+                joinable &mdash; node identifier, balance, subscriptions and activity times &mdash;
+                and it is due before the network admits its first participant from outside the
+                project. It is written once and referred to, rather than restated on every surface,
+                because two copies of a security statement drift apart.
+              </p>
+              <p>
+                Until it is published, what you are reading here and the project's
+                <code class="cbx-mono">SECURITY.md</code> are the whole of what has been said, and
+                this paragraph is here so that the gap is visible rather than merely unmentioned.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 5 -->
+        <section class="thread__step" aria-labelledby="q-books">
+          <h2 class="thread__question" id="q-books">
+            <span class="thread__ordinal" aria-hidden="true">05</span>
+            <span>Who keeps the books?</span>
+          </h2>
+
+          <p>
+            A group of nodes called validators. A block of entries counts as settled when more than
+            two thirds of their voting power has signed it &mdash; strictly more, not two thirds
+            exactly.
+          </p>
+          <p>
+            They are not a permanent committee. Every seat carries an expiry stamped on it when it
+            is filled, so a set with <span class="cbx-num">V</span> members and terms of
+            <span class="cbx-num">T</span> periods gives up at least
+            <span class="cbx-num">V</span> divided by <span class="cbx-num">T</span> seats every
+            period, whatever anybody intends. A departing member sits out a cooling-off period and
+            then competes for re-entry like anyone else. Nobody can be made a validator without
+            standing for it, and the sitting validators cannot name their successors: they can
+            narrow the field of candidates, but the composition comes out of a derivation from
+            randomness they cannot choose.
+          </p>
+          <p>
+            Getting in is a threshold, not a league table. You qualify by having proved storage and
+            computation &mdash; not by having been switched on, which is what a rented server in a
+            data centre beats a real phone at. Above the threshold, more storage buys nothing: no
+            seat, no better odds, no extra weight. Every validator counts as exactly one.
+          </p>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              Why the threshold is deliberately not a ranking
+            </summary>
+            <div class="detail__body">
+              <p>
+                A rule that pays more for spending more, when the network does not need more, is
+                mining under another name, and the project has excluded mining on principle. A
+                ranking by contributed work would have reintroduced exactly that spending race
+                under the heading of eligibility, so eligibility is a yes-or-no test and voting
+                power is uniform.
+              </p>
+              <p>
+                The honest size of what this buys: qualifying is expensive to fake, not impossible
+                to fake. The score must draw on several independent askers, which raises the price
+                of faking it in proportion, and does not remove it. Somebody willing to enrol that
+                many colluding identities per fabricated candidate can still clear the threshold.
+                Writing &ldquo;cannot be faked without spending real resources&rdquo; would claim
+                more than the rules deliver.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 6 -->
+        <section class="thread__step" aria-labelledby="q-know">
+          <h2 class="thread__question" id="q-know">
+            <span class="thread__ordinal" aria-hidden="true">06</span>
+            <span>What does the network know about you?</span>
+          </h2>
+
+          <p>
+            The three uncomfortable facts on this page have already been said, and they belong
+            together, so here they are in one place: the network cannot tell a crowd of fake
+            devices from real ones; your balance and your subscriptions are public and permanent;
+            and your identifier is a stable pseudonym, which is a weak one. None of the three is a
+            defect being worked on. They are properties of the design, and the reason they are on
+            this page is that you cannot decide about them after you have joined.
+          </p>
+          <p>
+            One thing that is not in the register is worth stating precisely, because it is easy to
+            over-promise. Your network address is never written into the shared register, and the
+            key your device uses to make connections is deliberately a different key from the one
+            that identifies you, so that nobody can work out one from the other by reading the
+            register alone. But every node you actually talk to sees the address you are connecting
+            from, and your messages carry your node identifier in the clear. The register does not
+            publish the link. Participating exposes it.
+          </p>
+
+          <figure class="figure">
+            <div class="figure__scroll" tabindex="0" role="group" aria-label="Diagram: what the shared register holds about you. Scrollable sideways.">
+            <svg
+              class="figure__canvas"
+              viewBox="0 0 720 308"
+              role="img"
+              aria-labelledby="fig2-title fig2-desc"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <title id="fig2-title">What the shared register holds about you</title>
+              <desc id="fig2-desc">
+                The register holds five things about you: your node identifier, your balance, the
+                apps you subscribe to, the times of your activity, and the apps you have funded.
+                All of it is public, permanent and joinable. Your name, email address and postal
+                address are not in it, and are never asked for. The address you connect from is
+                not in it either, but every node you connect to sees it beside your node
+                identifier.
+              </desc>
+
+              <text class="dg-text--sub" x="10" y="22">IN THE SHARED REGISTER</text>
+
+              <rect class="dg-box dg-box--held" x="10" y="34" width="136" height="66" rx="6" />
+              <text class="dg-text" x="24" y="60">Node id</text>
+              <text class="dg-text--sub" x="24" y="80">cblx1&hellip; &middot; stable</text>
+
+              <rect class="dg-box dg-box--held" x="156" y="34" width="136" height="66" rx="6" />
+              <text class="dg-text" x="170" y="60">Balance</text>
+              <text class="dg-text--sub" x="170" y="80">in credits</text>
+
+              <rect class="dg-box dg-box--held" x="302" y="34" width="136" height="66" rx="6" />
+              <text class="dg-text" x="316" y="60">Subscriptions</text>
+              <text class="dg-text--sub" x="316" y="80">which app</text>
+
+              <rect class="dg-box dg-box--held" x="448" y="34" width="136" height="66" rx="6" />
+              <text class="dg-text" x="462" y="60">Times</text>
+              <text class="dg-text--sub" x="462" y="80">millisecond</text>
+
+              <rect class="dg-box dg-box--held" x="594" y="34" width="116" height="66" rx="6" />
+              <text class="dg-text" x="608" y="60">Apps</text>
+              <text class="dg-text--sub" x="608" y="80">you funded</text>
+
+              <path class="dg-edge" d="M 10 116 L 10 124 L 710 124 L 710 116" />
+              <line class="dg-edge" x1="360" y1="124" x2="360" y2="140" />
+              <text class="dg-text" x="360" y="160" text-anchor="middle">
+                Public, permanent, and joinable to each other by anyone
+              </text>
+
+              <text class="dg-text--sub" x="10" y="204">NOT IN THE REGISTER</text>
+
+              <rect
+                class="dg-box"
+                x="10"
+                y="216"
+                width="340"
+                height="86"
+                rx="6"
+                stroke-dasharray="4 4"
+              />
+              <text class="dg-text" x="26" y="244">Never asked for at all</text>
+              <text class="dg-text--sub" x="26" y="266">no name &middot; no email address</text>
+              <text class="dg-text--sub" x="26" y="286">no postal address</text>
+
+              <rect class="dg-box dg-box--burn" x="370" y="216" width="340" height="86" rx="6" />
+              <text class="dg-text" x="386" y="244">Not written down, but seen</text>
+              <text class="dg-text--sub" x="386" y="266">the address you connect from, seen by</text>
+              <text class="dg-text--sub" x="386" y="286">every node you talk to, next to your id</text>
+            </svg>
+            </div>
+            <figcaption>
+              The distinction that matters is not between secret and public but between what the
+              register publishes and what taking part reveals. The second box is the one people
+              usually get wrong.
+            </figcaption>
+          </figure>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              What the register does not let you undo
+            </summary>
+            <div class="detail__body">
+              <p>
+                The register only ever grows. A validator quorum can revoke an identity &mdash; for
+                a compromised key, for misconduct, or because its owner asked &mdash; and a
+                replacement identity inherits nothing: no balance, no history, no standing. But
+                revocation removes a key from participation; it does not remove what that key did.
+                Nothing you sign can erase evidence or consensus history, including your own
+                signature.
+              </p>
+              <p>
+                This is the reason the statement about subscriptions has to arrive before you
+                subscribe rather than after. On a register that cannot be edited, telling you
+                afterwards is describing data that has already been published.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- ============================================================ 7 -->
+        <section class="thread__step" aria-labelledby="q-cheat">
+          <h2 class="thread__question" id="q-cheat">
+            <span class="thread__ordinal" aria-hidden="true">07</span>
+            <span>What happens if somebody cheats?</span>
+          </h2>
+
+          <p>
+            Mostly, the cheating simply does not count. Evidence of work that fails any of its
+            checks cannot pay anybody, and every reader can run those checks, not only validators.
+            A block that contains a single entry which does not execute is rejected whole: there
+            are no half-applied blocks.
+          </p>
+          <p>
+            There is no punishment that takes credits away. The register has a closed list of entry
+            types and none of them confiscates. Cheating costs you what you would have been paid,
+            and a validator that misbehaves can have its identity revoked by the others and loses
+            its seat &mdash; then has to sit out the cooling-off period like any departing member.
+          </p>
+          <p>
+            The kind of cheating the design does not stop is the kind described in the first
+            section: not forging anything, just being many. That is why the pot for presence income
+            is capped and shared, and why becoming a validator is anchored to work that is hard to
+            fake rather than to being switched on.
+          </p>
+
+          <details class="detail">
+            <summary class="detail__summary">
+              What a device with very little power can check for itself
+            </summary>
+            <div class="detail__body">
+              <p>
+                A phone does not download the whole register. It holds a recent checkpoint signed
+                by a key it already trusts, follows the chain of validator sets forward from it,
+                checks the signatures at each step, and then verifies one compact proof for the one
+                account it cares about.
+              </p>
+              <p>
+                It fails closed rather than open: a checkpoint that is missing, too old, from the
+                wrong chain, or signed by an unknown key stops the process instead of being
+                ignored. And it refuses to go backwards &mdash; it will not accept a lower height
+                than the highest it has already trusted, nor a different block at a height it has
+                already seen.
+              </p>
+            </div>
+          </details>
+        </section>
+      </div>
+
+      <footer class="colophon">
+        <p class="cbx-label">About this page</p>
+        <p>
+          Every sentence on this page that says the system <em>guarantees</em> something is tied to
+          the rule in the protocol specification that holds it, by an automated check that runs on
+          every change. If a rule is changed or removed, the check fails and names this page. That
+          is the whole of the maintenance promise: there is no promise to remember.
+        </p>
+        <p>
+          Where a rule holds less than a simple sentence would suggest, this page says the smaller
+          thing. The test used throughout: if the simple version is stronger than the exact one,
+          the simple version is wrong.
+        </p>
+        <ul>
+          <li>The protocol specification is in <code class="cbx-mono">docs/protocol/</code>.</li>
+          <li>
+            Known security limitations are in <code class="cbx-mono">SECURITY.md</code>, which is
+            also where to report one you have found.
+          </li>
+        </ul>
+      </footer>
+    </main>
+  </body>
+</html>

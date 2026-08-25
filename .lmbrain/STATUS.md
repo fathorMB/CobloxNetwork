@@ -67,6 +67,13 @@ Nessuna. **Tredici spec redatte, tredici `done`.**
 
 ## Done
 
+- [SPEC-015] Guida pubblica al funzionamento di Coblox → AGENT-006 (Lia Wireframe). **In `review` il 2026-08-26**, accettata con [REVIEW-024] senza finding, `GATE-OPERATOR-LOOK` **attestata dall'operatore**, `GATE-SECREVIEW` in sospeso. Il pacchetto è `.lmbrain/design/coblox-public-guide/`: una pagina in inglese, sette sezioni, otto blocchi apribili chiusi di default, che carica i token del design system **senza copiarne un byte**. Le probe passano da 19 a **84**, con 533 aggiunte e zero rimozioni.
+
+  **Ha chiuso una direzione che il Lead non aveva chiesto**: ogni probe porta il testo della frase che tiene e fallisce se quella frase non è più sulla pagina — altrimenti una probe sopravvive a una riscrittura e **diventa un commento**.
+
+  **Il risultato che vale più della pagina è l'elenco delle undici affermazioni tolte** perché nessuna regola le teneva, fra cui *«i credits non si convertono in denaro»* — che era una frase scritta dal Lead nella spec — e *«un blocco ogni cinque secondi»*, eliminata perché [ADR-013] dichiara la cadenza e poi dice che nessuna regola la impone.
+
+  **Cinque questioni riportate invece che aggirate scrivendo bene.** Una è [DEBT-022], `high`. Una è la divergenza di `SECURITY.md`, corretta dal Lead.
 - [SPEC-014] I due cambiamenti breaking dell'API di `coblox-core` → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-022] e con `GATE-SECREVIEW` attestato su [REVIEW-023]. Chiude [DEBT-016] e [DEBT-015] **prima che esista un chiamante del verificatore**, quindi senza rompere nulla. Passare un `Digest32` o byte grezzi a uno dei due punti d'ingresso **non compila**.
 
   **Il finding di AGENT-007 ha invertito un ragionamento del Lead e ne ha trovato uno migliore.** La via non-consensus era **nominata ma non contenuta**: `registry` è un `pub mod`, il costruttore era `pub`, e il crate non aveva alcuna sezione `[features]` — quindi raggiungibile da `coblox-node`, `coblox-ffi` e dalla shell Tauri **in build di produzione**. La prova era già in albero e il Lead l'aveva **citata come rassicurazione**: la suite di conformità è un test di integrazione, cioè un crate esterno, e le sue otto chiamate provano la raggiungibilità dall'esterno, non l'assenza di chiamanti.
@@ -108,6 +115,7 @@ Nessuna. **Tredici spec redatte, tredici `done`.**
 | --- | --- | --- | --- |
 | [DEBT-013] | medium | AGENT-007 | Nessuna regola impone il passo di produzione dei blocchi: il set attivo decide la durata reale delle proprie epoche, quindi la propria incumbency. Aperto con [ADR-013]. |
 | [DEBT-014] | medium | AGENT-007 | `validator_set_hash` è **l'unica preimmagine a dominio separato non legata a `chain_id`**: un set identico su due catene produce lo stesso hash. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010]. |
+| [DEBT-022] | high | AGENT-007 | L'autorizzazione del burn di abbonamento **non richiede che la chiave sia non revocata**, mentre le tre regole sorelle lo richiedono. Una chiave rubata può continuare a svuotare il saldo dopo la revoca. Trovata scrivendo la guida. |
 | [DEBT-021] | medium | AGENT-001 | `SigningPreimage` non trasporta dominio né `chain_id`: un valore **ben tipato può essere semanticamente falso**. Stessa domanda di [DEBT-016] un livello sopra, stessa scadenza. |
 | [DEBT-019] | high | AGENT-002 | `reward_epoch` non ha una regola di derivazione dal tempo: il pavimento di [SPEC-009] vincola la durata dichiarata, non la velocità con cui gli indici avanzano. |
 | [DEBT-020] | medium | AGENT-001 | La circolarità di `chain_id` alla genesi non è risolta da alcuna regola: due implementazioni possono derivarne due diversi. |
@@ -116,7 +124,7 @@ Nessuna. **Tredici spec redatte, tredici `done`.**
 | [DEBT-016] | medium | AGENT-001 | Il verificatore accetta `message: &[u8]` dove il contratto impone la preimmagine: un chiamante che passasse un digest **compilerebbe e passerebbe ogni test**. Nessun chiamante esiste ancora, quindi il primo fissa la convenzione. Da chiudere con [DEBT-015] in una sola passata. |
 | [DEBT-015] | low | AGENT-001 | I sotto-controlli della reward policy sono `pub` mentre i gemelli del lato consenso sono privati: un chiamante può invocarne uno solo e credere di aver validato. Secondo cambiamento breaking, da raggruppare. |
 
-**Nessun debito `critical` aperto.** Uno `high`, [DEBT-019]: [DEBT-012] e [DEBT-008] sono chiusi da [SPEC-010]. Entrambi i debiti aperti hanno owner AGENT-007 e la stessa forma — un'osservazione che chi l'ha fatta non deve valutare da sé.
+**Nessun debito `critical` aperto.** Due `high`, [DEBT-019] e [DEBT-022]: [DEBT-012] e [DEBT-008] sono chiusi da [SPEC-010]. Entrambi i debiti aperti hanno owner AGENT-007 e la stessa forma — un'osservazione che chi l'ha fatta non deve valutare da sé.
 
 **Differito:** [DEBT-010] a M-07, il 2026-08-25. Non chiuso come rischio accettato benché i numeri lo suggeriscano — con il blocco a 5 s una spinta irreversibile porta l'incumbency massima da 63 a 84 giorni e il pavimento di ricambio non si muove, perché `ceil(27/9)` e `ceil(27/12)` valgono entrambi 3. **Ma è aritmetica del Lead, non la dimostrazione che il debito pone come condizione**, e accettare un rischio su un'affermazione non dimostrata è la famiglia 2 di `recurring-defects.md`. La dimostrazione è ora un criterio della spec di M-02 che tocca i parametri di consenso.
 

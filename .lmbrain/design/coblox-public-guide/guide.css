@@ -1,0 +1,341 @@
+/*
+ * Coblox public guide — page layer.
+ * Prodotto sotto SPEC-015 da AGENT-006 (Lia Wireframe).
+ *
+ * Dipende da ../coblox-design-system/tokens/tokens.css, css/base.css e
+ * css/components.css, che sono in SOLA LETTURA: questo foglio non ridefinisce
+ * nessun token e non contiene nessun colore letterale. Ogni accostamento
+ * testo/sfondo usato qui e dichiarato in used-pairs.json ed e verificato
+ * contro tokens/contrast-pairs.json da tools/check-guide-pairs.mjs.
+ */
+
+/* ------------------------------------------------------------- il documento */
+
+.guide {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--cbx-space-10) var(--cbx-space-5) var(--cbx-space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-12);
+}
+
+.guide__masthead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-4);
+}
+
+.guide__title {
+  font-family: var(--cbx-font-family-prose);
+  font-size: var(--cbx-font-size-3xl);
+  font-weight: var(--cbx-font-weight-semibold);
+  line-height: var(--cbx-font-line-height-tight);
+  letter-spacing: var(--cbx-font-letter-spacing-tight);
+  color: var(--cbx-color-text-primary);
+}
+
+.guide__standfirst {
+  max-width: 42rem;
+  font-size: var(--cbx-font-size-lg);
+  line-height: var(--cbx-font-line-height-relaxed);
+  color: var(--cbx-color-text-secondary);
+}
+
+/* --------------------------------------------------------------- il filo */
+
+/* Una sezione = una domanda. Il numero e reso via ::before e non e scritto
+   nella stringa, cosi il titolo resta traducibile e lo screen reader legge la
+   domanda e non "6.". */
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-12);
+}
+
+.thread__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-4);
+}
+
+.thread__question {
+  font-family: var(--cbx-font-family-prose);
+  font-size: var(--cbx-font-size-2xl);
+  font-weight: var(--cbx-font-weight-semibold);
+  line-height: var(--cbx-font-line-height-snug);
+  letter-spacing: var(--cbx-font-letter-spacing-tight);
+  color: var(--cbx-color-text-primary);
+  display: flex;
+  gap: var(--cbx-space-3);
+  align-items: baseline;
+}
+
+.thread__ordinal {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  font-weight: var(--cbx-font-weight-medium);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  color: var(--cbx-color-text-muted);
+  flex: none;
+}
+
+.thread p {
+  max-width: 42rem;
+  font-size: var(--cbx-font-size-body);
+  line-height: var(--cbx-font-line-height-relaxed);
+  color: var(--cbx-color-text-secondary);
+}
+
+.thread p + p {
+  margin-top: var(--cbx-space-4);
+}
+
+.thread strong {
+  color: var(--cbx-color-text-primary);
+  font-weight: var(--cbx-font-weight-semibold);
+}
+
+/* La frase scomoda non e evidenziata da un colore: e un blocco a se, con una
+   riga verticale marcata e la parola "Plainly" davanti. In scala di grigi
+   resta distinguibile per posizione, bordo e testo (PRINCIPLES §8.2). */
+.plainly {
+  max-width: 42rem;
+  border-inline-start: var(--cbx-border-width-thick) solid var(--cbx-color-border-strong);
+  padding-inline-start: var(--cbx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+}
+
+.plainly__label {
+  font-family: var(--cbx-font-family-data);
+  font-size: var(--cbx-font-size-label);
+  font-weight: var(--cbx-font-weight-medium);
+  letter-spacing: var(--cbx-font-letter-spacing-widest);
+  text-transform: uppercase;
+  color: var(--cbx-color-text-muted);
+}
+
+.plainly p {
+  color: var(--cbx-color-text-primary);
+  font-size: var(--cbx-font-size-lg);
+  line-height: var(--cbx-font-line-height-relaxed);
+}
+
+/* ------------------------------------------------------------ gli apribili */
+
+/* Regola di SPEC-015 §2: l'apribile porta l'esattezza, mai la notizia. Il
+   riassunto e percio scritto come "il dettagio di una cosa gia detta" e mai
+   come un'anticipazione ("scopri perche"). */
+.detail {
+  max-width: 42rem;
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-control);
+  background: var(--cbx-color-bg-surface);
+}
+
+.detail + .detail {
+  margin-top: var(--cbx-space-3);
+}
+
+.detail__summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  gap: var(--cbx-space-3);
+  align-items: baseline;
+  min-height: var(--cbx-layout-hit-target-min);
+  padding: var(--cbx-space-3) var(--cbx-space-4);
+  font-size: var(--cbx-font-size-body-sm);
+  color: var(--cbx-color-text-primary);
+}
+
+.detail__summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Il segno e testuale (+ / −) e non un glifo grafico: resta leggibile in
+   scala di grigi, allo zoom e nei fallback di font. */
+.detail__summary::before {
+  content: '+';
+  font-family: var(--cbx-font-family-data);
+  font-weight: var(--cbx-font-weight-bold);
+  color: var(--cbx-color-accent-primary);
+  flex: none;
+}
+
+.detail[open] > .detail__summary::before {
+  content: '\2212';
+}
+
+.detail__summary:hover {
+  background: var(--cbx-color-bg-hover);
+  border-radius: var(--cbx-radius-control);
+}
+
+.detail__body {
+  padding: 0 var(--cbx-space-4) var(--cbx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+}
+
+.detail__body p,
+.detail__body li {
+  font-size: var(--cbx-font-size-body-sm);
+  line-height: var(--cbx-font-line-height-relaxed);
+  color: var(--cbx-color-text-secondary);
+  max-width: 40rem;
+}
+
+.detail__body ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+}
+
+.detail__body li {
+  padding-inline-start: var(--cbx-space-4);
+  position: relative;
+}
+
+.detail__body li::before {
+  content: '\2013';
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--cbx-color-text-muted);
+}
+
+/* --------------------------------------------------------------- diagrammi */
+
+.figure {
+  max-width: 42rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+  padding: var(--cbx-space-card-padding);
+  background: var(--cbx-color-bg-surface);
+  border: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+  border-radius: var(--cbx-radius-card);
+}
+
+/* Il diagramma non si rimpicciolisce sotto la soglia di leggibilita del suo
+   stesso testo: sotto quella larghezza la figura scorre, invece di scalare le
+   etichette fino a renderle inutili. Il contenitore e focalizzabile perche una
+   regione che scorre deve poter scorrere anche da tastiera (WCAG 2.1.1). */
+.figure__scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.figure__canvas {
+  width: 100%;
+  min-width: 39rem;
+  height: auto;
+}
+
+.figure figcaption {
+  font-size: var(--cbx-font-size-body-sm);
+  line-height: var(--cbx-font-line-height-relaxed);
+  color: var(--cbx-color-text-muted);
+}
+
+/* Il diagramma non affida nessun significato al solo colore: ogni tratto
+   porta anche uno stile di linea proprio e ogni nodo la sua etichetta. */
+.dg-box {
+  fill: var(--cbx-color-bg-surface);
+  stroke: var(--cbx-color-border-strong);
+  stroke-width: 1.5;
+}
+
+.dg-box--mint {
+  stroke: var(--cbx-color-chart-series-1);
+}
+
+.dg-box--burn {
+  stroke: var(--cbx-color-chart-series-3);
+}
+
+.dg-box--held {
+  stroke: var(--cbx-color-chart-series-2);
+}
+
+.dg-text {
+  fill: var(--cbx-color-text-primary);
+  font-family: var(--cbx-font-family-prose);
+  font-size: 14px;
+}
+
+.dg-text--sub {
+  fill: var(--cbx-color-text-muted);
+  font-family: var(--cbx-font-family-data);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.dg-edge {
+  fill: none;
+  stroke: var(--cbx-color-border-strong);
+  stroke-width: 1.5;
+}
+
+.dg-edge--mint {
+  stroke: var(--cbx-color-chart-series-1);
+}
+
+.dg-edge--burn {
+  stroke: var(--cbx-color-chart-series-3);
+  stroke-dasharray: 5 3;
+}
+
+.dg-edge--forbidden {
+  stroke: var(--cbx-color-border-strong);
+  stroke-dasharray: 2 4;
+}
+
+.dg-arrow {
+  fill: var(--cbx-color-border-strong);
+}
+
+.dg-arrow--mint {
+  fill: var(--cbx-color-chart-series-1);
+}
+
+.dg-arrow--burn {
+  fill: var(--cbx-color-chart-series-3);
+}
+
+/* --------------------------------------------------------------- chiusura */
+
+.colophon {
+  max-width: 42rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-3);
+  padding-top: var(--cbx-space-6);
+  border-top: var(--cbx-border-width-hairline) solid var(--cbx-color-border-default);
+}
+
+.colophon p,
+.colophon li {
+  font-size: var(--cbx-font-size-body-sm);
+  line-height: var(--cbx-font-line-height-relaxed);
+  color: var(--cbx-color-text-muted);
+}
+
+.colophon ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cbx-space-2);
+}
+
+/* Nessuna animazione ambientale su questa pagina; la regola resta dichiarata
+   perche il documento e destinato a crescere. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

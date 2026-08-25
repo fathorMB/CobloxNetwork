@@ -72,11 +72,24 @@ specifically not guaranteed: enrollment availability under sustained attack,
 cryptographic Sybil resistance, and independent verification of validator
 eligibility.
 
-**The validator set is self-perpetuating in the current v0 protocol.** The
-protocol authenticates a validator-set transition but does not yet constrain
-who may enter the next set, so a quorum reached once can commit itself
-indefinitely without a light client noticing. The election rule is unwritten
-and is the first work of M-02. Tracked as `DEBT-005`.
+**Owning the validator set and controlling it are different thresholds.** The
+election and rotation rule is specified in
+[`docs/protocol/ledger.md`](docs/protocol/ledger.md); a quorum can no longer
+commit itself indefinitely, and `DEBT-005` is closed. What remains is narrower
+and is stated here because it is easy to overstate the fix: the relational rule
+`3 * validator_min_set_size >= 2 * V` prevents a coalition below two thirds from
+*owning* the set, not from obtaining its *quorum*. A coalition can censor
+selectively, drive a lawful contraction, and reach a quorum from roughly **four
+ninths** of the set. The gain over the naive threshold is real and is claimed
+for what it is, not for more.
+
+**How fast the chain runs is not enforced by any rule.** Every clock inside the
+chain is written by the validators themselves, so no internal validity rule can
+bound real time. Block timestamps are constrained only to increase. A blocking
+third can therefore stretch the real-time length of an election epoch — and with
+it validator incumbency and the effective delay of a revocation — while the
+chain stays live and every block stays valid. The only external clock the
+protocol has is the signed weak-subjectivity checkpoint. Tracked as `DEBT-013`.
 
 **Some dependency advisories are knowingly derogated.** The desktop shell
 depends on Tauri, which on Linux sits on the unmaintained GTK3 stack. Those
