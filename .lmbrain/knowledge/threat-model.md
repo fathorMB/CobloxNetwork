@@ -110,6 +110,24 @@ progetta sul primo, non sulla seconda.
 | `T-05` | **Publisher ostile** | Pubblica moduli WASM, controlla identità enrollate, sceglie prezzi di abbonamento e tetti di risorsa nel manifest. | Lucrare la quota al creatore, usare le macchine altrui, scaricare rischio legale sugli hoster |
 | `T-06` | **Osservatore di rete / avversario di percorso** | Osservazione passiva del traffico; oppure un peer enrollato che si connette a molti; oppure un ISP/censore che filtra. Nessun potere di voto. | De-anonimizzare i partecipanti, profilarne il consumo, isolarne alcuni |
 | `T-07` | **Insider di governance** | Chi controlla ciò che i validatori firmano fuori dal ledger: parameter set, `policy_hash`, rate card, lista di blocco di rete, seed di bootstrap, distribuzione dei trust anchor e dei binari. | Potere discrezionale sulla rete senza mai violare una regola scritta |
+| `T-08` | **Compromissione dell'endpoint** | Accesso al dispositivo di un partecipante o al suo materiale di chiave: esfiltrazione da un backup o dal filesystem, chiave lasciata fuori dal credential store, malware commodity, accesso fisico, dispositivo dismesso o rivenduto. **Nessun** potere di voto, **nessuna** firma di parametri, **nessun** controllo del percorso di rete. Budget per dispositivo basso; scalare a molti dispositivi costa una campagna, e a quel punto la capacità che conta è la massa di identità, cioè `T-02`. | Prendere il posto di un partecipante — il suo reddito, la sua reputazione, la sua capacità di spesa — senza attaccare alcuna regola del protocollo |
+
+`T-08` non c'era fino al 2026-08-26 ed è stato aggiunto da [SPEC-018] chiudendo
+[DEBT-018]. **L'assenza non era neutra, ed è la parte che vale la pena scrivere.**
+TM-37 — la compromissione della chiave di trasporto — era collocato sotto `T-06`, che
+§3 definisce per osservazione passiva, peer enrollato, o ISP/censore: chi esfiltra una
+chiave privata da un dispositivo non è nessuna delle tre. L'effetto collaterale era
+peggiore dell'errore di collocazione: la matrice **gonfiava** `T-06` di una capacità
+che non ha, e **nascondeva per intero** l'attaccante che compromette l'endpoint. Ed è
+per quella assenza che `A-07` × `T-03` e `A-07` × `T-05` potevano dire «nessun
+percorso verso chiavi altrui» senza che nessuno obiettasse: era vero **solo perché
+nessun attore del modello rubava chiavi**. Delle tre uscite che [DEBT-018] lasciava
+aperte — allargare `T-06`, dichiarare TM-37 trasversale, aggiungere un attore — è
+stata scelta la terza, che è la più cara: allargare `T-06` unirebbe sotto un ID due
+avversari con budget incomparabili, e dichiarare TM-37 trasversale toglierebbe uno
+scenario dalla griglia che è l'evidenza di `GATE-COVERAGE`. Il costo di `T-08` è la
+ragione per cui è giusto: rende visibile che il modello non aveva un attaccante di
+endpoint, il che è un fatto **sul modello** e non sulla rete.
 
 `T-07` non è nell'elenco dello scope di [SPEC-004]. Lo aggiungo perché lo scope
 richiede esplicitamente l'analisi dell'**abuso della lista di blocco**, e quella
@@ -122,30 +140,182 @@ spec non sarebbe rappresentabile nella matrice.
 Ogni cella contiene gli scenari che la coprono, oppure `n/a` con il motivo. Nessuna
 cella è vuota. Questa matrice è l'evidenza richiesta da `GATE-COVERAGE`.
 
-| | `T-01` egoista | `T-02` Sybil | `T-03` validatore | `T-04` cartello | `T-05` publisher | `T-06` osservatore | `T-07` insider |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **A-01** ledger | TM-04 | n/a — nessuna identità, per quanto numerosa, altera saldi altrui: ogni burn è firmato dal debitato e ogni mint richiede quorum | TM-16 | TM-17, TM-20 | n/a — il publisher non ha percorso verso saldi altrui: `BurnBody` esige la firma del pagatore | n/a — attore senza potere di scrittura sul ledger | TM-20 |
-| **A-02** emissione | TM-01, TM-02, TM-03, TM-05 | TM-08 | TM-14 | TM-20 | TM-22 | TM-37 | TM-35 |
-| **A-03** consenso | TM-04 | TM-11 | TM-12, TM-16 | TM-17, TM-21 | n/a — nessun percorso dal manifest al voto di finalità | TM-31 | TM-19 |
-| **A-04** set validatori | n/a — un singolo nodo egoista non altera la composizione del set | TM-09 | n/a — un validatore singolo non decide il set successivo, che richiede quorum | TM-18 | n/a — nessun percorso dalla pubblicazione all'elezione | n/a — nessun potere sulla composizione | TM-19 |
-| **A-05** verità all'utente | n/a — un nodo egoista non serve prove: non ha vantaggio a falsificare ciò che l'utente vede | TM-10 | TM-12 | TM-21 | n/a — il manifest non alimenta la verifica del saldo | TM-31 | TM-36 |
-| **A-06** challenge | TM-02, TM-05 | TM-08 | TM-13, TM-14 | TM-19 | n/a — il publisher non emette né valuta challenge | TM-30, TM-37 | TM-19 |
-| **A-07** identità e chiavi | n/a — l'egoista abusa della propria identità, non ne attacca altre | TM-06, TM-07 | n/a — nessun percorso verso la chiave privata di un altro nodo: le chiavi non transitano mai (`identity.md` §"Key hierarchy") | TM-21 | n/a — nessun percorso verso chiavi altrui | TM-28 (legame identità ↔ persona, non furto di chiave) | TM-35 |
-| **A-08** risorse dell'operatore | n/a — l'egoista risparmia le proprie risorse, non consuma quelle altrui | TM-11 | n/a — un validatore non assegna carico agli host: lo fa la politica di assegnazione | TM-19 | TM-23, TM-24, TM-25 | n/a — l'osservatore non impone carico oltre il traffico ordinario | TM-33 |
-| **A-09** sandbox | n/a — l'egoista non pubblica moduli | n/a — moltiplicare identità non aggiunge alcun percorso verso il runtime | n/a — nessun percorso dal ruolo di validatore al runtime di un host | n/a — come sopra; il cartello agisce sul ledger, non sul runtime | TM-23, TM-27 | n/a — nessun percorso verso il runtime | n/a — l'insider agisce su parametri e liste, non sul runtime |
-| **A-10** disponibilità | n/a — l'egoista vuole la rete viva, ci guadagna | TM-10, TM-11 | TM-15 | TM-17 | TM-24 | TM-31, TM-32 | TM-33 |
-| **A-11** privacy | n/a — non ha accesso a dati altrui oltre quelli pubblici | TM-29 (con molte identità osservatrici) | TM-30 | TM-29 | TM-26 | TM-28, TM-29, TM-30, TM-37 | TM-34 |
-| **A-12** accesso | n/a — nessun potere di esclusione | TM-09 | TM-13, TM-15 | TM-18, TM-19 | n/a — il publisher non esclude altri publisher | TM-31 | TM-33, TM-34, TM-35 |
-| **A-13** catalogo e moduli | n/a — nessun percorso di scrittura sul catalogo | n/a — il contenuto è indirizzato per hash e firmato: moltiplicare identità non aiuta | n/a — un validatore singolo non altera un record di catalogo finalizzato | TM-20 | TM-25 | n/a — il trasporto non è fidato per costruzione (`app-manifest.md` §"Deterministic container") | TM-33, TM-36 |
+### R-NA — Quando `n/a` è un esito ammissibile
 
-Delle 91 celle, 60 hanno almeno uno scenario e 31 sono `n/a` con motivo. La cella `A-02` × `T-06` era fra le `n/a` fino a [REVIEW-021] — «l'emissione non dipende da dati osservabili sul filo» — e TM-37 la falsifica: chi detiene la chiave di trasporto di un nodo non osserva soltanto, ne occupa il posto e ne fa scadere le challenge, che è emissione mancata. È la famiglia 2: un'`n/a` scritta prima della regola che l'ha resa falsa. Quattro fra
-queste ultime lo sono per una ragione che vale la pena isolare, perché sono
-**proprietà di design conquistate** e non coincidenze: il
-divieto strutturale di trasferimento (`A-01` × `T-02`/`T-05`), il fatto che le chiavi
-private non transitano mai (`A-07` × `T-03`/`T-04` parziale), e l'indirizzamento per
-contenuto dei moduli (`A-13` × `T-06`). Sono i punti in cui il design ha già chiuso
-una classe intera di attacchi, ed è utile sapere quali regole non si possono
-rilassare senza riaprirla.
+*Scritta il 2026-08-26 sotto [SPEC-018], **prima** della passata che la applica, e
+per una ragione che va detta: una `n/a` non è un'informazione mancante, è
+**un'istruzione al lettore successivo a smettere di cercare**. Il costo di scriverla
+a torto è più alto di quello di ogni altra cella, e fino a questa regola la matrice
+la scriveva con l'argomento che le veniva per primo.*
+
+Una cella è `n/a` **solo se tutte e cinque le condizioni seguenti reggono**, e il
+motivo scritto nella cella deve renderle verificabili da chi legge senza rifare
+l'analisi.
+
+1. **Due domande, entrambe con risposta negativa, entrambe scritte.**
+   (a) *l'attore può **falsificare** l'asset?* (b) *l'attore può causare una
+   **perdita** su quell'asset, come §2 definisce quella perdita?* Un motivo che
+   risponde solo alla prima non è un motivo: è metà di un motivo, ed è la forma in
+   cui questo documento ha sbagliato venticinque celle. Il motivo deve dire a quale
+   delle due sta rispondendo, ogni volta.
+
+   **Come si legge la colonna *Perdita significa*, perché non è uniforme e la regola
+   ne eredita la disuniformità.** Per alcuni asset quella colonna porta un **elenco di
+   forme** (`A-01`: *«Saldi falsi, doppia spesa, storia riscrivibile»*), per altri un
+   **caso peggiore singolo** (`A-04`: *«Cattura permanente della rete da parte di
+   pochi»*). Presa alla lettera, la domanda (b) sarebbe quindi **più permissiva verso
+   l'`n/a` sugli asset scritti come caso peggiore**, perché chi causa una perdita
+   reale ma minore di quel caso otterrebbe una risposta negativa. **Si legge così:
+   quando la colonna porta un caso peggiore, la domanda (b) si risolve contro la
+   *classe* di perdita che quel caso esemplifica, non contro il caso.** Una perdita
+   minore ma della stessa classe è una perdita, e una cella `n/a` che si appoggia a
+   una riga di quel tipo **deve dichiarare quale classe sta negando**. Non è una
+   riscrittura di §2: è la dichiarazione di come §2 va letto, e serve perché la
+   severità della regola non vari per asset senza che nessuno l'abbia deciso.
+
+   **E il caso simmetrico di R-NA.3, che è il modo in cui questa regola si aggira più
+   facilmente.** R-NA.3 fa cadere la cella che contraddice la definizione
+   dell'**attore**. Vale identico sull'**asset**: una cella non può citare §2
+   aggiungendo alla perdita un qualificatore che §2 non contiene, né togliendone uno.
+   Ampliare o restringere la definizione di un asset **dentro la cella che ne ha
+   bisogno** è la stessa mossa vietata dalla regola sull'esito in fondo a questa
+   sezione, ed è la più difficile da vedere, perché la cella *cita* §2 mentre lo sta
+   cambiando.
+2. **Solo capacità, mai movente.** Un motivo della forma *non gli conviene*, *non ha
+   vantaggio*, *risparmia le proprie*, *vuole la rete viva* è **inammissibile**, per
+   la riga di metodo che §3 si impone: *«ogni attore è descritto per capacità e
+   budget, non per intenzione»*. È inammissibile **anche quando la conclusione è
+   vera**, perché è l'argomento e non la conclusione che il lettore successivo
+   riuserà. Un motivo di movente non è nemmeno una proposizione sul sistema: non si
+   falsifica leggendo una regola, quindi non si falsifica affatto.
+3. **Nessuna contraddizione con la definizione dell'attore.** Se la cella nega una
+   capacità che §3 attribuisce all'attore, **cade la cella e non la definizione**. La
+   definizione è scritta una volta e per l'attore intero; la cella è scritta
+   tredici volte e di corsa.
+4. **Monotonia rispetto agli attori più deboli.** Se §3 attribuisce all'attore `X`
+   tutte le capacità di un attore `Y` — e chiunque controlli un'identità enrollata
+   possiede per definizione quelle di `T-01` — allora una cella `asset × X` **non può
+   essere `n/a` se `asset × Y` porta uno scenario**: porta almeno quello scenario,
+   ereditato ed etichettato come tale. Non è pedanteria di bilancio: una `n/a` in
+   quella posizione afferma che l'attore più capace non può fare ciò che il meno
+   capace fa nella colonna accanto.
+5. **L'`n/a` deve poggiare su una regola citabile, non sull'assenza di un attore dal
+   modello.** Se regge solo perché nessun attore censito ha quella capacità, non è un
+   fatto sulla rete: è un fatto sul modello, e il rimedio è **aggiungere l'attore**.
+   È il difetto che teneva in piedi `A-07` × `T-03` e `T-05` finché `T-08` non
+   esisteva. Quando una cella regge contro un attore dichiarato, il **confine** va
+   scritto nella cella.
+
+Due corollari di forma, dalle famiglie 1 e 2 di [[recurring-defects]]:
+
+- Ogni `n/a` **cita la regola o il documento che la tiene**. Se la risposta a *quale
+  regola la tiene?* è «il design è fatto bene», non è una `n/a`: è una preferenza.
+- Nessuna `n/a` è un superlativo. *L'unico percorso*, *nessun percorso*, *mai*
+  valgono su un intero spazio e vanno dimostrati per esaurimento o riformulati.
+
+**E una regola sull'esito, perché la tentazione ha una direzione sola.** Quando una
+cella si contraddice con un'altra parte del documento, si falsifica **la cella**, non
+si restringe la parte con cui si contraddice. Restringere una definizione per salvare
+una cella è il documento che si adatta alla propria svista, e produce un modello che
+resta coerente con sé stesso e falso sulla rete.
+
+| | `T-01` egoista | `T-02` Sybil | `T-03` validatore | `T-04` cartello | `T-05` publisher | `T-06` osservatore | `T-07` insider | `T-08` endpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **A-01** ledger | TM-04 | TM-04 (ereditato, R-NA.4) | TM-16 | TM-17, TM-20 | TM-04 (ereditato: §3 attribuisce a `T-05` il controllo di identità enrollate) | TM-04 (ereditato dal peer enrollato della definizione di `T-06`) | TM-20 | TM-41 |
+| **A-02** emissione | TM-01, TM-02, TM-03, TM-05 | TM-08 | TM-14 | TM-20 | TM-22, TM-27 | TM-31 | TM-35 | TM-37, TM-41 |
+| **A-03** consenso | TM-04 | TM-08, TM-11 | TM-12, TM-16 | TM-17, TM-21 | TM-04 (ereditato, R-NA.4) | TM-31 | TM-19 | TM-41 |
+| **A-04** set validatori | n/a — **R-NA.1(a)** la composizione è funzione deterministica della casualità finalizzata e di condizioni di eleggibilità che nessun nodo singolo scrive ([SPEC-006]); **(b)** la riga di §2 per `A-04` è scritta come **caso peggiore**, quindi la domanda si risolve sulla *classe* che quel caso esemplifica — **l'alterazione della composizione da parte di chi non dovrebbe comporla**, ed è la classe qui negata. Un'identità sola muove una composizione sola, la propria, e lo fa **soddisfacendo il criterio pubblicato**: è il criterio che funziona come è scritto, non una sua alterazione. **Confine dichiarato:** che un `T-01` superi il pavimento di eleggibilità con la sola presenza di TM-01 è un difetto del **criterio**, contato su `A-06`, non un atto su `A-04` | TM-09 | TM-13 | TM-18, TM-38, TM-39 (rifiuto motivato: nessun vettore, residuo di conformità) | n/a — **R-NA.1(a)** nessun campo del manifest entra nella funzione di elezione; **(b)** classe negata, sulla riga di caso peggiore di `A-04`: **l'alterazione della composizione**. L'assegnazione degli host è fatta dal protocollo e non dal publisher ([ADR-006] ha scartato la scelta degli host da parte del publisher), quindi TM-24 **non è dirigibile** su un candidato scelto, e un degrado che non sceglie chi colpisce non altera chi compone il set. **Confine:** cade il giorno in cui una politica di deployment desse al publisher influenza sull'assegnazione | TM-31 | TM-19 | TM-41 |
+| **A-05** verità all'utente | n/a — **R-NA.1(a)** la verifica è per prova Merkle contro un'intestazione finalizzata e il design non si fida né del trasporto né del rispondente (`ledger.md` §"Light-client balance verification", TM-32): un nodo singolo non può forgiare una prova; **(b)** la sola leva è rifiutare di rispondere, e il rifiuto di un peer fra molti non è una perdita — quando i peer sono tutti suoi è l'eclipse di TM-10, che richiede la massa di identità di `T-02` | TM-10 | TM-12 | TM-21, TM-39 (rifiuto motivato) | TM-24 | TM-31, TM-32 | TM-36 | TM-41 |
+| **A-06** challenge | TM-01, TM-02, TM-03, TM-05 | TM-08 | TM-13, TM-14 | TM-19 | TM-24 | TM-30, TM-31 | TM-19 | TM-37, TM-41 |
+| **A-07** identità e chiavi | n/a — **R-NA.1(a)** `identity.md` §"Key hierarchy": le chiavi private non transitano mai e ogni oggetto applicativo è firmato dalla chiave di identità, quindi un'identità sola non produce una firma altrui; **(b)** la sola leva su un'identità altrui è la correlazione che si vede stando in sessione con essa, che è la capacità osservativa con cui §3 definisce `T-06` e non quella di `T-01` | TM-06, TM-07 | n/a — **R-NA.1(a)** il ruolo di validatore non dà accesso al materiale di chiave di un peer, e la via della chiave di trasporto di TM-37 richiede esfiltrazione dal dispositivo, che è la capacità di `T-08`; **(b)** la leva di un validatore sulla vittima è la mancata emissione di challenge (TM-13), la cui perdita cade su `A-06` e `A-12` e non arriva al possesso né all'uso dell'identità. **Confine (R-NA.5):** questa cella regge ora contro un attore **dichiarato**, `T-08`, e non più sull'assenza di quell'attore dal modello | TM-21 | n/a — **R-NA.1(a)** il modulo esegue dentro il contenitore deterministico e nessuna capability di `app-manifest.md` legge materiale di chiave del nodo; **(b)** il residuo è un'**evasione** dalla sandbox, che è `A-09` e ha la propria cella a `A-09` × `T-05` (TM-23, TM-27); un'evasione riuscita converte l'attore in `T-08` per capacità. Non è una perdita contata altrove: è una **precondizione** con una cella propria | TM-28 (legame identità ↔ persona, non furto di chiave) | TM-35 | TM-41, TM-37 |
+| **A-08** risorse dell'operatore | TM-04 (metà «assenza di fee»: nessun limite di ammissione per account, quindi una sola identità impone traffico e I/O a tutti) | TM-11 | TM-13 (l'emittente sceglie `deadline_ms` e `response_bytes`: su un nodo mobile è batteria e dati), TM-42 | TM-19, TM-42 (ereditato da `T-03`) | TM-23, TM-24, TM-25 | TM-28 (il peer che si connette al maggior numero possibile impone connessioni e gossip su ogni vittima: è la capacità con cui `T-06` è definito, non traffico ordinario) | TM-33 | TM-41 |
+| **A-09** sandbox | TM-43 | TM-43 (ereditato, R-NA.4 — e alla scala della flotta la perdita non è la stessa: gli host indeboliti custodiscono dati e chiavi di terzi tutti insieme) | TM-42 | TM-23, TM-19, TM-42 (ereditato da `T-03`) | TM-23, TM-27 | TM-43 (ereditato dal peer enrollato della definizione di `T-06`; **non** per la via di percorso, che qui resta chiusa: un modulo non consegnato è un modulo non eseguito, e un confine si viola eseguendo) | TM-36 | TM-41 |
+| **A-10** disponibilità | TM-04 (metà «assenza di fee») | TM-10, TM-11 | TM-15 | TM-17 | TM-24 | TM-31, TM-32 | TM-33 | TM-37 |
+| **A-11** privacy | TM-29 (non serve alcuna capacità: è lettura, e vale per ogni `node_id` con cui il nodo ha parlato) | TM-29 (con molte identità osservatrici) | TM-30 | TM-29 | TM-26 | TM-28, TM-29, TM-30 | TM-34 | TM-37, TM-41 |
+| **A-12** accesso | TM-04 (metà «assenza di fee»: senza fee la vittima non può pagare per essere inclusa, quindi la congestione è esclusione) | TM-09 | TM-13, TM-15 | TM-18, TM-19, TM-38 | TM-24 | TM-31 | TM-33, TM-34, TM-35 | TM-41 |
+| **A-13** catalogo e moduli | n/a — **R-NA.1(a)** il contenuto è indirizzato per hash e firmato: nessuna sostituzione senza la chiave del publisher; **(b)** la perdita su `A-13` è di **distribuzione** — il nome dell'asset lo dice — e negarla richiede di sottrarre una quota del set di repliche tale che la riassegnazione prevista da `app-manifest.md` non trovi sostituti: è massa di identità, cioè la capacità di `T-02`. Il rifiuto di un host singolo è già previsto e assorbito | TM-40 | TM-15 (un record che non entra in un blocco non è un record alterato: è un record che non esiste) | TM-20 | TM-25 | TM-31 | TM-33, TM-36 | TM-41 |
+
+### Il conteggio, e la differenza rispetto a prima
+
+**Oggi: 104 celle — 13 asset × 8 attori — di cui 97 con almeno uno scenario e 7
+`n/a` con motivo.** Prima della passata del 2026-08-26 erano 91 celle, 60 coperte e
+31 `n/a`.
+
+La differenza si spiega per intero in due addendi, e vale la pena tenerli separati
+perché dicono cose diverse:
+
+- **+13 celle** sono la colonna `T-08`, l'attore che il modello non aveva. Nessuna
+  delle tredici è `n/a`, e la ragione è strutturale e non una svista: `T-08` è
+  definito dal **possesso** del materiale di chiave della vittima e del suo
+  dispositivo, quindi per R-NA.4 eredita ogni capacità della vittima e vi aggiunge il
+  controllo locale. Una `n/a` in quella colonna dovrebbe nominare qualcosa che la
+  vittima stessa non può fare ai propri asset, e non c'è nulla.
+- **−24 `n/a`** sono le celle che la passata ha **falsificato** sulle trentuno
+  risottoposte. Sette sono sopravvissute, tutte riscritte, nessuna con l'argomento
+  che l'aveva prodotta.
+
+**Perché ne cadono ventiquattro su trentuno, e perché il numero non è una sorpresa.** Quasi
+ogni `n/a` di questo documento rispondeva alla sola domanda (a) di R-NA.1 — *l'attore
+può falsificare l'asset?* — e taceva sulla (b). Venticinque delle trentuno poggiavano
+testualmente sull'argomento del percorso di scrittura. Aggiungere la seconda domanda
+non è un inasprimento del metro: è la metà del metro che mancava, e le celle che cadono
+sono quelle che dicevano *non può scrivere* rispondendo a *può causare una perdita*.
+
+Tre falsificazioni meritano di essere nominate perché sono la stessa forma, e la forma
+è il tratto comune di [[recurring-defects]] — **il difetto era già scritto altrove nel
+documento, e nessuno lo stava guardando**:
+
+- `A-02` × `T-06` diceva «l'emissione non dipende da dati osservabili sul filo»,
+  mentre TM-31 — l'isolamento di rete, **nella stessa colonna** — è emissione mancata.
+- `A-13` × `T-06` diceva che il trasporto non è fidato per costruzione: vero contro la
+  **sostituzione** di un modulo, muto sulla **consegna**, e la parola *distribuzione*
+  è nel nome dell'asset.
+- `A-09` × `T-07` diceva che l'insider «agisce su parametri e liste, non sul runtime»,
+  mentre §3 gli attribuisce *«la distribuzione dei trust anchor e dei binari»*
+  ventitré righe più su, e TM-36 nomina la build, l'installer e lo store.
+
+**La riga `A-09` non ha più alcuna `n/a`, ed è l'esito più scomodo della passata.**
+Tre delle sue celle erano state confermate; sono cadute nella remediation di RF-001,
+quando si è visto che la prima delle tre citava §2 **aggiungendo alla definizione
+della perdita un qualificatore che §2 non contiene**. Tolto il qualificatore cade la
+cella, e per R-NA.4 cadono le altre due, perché indebolire il proprio contenitore è
+una capacità di chiunque faccia girare un nodo. Quello che resta scritto è un fatto
+sul design e non sulla matrice: **`A-09` non ha alcuna difesa indipendente
+dall'host**, e sei celle `n/a` dicevano il contrario. Vedi TM-43.
+
+*Vale la pena registrare come è stato trovato, perché è il tratto comune di
+[[recurring-defects]] applicato a chi scriveva il rimedio.* L'argomento con cui la
+cella `A-09` × `T-02` era stata confermata — *moltiplicare identità moltiplica gli
+host che l'attaccante **possiede*** — **conteneva la propria confutazione**: se
+possedere l'host basta a rinunciare al confine, possederne molti è l'attacco. Non
+mancava l'informazione; mancava la domanda.
+
+### Le proprietà di design conquistate, ricontate
+
+La versione precedente di questa nota ne elencava quattro. **Una era falsa e va
+ritirata, non riabilitata**: l'indirizzamento per contenuto dei moduli era dato come
+proprietà conquistata a `A-13` × `T-06`, e quella cella è caduta — chiude la
+sostituzione e non la consegna. Restano, con la loro portata detta per intero:
+
+- **Il divieto strutturale di trasferimento** (`A-01`: ogni burn è firmato dal
+  debitato, ogni mint richiede quorum). Regge contro la falsificazione dei saldi per
+  ogni attore del modello. **Non** regge, e la cella lo dice ora, contro un attore che
+  possiede la chiave del debitato: `T-08` non falsifica il ledger, ne usa
+  correttamente la regola con la chiave sbagliata.
+- **Le chiavi private non transitano mai** (`identity.md` §"Key hierarchy"),
+  che tiene `A-07` × `T-01`, `T-03` e `T-05`. Ed è la proprietà su cui la nota
+  precedente prometteva più di quanto la regola tenga: teneva **anche perché nessun
+  attore del modello rubava chiavi**. Con `T-08` censito, la portata esatta è che le
+  chiavi non transitano *sulla rete*, il che non dice nulla su ciò che accade *sul
+  dispositivo*.
+- **Il rifiuto della combinazione `deterministic: true` con `http_fetch` o
+  `storage_app`** (TM-27): è la sola delle quattro che non ha perso nulla in questa
+  passata, perché è una regola di rigetto del pacchetto e non l'assenza di un
+  percorso.
+
+Sono i punti in cui il design ha già chiuso una classe intera di attacchi, ed è utile
+sapere quali regole non si possono rilassare senza riaprirla — **a patto di sapere
+anche contro quali attori sono state misurate.**
 
 ## 5. Scenari
 
@@ -225,7 +395,7 @@ tier non deterministico esiste.
 
 #### TM-04 — Grinding del timestamp per invalidare blocchi altrui
 
-**Asset:** A-01, A-03 · **Severità:** media · **Stato:** aperto · **Rif:** [RF-009]
+**Asset:** A-01, A-03, e — per la metà «assenza di fee» dell'*Aggiunta della vista d'insieme* qui sotto — A-08, A-10, A-12 · **Severità:** media · **Stato:** aperto · **Rif:** [RF-009]
 
 Coperto integralmente da [RF-009]: l'ordinamento obbligatorio per `tx_id` contraddice
 la consecutività dei nonce, e un utente può macinare `created_at_ms` finché il
@@ -263,6 +433,56 @@ rispettare batteria/dati" di [[PROJECT]]. La composizione ragionevole è una fin
 di risposta ampia (minuti, non secondi) con istante di emissione imprevedibile, così
 il dispositivo può accorpare i risvegli senza poterli anticipare.
 
+#### TM-43 — L'host che indebolisce il proprio contenitore per risparmiare risorse
+
+**Asset:** A-09 · **Severità:** media · **Stato:** aperto · **Rif:** [ADR-004],
+`app-manifest.md` §"Deterministic container", §"Installation and execution
+verification", TM-02, TM-03, TM-23
+
+**Origine.** Registrato il 2026-08-26 nella remediation di [SPEC-018] su RF-001 della
+review del Lead. La cella `A-09` × `T-01` era `n/a` e citava §2 **aggiungendo alla
+perdita un qualificatore che §2 non contiene** — *«un partecipante che non ha scelto
+il codice»*. §2 dice *«Compromissione della macchina di un partecipante»*, senza
+qualificatore. Tolto il qualificatore, la frase con cui la cella si difendeva — *chi
+disattiva il proprio confine ha scelto* — **è l'attacco e non la difesa**.
+
+**Attacco.** (1) §3 definisce `T-01` come chi *modifica il proprio client*, e il suo
+tratto è risparmiare risorse proprie: è TM-02 con un oggetto diverso. (2) Il
+contenitore deterministico costa — isolamento della memoria, tetti di risorsa,
+mediazione delle capability — e un host che lo allenta, lo aggira, o esegue il modulo
+fuori da esso, spende meno. (3) Nessuna regola lo rileva: la conformità al contenitore
+è verificabile **sugli output** (TM-03, ri-esecuzione a campione) e non sul modo in cui
+l'host li ha prodotti. Un host che allenta l'isolamento e produce output corretti passa
+ogni verifica esistente. (4) Il modulo che quell'host esegue è codice di sconosciuti,
+per la premessa stessa di [ADR-004].
+
+**Impatto.** La perdita **non è confinata all'operatore che sceglie**, ed è il punto che
+il qualificatore nascondeva: quella macchina custodisce chunk di storage di terzi, tiene
+la chiave di identità del nodo, ed è un peer autenticato dentro la rete. La sua
+compromissione è la compromissione dei dati di chi gli ha affidato la custodia, e
+produce un `T-08` senza che nessuno abbia pagato il costo di `T-08`. **Ne segue una
+proprietà scomoda e vera del modello: `A-09` non ha alcuna difesa indipendente
+dall'host.** L'isolamento è tenuto dal software che l'host esegue, e l'host può
+cambiarlo — è la forma della famiglia 3, dove la grandezza vincolata (l'output) non è
+quella da cui la proprietà dipende (il modo dell'esecuzione).
+
+**Contromisura.** (a) **Dichiararlo**, ed è il minimo indispensabile: chi affida dati o
+lavoro a un host affida anche l'ipotesi che quell'host non abbia modificato il proprio
+runtime, e quell'ipotesi oggi non è verificabile da nessuno. Costo: zero, e va fatto in
+ogni caso. (b) *Attestazione della configurazione di runtime* — l'host prova quale
+contenitore sta usando. È l'attestazione hardware di §7.5 con tutti i suoi costi e le
+sue esclusioni, e va decisa **là** e non qui: §7 esiste per quella decisione. (c)
+*Ridurre ciò che si affida a un host singolo*: replica e codifica dei dati di custodia
+perché la compromissione di un host non sia la compromissione dei dati — è lavoro di
+M-05 ed è la sola delle tre che non richiede di fidarsi del runtime altrui.
+`SEC-REQ-19`, `SEC-REQ-22`. **Costo:** (b) è la scelta di §7.5, con la sua esclusione di
+piattaforma; (c) è ridondanza, cioè spazio e traffico su volontari.
+
+*Residuo aperto*: nessuna delle tre impedisce l'attacco, e (a) è la sola disponibile in
+v0. È la ragione per cui `A-09` ha ora **zero `n/a`** in matrice: ogni attore che fa
+girare un nodo può rinunciare al proprio confine, e la matrice diceva il contrario in
+tre celle.
+
 ### 5.2 `T-02` — Fattoria di identità / botnet Sybil
 
 #### TM-06 — Produzione industriale di identità
@@ -292,7 +512,7 @@ occupa posizioni sparse: occupa **le prime N**, tutte insieme.
 
 #### TM-08 — Flotta emulata che raccoglie il reddito di esistenza
 
-**Asset:** A-02, A-03 (per composizione) · **Severità:** critica · **Stato:** aperto
+**Asset:** A-02, A-03 (per composizione), A-06 · **Severità:** critica · **Stato:** aperto
 · **Rif:** [RF-005], `wire.md` §`challenge_request`, [[PROJECT]] §"Outcomes and
 success metrics"
 
@@ -421,6 +641,42 @@ saturazione. `SEC-REQ-11`. **Costo:** trascurabile in calcolo; richiede però di
 scegliere *chi* sacrificare in saturazione, che è una decisione di progetto da
 scrivere, non da lasciare all'implementatore.
 
+#### TM-40 — Cattura delle repliche di hosting e diniego di consegna
+
+**Asset:** A-13 · **Severità:** media · **Stato:** aperto · **Rif:**
+`app-manifest.md` §"Resource limits" (`desired_replicas`), §"Overview"
+("Host refusal and network block policy may cause later reassignment"), TM-09, TM-31
+
+**Origine.** Registrato da [SPEC-018] nella passata sulla matrice, che ha falsificato
+`A-13` × `T-02`. La cella diceva «il contenuto è indirizzato per hash e firmato:
+moltiplicare identità non aiuta» — vero sulla **sostituzione** di un modulo, muto
+sulla sua **consegna**, ed è la stessa metà mancante che ha fatto cadere
+`A-13` × `T-06`.
+
+**Attacco.** (1) La flotta si presenta come un insieme di host idonei e accetta le
+assegnazioni per un `app_id` bersaglio. (2) Non serve il modulo: risponde
+selettivamente, o non risponde affatto, a chi lo richiede. (3) `app-manifest.md`
+prevede la riassegnazione dopo il rifiuto di un host, ma la riassegnazione pesca dallo
+stesso insieme di candidati, di cui la flotta detiene una quota. (4) Con una quota
+sufficiente delle repliche il modulo resta **pubblicato, integro e non ottenibile**.
+
+**Impatto.** Il catalogo continua a dire il vero e la distribuzione non funziona.
+L'indirizzamento per contenuto non aiuta: garantisce che ciò che arriva sia autentico,
+mai che arrivi. È censura di un'app senza toccare la lista di blocco di TM-33 e senza
+alcun potere di governance, cioè con costo di identità invece che di quorum, ed è la
+via che [ADR-006] non ha considerato quando ha tolto al publisher la scelta degli
+host per evitare la centralizzazione.
+
+**Contromisura.** (a) La stessa forma di TM-02: campionamento della **consegna** e non
+solo della custodia, con la fallita consegna che costa reputazione all'host. (b)
+Diversità obbligatoria del set di repliche rispetto a una qualche partizione che la
+flotta non controlla — è debole per costruzione, perché la partizione è esattamente
+ciò che un Sybil sa falsificare, e va dichiarata come mitigazione parziale. (c)
+Contestabilità: un richiedente registra una consegna dovuta e non ricevuta, con la
+stessa meccanica del `missing_challenge` di TM-13(c). `SEC-REQ-19`, `SEC-REQ-23`.
+**Costo:** (a) è traffico ricorrente su ogni host, la stessa tassa di TM-02; (c) è una
+classe di evidenza in più da arbitrare, cioè lavoro di consenso.
+
 ### 5.3 `T-03` — Validatore malevolo singolo
 
 #### TM-12 — Voto con componente di torsione per spaccare la rete
@@ -437,7 +693,7 @@ runtime — è una scelta di libreria più una tabella di vettori.
 
 #### TM-13 — Censura del reddito tramite mancata emissione di challenge
 
-**Asset:** A-06, A-12 · **Severità:** alta · **Stato:** aperto · **Rif:** `wire.md`
+**Asset:** A-04, A-06, A-08, A-12 · **Severità:** alta · **Stato:** aperto · **Rif:** `wire.md`
 §`challenge_request` ("Only an assigned validator or ledger-selected auditor may
 issue a challenge"), [ADR-002]
 
@@ -482,7 +738,7 @@ incompatibile.
 
 #### TM-15 — Censura delle transazioni da parte del proposer
 
-**Asset:** A-10, A-12 · **Severità:** media · **Stato:** aperto · **Rif:**
+**Asset:** A-10, A-12, A-13 · **Severità:** media · **Stato:** aperto · **Rif:**
 `ledger.md` §"Block format", §"State transition order"
 
 **Attacco.** (1) Un validatore, nel proprio turno di proposta, omette
@@ -518,6 +774,49 @@ frazione che la formula sbagliata concede.
 **Contromisura.** `SEC-REQ-02`: un'unica formula intera `3 × potere_firmatario >
 2 × potere_totale`, identica nei tre punti in cui la soglia compare, con fixture al
 confine (`AT-01`). **Costo:** nullo — è una riga di testo e un test.
+
+#### TM-42 — L'emittente sceglie il modulo e l'input: il ruolo di validatore è un percorso verso il runtime dell'host
+
+**Asset:** A-08, A-09 · **Severità:** media · **Stato:** aperto · **Rif:** `wire.md`
+§`challenge_request` (`ComputeAssignment`), [ADR-004], `app-manifest.md`
+§"Deterministic container"
+
+**Origine.** Registrato da [SPEC-018] nella passata sulla matrice, che ha falsificato
+`A-09` × `T-03`. La cella diceva «nessun percorso dal ruolo di validatore al runtime
+di un host». Il percorso è scritto nello schema del messaggio.
+
+**Attacco.** (1) `ComputeAssignment` porta `{app_id, module_hash, input_hash, input}`,
+e `input` sono **byte scelti dall'emittente**, trasmessi verbatim. (2) Solo un
+validatore assegnato o un auditor selezionato dal ledger può emettere una challenge,
+quindi chi emette è precisamente `T-03`. (3) L'emittente sceglie **quale modulo
+pubblicato** un host determinato esegue, e con **quale input**. (4) Ripete a piacere,
+con `deadline_ms` e taglia a sua scelta.
+
+**Impatto.** Due, di gravità diversa. Su `A-08` è immediato e certo: l'emittente
+governa quanto lavoro un host fa, senza alcun tetto scritto sul numero o sulla taglia
+delle challenge di compute che può emettere verso lo stesso soggetto — su un telefono
+è batteria. Su `A-09` è condizionato ma reale: la sandbox è la superficie che riceve
+l'input, e l'unica parte che sceglie l'input di un modulo su una macchina altrui è
+l'emittente della challenge. Un difetto *input-triggered* in un modulo pubblicato, o
+nel runtime, è raggiungibile da un validatore e da nessun altro attore del modello.
+**Va detto per quello che è:** non dimostra un'evasione, dimostra che il percorso
+esiste, ed è esattamente ciò che la cella negava.
+
+**Contromisura.** (a) L'input di una challenge di compute è **derivato dalla casualità
+finalizzata** e non scelto dall'emittente — è la stessa proprietà che [RF-013] chiede
+per la selezione del soggetto, estesa all'input, e chiude entrambi gli impatti insieme.
+(b) Un tetto per epoca sul lavoro di compute che un singolo emittente può assegnare
+allo stesso soggetto, verificabile perché le evidenze sono finalizzate. (c) Se (a) non
+è praticabile — un input derivato non è un input *utile* per ri-eseguire un task reale
+— allora l'input va **impegnato prima della selezione del soggetto**, come in TM-14,
+così che non possa essere costruito su misura per l'host che lo riceverà.
+`SEC-REQ-17`, `SEC-REQ-19`. **Costo:** (a) è gratuito dove la challenge serve solo a
+misurare e incompatibile dove serve a far lavorare; (c) è uno schema commit-reveal in
+più sul motore delle challenge di M-03.
+
+**Nota di perimetro.** La contromisura tocca `wire.md`, cioè un documento di
+protocollo. [SPEC-018] non ha la gate di [ADR-012] e non lo modifica: qui è registrato
+lo **scenario**, e la modifica è materia di un debito proprio.
 
 ### 5.4 `T-04` — Cartello di validatori
 
@@ -723,7 +1022,7 @@ ne pubblichi non è conforme, e su di essa `TM-18` è integralmente aperto.
 
 #### TM-19 — Governance dei parametri come strumento di vantaggio
 
-**Asset:** A-03, A-04, A-06, A-08 · **Severità:** alta · **Stato:** aperto ·
+**Asset:** A-03, A-04, A-06, A-08, A-09, A-12 · **Severità:** alta · **Stato:** aperto ·
 **Attore:** `T-04` e `T-07` · **Rif:** [ADR-005], [ADR-006], `identity.md`
 §"One-time anti-Sybil proof of work", `ledger.md` §"Burn", `app-manifest.md`
 §"Pricing"
@@ -899,6 +1198,28 @@ crediti, quindi il movente è solo il seggio", ma **"il seggio si compra con una
 perdita pagata in gran parte dagli onesti"**, che è un movente più forte e non più
 debole. Severità dell'effetto in sé: `bassa` come vettore di emissione, ma è la riga
 che sposta l'economia dell'effetto 1 dalla parte dell'attaccante.
+
+> **Correzione del 2026-08-26 (AGENT-007, [SPEC-018]).** Le due frasi qui sopra che
+> dicono *«il verso è quello sicuro»* e *«il pericolo sta verso il basso»* erano vere
+> quando sono state scritte e **non lo sono più.** [SPEC-016] ha chiuso [DEBT-019]
+> derivando `reward_epoch` da `height` (`ledger.md` §"`reward_epoch` is derived from
+> height"): l'emissione cumulativa è ora limitata **per blocco** e il documento
+> dichiara a chiare lettere che non è un limite per unità di tempo reale. Ne discende
+> che **l'accelerazione della produzione dei blocchi moltiplica l'emissione reale**, e
+> che il pericolo su questa grandezza è **bidirezionale**: il rallentamento allunga
+> l'incumbency (effetti 1 e 2), l'accelerazione stampa. La banda di cadenza di
+> `SEC-REQ-25` va quindi letta come un limite a **due** lati e non come una soglia
+> minima, ed è ciò che la derivazione di [SPEC-016] chiama esplicitamente «la metà che
+> dà al lato veloce della banda qualcosa da proteggere».
+>
+> **Nessuna cella `n/a` della matrice poggiava su questa assunzione**, ed è stato
+> verificato nella passata di [SPEC-018] enumerando le celle: la riga `A-02` non ha
+> alcuna `n/a`, e gli unici attori capaci di accelerare la produzione dei blocchi sono
+> `T-03` e `T-04`, le cui celle su `A-02` erano già coperte da TM-14 e TM-20. Ciò che
+> era rimasto indietro era **questa prosa**, non la griglia. La riga corrispondente di
+> [DEBT-013] — *«la direzione del pericolo è verso il rallentamento, non verso
+> l'accelerazione»* — è falsa allo stesso modo, ed è materia del Lead perché
+> [SPEC-018] non tocca `.lmbrain/debts/`.
 
 *Secondo punto — osservazione adiacente, fuori dal mandato di [DEBT-013], da
 registrare a parte.* Cercando la regola che lega l'indice `reward_epoch` al tempo, non
@@ -1144,7 +1465,7 @@ implementazione possibile diventa la concessione automatica.
 
 #### TM-24 — Abuso dei tetti di risorsa dell'host
 
-**Asset:** A-08, A-10 · **Severità:** media · **Stato:** aperto · **Rif:**
+**Asset:** A-05, A-06, A-08, A-10, A-12 · **Severità:** media · **Stato:** aperto · **Rif:**
 `app-manifest.md` §"Resource limits", §"Manifest schema"
 
 **Attacco.** (1) Il publisher dichiara nel manifest tetti prossimi ai massimi di
@@ -1261,7 +1582,7 @@ questa superficie sta fra i documenti.
 
 #### TM-28 — De-anonimizzazione: dal `node_id` alla persona
 
-**Asset:** A-07, A-11 · **Severità:** alta · **Stato:** aperto · **Rif:**
+**Asset:** A-07, A-08, A-11 · **Severità:** alta · **Stato:** aperto · **Rif:**
 `identity.md` §"Node identifier", `wire.md` §"Signed envelope", §"Gossip validation
 and backpressure", §"Discovery"
 
@@ -1363,7 +1684,7 @@ reattività percepita. `SEC-REQ-22`.
 
 #### TM-31 — Censura di rete e isolamento da parte dell'ISP
 
-**Asset:** A-03, A-05, A-10, A-12 · **Severità:** media · **Stato:** accettato ·
+**Asset:** A-02, A-03, A-04, A-05, A-06, A-10, A-12, A-13 · **Severità:** media · **Stato:** accettato ·
 **Rif:** `wire.md` §"Network stack", §"Discovery"
 
 **Attacco.** (1) Un ISP o un censore blocca UDP/QUIC, i multiaddr dei seed noti e le
@@ -1380,6 +1701,21 @@ trasporto offuscato — sproporzionato per v0. **Disposizione:** accettato per v
 con `SEC-REQ-23` che chiede almeno la **diversità** dei canali di distribuzione dei
 seed e degli ancoraggi. **Costo:** il relay obbligatorio è carico su volontari e un
 punto di osservazione privilegiato (vedi TM-28c).
+
+> **Elenco asset ampliato il 2026-08-26 ([SPEC-018]).** Erano `A-03, A-05, A-10,
+> A-12`. Ne mancavano quattro, e mancavano tutti per la stessa ragione: TM-31 era
+> letto come *perdita di connettività* mentre è **diniego di consegna**, e ogni asset
+> misura una perdita diversa da quel diniego. `A-02` — un nodo isolato non riceve i
+> propri `challenge_request` e subisce emissione mancata (falsificata in [REVIEW-021]).
+> `A-06` — le sue challenge scadono, e l'esito registrato smette di misurare la sua
+> disponibilità. `A-04` — l'eleggibilità richiede una `validator_candidacy`
+> **finalizzata** sotto `candidacy_close_height(e)`, quindi tenere un candidato offline
+> per la sola durata della finestra lo rende ineleggibile *senza che nulla di suo
+> fallisca e senza alcuna scrittura*: non c'è punteggio da abbassare, manca l'atto.
+> `A-13` — l'indirizzamento per contenuto impedisce la sostituzione di un modulo, mai
+> la sua mancata consegna, e *distribuzione* è nel nome dell'asset. **Accorpare queste
+> quattro perdite sotto `A-10` è l'obiezione che sembra sensata e che ha prodotto il
+> difetto di [DEBT-018]: è confondere il percorso con la perdita, un livello più su.**
 
 #### TM-32 — Intercettazione o sostituzione sul percorso
 
@@ -1398,59 +1734,13 @@ peer connection". È una proprietà conquistata e va protetta da erosioni future
 comunque corretta come chiede [RF-003], perché oggi implica che i sette passi siano
 *sufficienti*, mentre sono necessari.
 
-#### TM-37 — Compromissione della chiave di trasporto: impersonificazione in sessione senza revoca
-
-**Asset:** A-02, A-06, A-11 · **Severità:** media · **Stato:** aperto · **Rif:**
-[ADR-015], `identity.md` §"Bounded validity in time", §"Anti-reuse property",
-[REVIEW-021] RF-005
-
-**Origine.** È una superficie **creata** da [ADR-015], e va registrata come tale: la
-separazione che chiude metà di TM-28 introduce una chiave nuova, dichiarata "a basso
-valore", il cui possesso vale in sessione il posto della vittima.
-
-**Attacco.** (1) L'avversario ottiene la chiave privata di trasporto di un nodo —
-esfiltrazione dal dispositivo, backup, chiave lasciata fuori dal credential store,
-tutti casi che il documento stesso considera routine, perché è la ragione per cui la
-chiave è dichiarata ephemera. (2) Intercetta o riceve la `TransportKeyAttestation`
-corrispondente, che non è un segreto e non è legata a un destinatario. (3) Completa
-l'handshake Noise/QUIC — che prova esattamente ciò che l'avversario ha — presenta
-l'attestazione, ed è accettato come il nodo vittima da ogni peer che apre una
-connessione diretta. (4) Non risponde. Un `challenge_request` è diretto a
-`subject_node_id`: l'issuer che chiama la vittima raggiunge l'avversario, la challenge
-scade, e l'evidenza entra nel ledger come `failed` o `late`.
-
-**Impatto.** Perdita di `existence_income` e di eleggibilità a validatore per la
-vittima: un attacco mirato con impatto economico misurabile. Ciò che l'avversario
-**non** può fare è la parte solida del design e va detto: gli oggetti applicativi
-restano firmati dalla chiave di identità, quindi non può forgiare un `SignedEnvelope`
-né produrre un `subject_signature` valido. Il baratto rispetto a prima di [ADR-015] è
-questo: allora la stessa cosa richiedeva la chiave di identità — compromissione
-totale, ma **revocabile**; oggi è una chiave a basso valore e **non esiste alcuna
-invalidazione anticipata di un'attestazione in circolazione**: nessun contatore di
-epoca, nessun numero di serie, nessuna lista.
-
-**Contromisura.** (a) *Finestra breve e limitata come regola*: il tetto
-`max_transport_attestation_validity_ms` è un parametro di rete firmato dopo
-[REVIEW-021], quindi l'esposizione è limitata dal protocollo e non dalla prudenza
-dell'operatore. È l'unico limite che esista. **Con una riserva, e va detta qui
-perché altrimenti questa frase promette più di quanto la regola tenga:** il tetto
-vincola la *durata dichiarata* dall'attestazione, mentre la finestra in cui un
-verificatore la accetta è quella durata **più** la tolleranza di orologio — e la
-somma non è vincolata da nulla. Vedi [DEBT-017]. Finché quel debito è aperto,
-l'esposizione è limitata dal protocollo *sul valore che il documento nomina*, non
-sulla grandezza da cui la proprietà dipende. Costo: rotazioni più frequenti, cioè
-verifiche di firma in più a ogni ristabilimento di sessione. (b) *Revoca
-dell'identità*: funziona, ma distrugge identità, saldo e reputazione per una chiave
-subordinata, ed è il rimedio sproporzionato che [ADR-015] esisteva per evitare. (c)
-*Invalidazione anticipata dell'attestazione* — epoca o numero di serie pubblicati
-sull'identità: **non adottata**, perché un contatore per identità osservabile in
-sessione è un identificatore stabile in più, cioè ricrea in piccolo la correlazione
-che [ADR-015] ha tolto. Va valutata come decisione propria se la finestra dovesse
-essere allungata.
-
-*Residuo aperto*: per tutta la durata della finestra la compromissione non è
-revocabile, e la vittima non ha alcun segnale che la riveli se non l'esito delle
-proprie challenge.
+> **TM-37 non è più qui.** Stava in questa sezione dal 2026-08-25 e ne è uscito il
+> 2026-08-26 con [SPEC-018]. L'attore che esegue TM-37 — chi esfiltra una chiave
+> privata da un dispositivo — non è nessuna delle tre capacità con cui §3 definisce
+> `T-06`: non è osservazione passiva, non è un peer enrollato che si connette a molti,
+> non è un ISP o un censore. Finché è rimasto qui la matrice **gonfiava** `T-06` di
+> una capacità che non ha e **nascondeva** l'attaccante di endpoint. Ora è in §5.8,
+> sotto `T-08`.
 
 ### 5.7 `T-07` — Insider di governance
 
@@ -1561,7 +1851,7 @@ parametro voglia dire qualcosa.
 
 #### TM-36 — Compromissione della distribuzione degli ancoraggi di fiducia
 
-**Asset:** A-05, A-13 · **Severità:** alta · **Stato:** aperto · **Rif:** [RF-003],
+**Asset:** A-05, A-09, A-13 · **Severità:** alta · **Stato:** aperto · **Rif:** [RF-003],
 `ledger.md` §"Light-client balance verification"
 
 **Attacco.** (1) La chiusura di [RF-003] — che ho raccomandato io stessa — introduce
@@ -1586,6 +1876,165 @@ anche verso i checkpoint, non solo verso i peer. `SEC-REQ-06`, `SEC-REQ-23`.
 chiavi e un processo di rilascio più lento; le build riproducibili sono un impegno di
 ingegneria non banale su tre piattaforme. È il prezzo dell'unica difesa disponibile
 contro il lungo raggio, e va messo a bilancio adesso, non alla beta.
+
+> **`A-09` aggiunto agli asset il 2026-08-26 ([SPEC-018]), e il verso della chiusura
+> va motivato perché era il punto delicato dell'intera passata.**
+>
+> La cella `A-09` × `T-07` diceva *«l'insider agisce su parametri e liste, non sul
+> runtime»*, e §3 attribuisce a `T-07`, ventitré righe sopra, *«la distribuzione dei
+> trust anchor e dei binari»*; il passo 2 di questo scenario nomina *«la build,
+> l'installer, lo store»*. **Chi controlla il binario controlla il runtime WASM che
+> quel binario contiene**: non ha un percorso *verso* la sandbox, ha la sandbox.
+>
+> Le uscite erano due — falsificare la cella, oppure restringere la definizione di
+> `T-07` fino a farla combaciare con la cella. **È stata falsificata la cella**, per
+> tre ragioni che vale la pena scrivere una volta, perché la scelta opposta era la più
+> comoda e si ripresenterà.
+>
+> 1. **La definizione è stata scritta prima e con cura, la cella dopo e in fretta**, e
+>    la definizione non è isolata: è corroborata da questo stesso scenario, che esiste
+>    perché la distribuzione degli ancoraggi è nelle mani di `T-07`. Restringere la
+>    definizione lascerebbe TM-36 senza l'attore che lo esegue, cioè sposterebbe il
+>    buco invece di chiuderlo — la stessa cosa che TM-37 faceva sotto `T-06`.
+> 2. È la regola di esito di R-NA: una cella che contraddice un'altra parte del
+>    documento si falsifica, e non si restringe la parte contraddetta. Il verso opposto
+>    è il documento che si adatta alla propria svista, e produce un modello coerente
+>    con sé stesso e falso sulla rete.
+> 3. **E la ragione che chiude la questione senza bisogno delle prime due:** la cella
+>    cade **anche sotto la lettura ristretta**. Anche un `T-07` limitato a *parametri e
+>    liste* raggiunge il runtime, perché la politica di accettazione dell'host di
+>    [RF-015] e i tetti di deployment di TM-24(a) **sono parametri firmati**, e TM-23 —
+>    la concessione automatica delle capability sugli host assegnati d'ufficio — porta
+>    `A-09` fra i propri asset da quando è stato scritto. Non esiste una restrizione di
+>    `T-07` che salvi la cella e lasci in piedi il resto del documento.
+
+### 5.8 `T-08` — Compromissione dell'endpoint
+
+Sezione nata il 2026-08-26 da [SPEC-018], che chiude [DEBT-018]. Non aggiunge una
+minaccia nuova alla rete: **aggiunge al modello un attaccante che c'era già** e che il
+modello non nominava, e ricolloca sotto di lui TM-37, che era stato scritto sotto un
+attore che non lo copre.
+
+**La ragione per cui l'assenza era costosa e non neutra.** Un attore che non esiste
+nella matrice rende vere, senza obiezioni, tutte le celle che poggiano sulla sua
+assenza. `A-07` × `T-03` e `A-07` × `T-05` dicevano «nessun percorso verso chiavi
+altrui», e la frase era vera **solo perché nessun attore del modello rubava chiavi**.
+Quelle due celle sono state riesaminate nella stessa passata e reggono ancora, ma
+adesso reggono contro un confine dichiarato invece che contro un vuoto — che è la
+differenza fra una `n/a` verificabile e una `n/a` che nessuno può contestare perché
+non ha con che cosa.
+
+**Il confine di questo attore, e va scritto perché senza confine la colonna diventa
+un jolly.** `T-08` compromette **un** endpoint per volta, con costo per dispositivo.
+Non ha potere di voto, non firma parametri, non filtra il percorso di rete. Quando la
+compromissione diventa una campagna su molti dispositivi, la capacità che conta non è
+più l'accesso al singolo endpoint ma la **massa di identità che ne risulta**, e
+l'attore corretto è `T-02`: gli scenari di massa vanno letti là e non qui.
+
+#### TM-37 — Compromissione della chiave di trasporto: impersonificazione in sessione senza revoca
+
+**Attore:** `T-08` · **Asset:** A-02, A-06, A-07, A-10, A-11 · **Severità:** media · **Stato:** aperto · **Rif:**
+[ADR-015], `identity.md` §"Bounded validity in time", §"Anti-reuse property",
+[REVIEW-021] RF-005
+
+**Origine.** È una superficie **creata** da [ADR-015], e va registrata come tale: la
+separazione che chiude metà di TM-28 introduce una chiave nuova, dichiarata "a basso
+valore", il cui possesso vale in sessione il posto della vittima.
+
+**Attacco.** (1) L'avversario ottiene la chiave privata di trasporto di un nodo —
+esfiltrazione dal dispositivo, backup, chiave lasciata fuori dal credential store,
+tutti casi che il documento stesso considera routine, perché è la ragione per cui la
+chiave è dichiarata ephemera. (2) Intercetta o riceve la `TransportKeyAttestation`
+corrispondente, che non è un segreto e non è legata a un destinatario. (3) Completa
+l'handshake Noise/QUIC — che prova esattamente ciò che l'avversario ha — presenta
+l'attestazione, ed è accettato come il nodo vittima da ogni peer che apre una
+connessione diretta. (4) Non risponde. Un `challenge_request` è diretto a
+`subject_node_id`: l'issuer che chiama la vittima raggiunge l'avversario, la challenge
+scade, e l'evidenza entra nel ledger come `failed` o `late`.
+
+**Impatto.** Perdita di `existence_income` e di eleggibilità a validatore per la
+vittima: un attacco mirato con impatto economico misurabile. Ciò che l'avversario
+**non** può fare è la parte solida del design e va detto: gli oggetti applicativi
+restano firmati dalla chiave di identità, quindi non può forgiare un `SignedEnvelope`
+né produrre un `subject_signature` valido. Il baratto rispetto a prima di [ADR-015] è
+questo: allora la stessa cosa richiedeva la chiave di identità — compromissione
+totale, ma **revocabile**; oggi è una chiave a basso valore e **non esiste alcuna
+invalidazione anticipata di un'attestazione in circolazione**: nessun contatore di
+epoca, nessun numero di serie, nessuna lista.
+
+**Contromisura.** (a) *Finestra breve e limitata come regola*: il tetto
+`max_transport_attestation_validity_ms` è un parametro di rete firmato dopo
+[REVIEW-021], quindi l'esposizione è limitata dal protocollo e non dalla prudenza
+dell'operatore. È l'unico limite che esista. **Con una riserva, e va detta qui
+perché altrimenti questa frase promette più di quanto la regola tenga:** il tetto
+vincola la *durata dichiarata* dall'attestazione, mentre la finestra in cui un
+verificatore la accetta è quella durata **più** la tolleranza di orologio — e la
+somma non è vincolata da nulla. Vedi [DEBT-017]. Finché quel debito è aperto,
+l'esposizione è limitata dal protocollo *sul valore che il documento nomina*, non
+sulla grandezza da cui la proprietà dipende. Costo: rotazioni più frequenti, cioè
+verifiche di firma in più a ogni ristabilimento di sessione. (b) *Revoca
+dell'identità*: funziona, ma distrugge identità, saldo e reputazione per una chiave
+subordinata, ed è il rimedio sproporzionato che [ADR-015] esisteva per evitare. (c)
+*Invalidazione anticipata dell'attestazione* — epoca o numero di serie pubblicati
+sull'identità: **non adottata**, perché un contatore per identità osservabile in
+sessione è un identificatore stabile in più, cioè ricrea in piccolo la correlazione
+che [ADR-015] ha tolto. Va valutata come decisione propria se la finestra dovesse
+essere allungata.
+
+*Residuo aperto*: per tutta la durata della finestra la compromissione non è
+revocabile, e la vittima non ha alcun segnale che la riveli se non l'esito delle
+proprie challenge.
+
+#### TM-41 — Furto della chiave di identità: il posto del partecipante, non una falsificazione
+
+**Asset:** `A-07` in primo luogo, e per composizione ogni asset che la vittima stessa
+può toccare — A-01, A-02, A-03, A-04, A-05, A-06, A-08, A-09, A-11, A-12, A-13 ·
+**Attore:** `T-08` · **Severità:** alta · **Stato:** aperto · **Rif:**
+`identity.md` §"Key hierarchy", §"Revocation", `ledger.md` §"Burn", [DEBT-022], TM-37,
+TM-38
+
+**Origine.** Registrato da [SPEC-018] nella passata sulla matrice. Non è una superficie
+nuova: è la superficie che la matrice non aveva dove registrare, ed è la ragione per
+cui `T-08` esiste.
+
+**Attacco.** (1) L'avversario ottiene la chiave privata di **identità** di un
+partecipante: backup non cifrato, filesystem di un dispositivo non bloccato, chiave
+lasciata fuori dal credential store, telefono rivenduto senza cancellazione, malware
+commodity. (2) Da quel momento firma oggetti applicativi **validi**: transazioni,
+`BurnBody` con la firma del pagatore che il ledger esige, `subject_signature` sulle
+evidenze di challenge. (3) Nessuna regola di protocollo è violata in nessun passo:
+ogni verifica di firma passa, perché la firma è quella giusta fatta dalla persona
+sbagliata. (4) Se la vittima è un validatore, la chiave rubata è **potere di voto**, e
+l'attaccante entra nella superficie di `T-03` — TM-12, TM-16 — con la chiave di un
+altro. (5) Se la vittima è un publisher, l'attaccante pubblica record di catalogo
+firmati a suo nome.
+
+**Impatto.** È la differenza fra falsificare un asset e prenderne il posto, ed è la
+distinzione che R-NA.1 chiede di tenere separata: `T-08` **non falsifica** il ledger,
+**usa correttamente le sue regole con la chiave sbagliata**. Ne segue che nessuna
+verifica di consenso può accorgersene: il difetto non è nella catena, è fuori. Le
+conseguenze si contano sugli asset della vittima — reddito accumulato speso,
+eleggibilità persa o esercitata da altri, contenuto del dispositivo letto — e su
+`A-09` va detto esplicitamente ciò che altrove resta implicito: **la sandbox non
+protegge da chi è già dentro l'host**, quindi `A-09` non ha alcuna forza contro
+questo attore, e scrivere `n/a` in quella cella sarebbe stato l'errore di dire *non
+può* dove la risposta giusta è *non gli serve* — cioè un motivo che R-NA.2 vieta.
+
+**Contromisura.** (a) *Revoca dell'identità*: è il rimedio previsto, funziona, ed è
+l'unico. Ha però il **ritardo reale** di TM-38 effetto 2, dove `effective_height` è
+prodotto dalla parte sorvegliata: finché [DEBT-013] è aperto, il tempo reale fra la
+scoperta e l'efficacia della revoca non è limitato da nulla. (b) *Custodia della
+chiave nel credential store della piattaforma*, con la chiave di identità mai esposta
+al processo del nodo — è materia di M-03 e M-04, ed è a carico di AGENT-004 e
+AGENT-005. (c) *Requisito di non-revoca al momento della spesa*: [DEBT-022] osserva
+che l'autorizzazione del burn di abbonamento non richiede che la chiave sia non
+revocata, cioè che la revoca non morde dove questo attacco spende. **Non lo chiudo
+qui:** ha una spec propria, e questa cella è la casella che gli mancava.
+**Costo:** (a) è già scritto; (b) è lavoro di piattaforma reale e non banale su tre
+sistemi diversi; (c) è lavoro di consenso.
+
+*Residuo aperto*: non esiste alcun segnale che riveli alla vittima l'uso della propria
+chiave da parte di un altro, e nessuna delle tre contromisure ne introduce uno.
 
 ## 6. Analisi quantitative
 
@@ -2869,6 +3318,35 @@ TM-38 è **aperto** e la sua chiusura è lavoro di spec del Lead. Restano due
 osservazioni adiacenti che non appartengono a nessuno dei due debiti e vanno
 registrate a parte: l'indice `reward_epoch` senza regola di derivazione dal tempo
 (TM-38, effetto 3) e la circolarità irrisolta di `chain_id` alla genesi (TM-39).
+
+**Aggiornamento 2026-08-26 (AGENT-007, [SPEC-018], chiude [DEBT-018]).** Scritta in
+§4 la regola **R-NA** su quando `n/a` è un esito ammissibile, **prima** che una cella
+fosse toccata, e applicata a tutte e **trentuno** le `n/a` preesistenti — non alle
+venticinque che il debito selezionava, perché la selezione era essa stessa un giudizio
+da dimostrare. Esito dopo la remediation della review del Lead: **24 celle falsificate, 7
+confermate**, ognuna delle sette riscritta con un argomento diverso da quello che
+l'aveva prodotta. Aggiunto l'attore
+`T-08` (compromissione dell'endpoint) con tredici celle, e TM-37 ricollocato da `T-06`
+a `T-08`. Nuovi scenari TM-40, TM-41, TM-42, ciascuno reso necessario da una cella
+falsificata — TM-40, TM-42 nella prima passata, TM-43 nella remediation. Corretti gli
+elenchi asset di TM-04, TM-13, TM-15, TM-19, TM-24, TM-28,
+TM-31, TM-36, TM-37. Corretta la nota sulle «proprietà di design conquistate», che
+ne dichiarava quattro di cui una falsa. Corretta la premessa dell'effetto 3 di TM-38
+dopo [SPEC-016]: l'accelerazione della produzione dei blocchi non è più benigna.
+**Remediation su RF-001 e RF-002 della review del Lead:** R-NA.1 porta ora la regola di
+lettura della colonna *Perdita significa* quando è scritta come caso peggiore, e il
+divieto simmetrico di R-NA.3 sull'**asset** — una cella non cita §2 aggiungendo o
+togliendo un qualificatore alla perdita. La riga `A-09` è passata da tre `n/a` a zero.
+Conteggio finale: **104 celle, 97 coperte, 7 `n/a`**.
+
+**Tre cose lasciate aperte da [SPEC-018] e che appartengono al Lead**, perché la spec
+cambia un documento di analisi e non ha la gate di [ADR-012]: (a) la contromisura di
+TM-42 tocca `wire.md` — `ComputeAssignment.input` è scelto dall'emittente — e va
+aperta come debito propria; (b) la riga di [DEBT-013] sulla direzione del pericolo è
+ora falsa e sta in `.lmbrain/debts/`, che questa spec non tocca; (c) TM-38 e TM-39
+erano stati scritti senza essere collocati in matrice — TM-38 è stato aggiunto ora a
+`A-04` × `T-04` e `A-12` × `T-04`, e va stabilito come impedire che uno scenario nuovo
+resti di nuovo fuori dalla griglia che è l'evidenza di `GATE-COVERAGE`.
 
 Va rivisto quando: cambia una delle decisioni di §12; viene accettato un ADR che
 introduce un nuovo canale di emissione (`SEC-REQ-24`); un test di §10 fallisce in modo

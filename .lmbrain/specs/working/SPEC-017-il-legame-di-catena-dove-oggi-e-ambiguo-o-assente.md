@@ -2,7 +2,7 @@
 id: SPEC-017
 # Note: Quote the title if it contains a colon
 title: "Il legame di catena dove oggi e ambiguo o assente"
-status: backlog
+status: working
 kind: feature
 priority: high
 area: core
@@ -22,8 +22,12 @@ links: []
 created: 2026-08-26
 updated: 2026-08-26
 tags: [conformance, ledger, rust, security]
+activity:
+  - date: 2026-08-26
+    action: "transitioned backlog -> ready"
+  - date: 2026-08-26
+    action: "transitioned ready -> working"
 ---
-
 # Il legame di catena dove oggi e ambiguo o assente
 
 ## Objective

@@ -129,7 +129,7 @@ dependency graphs -- the workspace and the desktop shell -- are gated by
 ## Threat model
 
 The project maintains a threat model at
-`.lmbrain/knowledge/threat-model.md`: 39 scenarios, 26 numbered security
+`.lmbrain/knowledge/threat-model.md`: 43 scenarios, 26 numbered security
 requirements mapped to milestones, and 15 attack tests. If you are looking
 for where the sharp edges are, start there rather than here. It is written in
 Italian, the project's internal working language.

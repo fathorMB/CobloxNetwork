@@ -1,7 +1,7 @@
 ---
 id: DEBT-018
 title: "Nella matrice del threat model l'argomento «non puo' scrivere, quindi n/a» confonde falsificazione e perdita"
-status: open
+status: resolved
 category: "documentation"
 severity: "medium"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-021"]
 related_decisions: ["ADR-015"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-018","REVIEW-026"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-26
 tags: ["threat-model","security"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-26
+    action: "resolved: L'esito che chiude il debito non e' il conteggio ma una riga: A-09 non ha piu' alcuna n/a. L'isolamento della sandbox non ha difese indipendenti dall'host, e sei celle dicevano il contrario. Il debito nasceva sostenendo che una n/a sbagliata dice al lettore successivo di smettere di cercare: su quell'asset gli diceva di non cercare affatto. La cascata su A-09 x T-02 e T-06 non era richiesta: l'implementatrice ha applicato la monotonia di R-NA.4 contro se stessa, e l'argomento con cui aveva confermato A-09 x T-02 conteneva la propria confutazione, perche' se possedere l'host basta a rinunciare al confine, possederne molti e' l'attacco. Il difetto piu' grave corretto era dentro il rimedio: A-09 x T-01 citava a §2 un qualificatore che §2 non contiene, cioe' R-NA.1(b) violata da chi aveva scritto R-NA. Restano aperti DEBT-024 e DEBT-025, nati qui e non chiudibili qui."
 debt_events:
   - schema_version: "1"
     id: "DEBT-018-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Aperto dal Lead alla chiusura di SPEC-013 su segnalazione di AGENT-007, che lo indica come il piu utile dei tre residui da non perdere e precisa che e manutenzione del proprio documento e non della spec. Registrato come debito e non chiuso nella remediation per quella ragione: allargare SPEC-013 al threat model sarebbe stato scambiare il perimetro di una spec con quello di un documento di analisi. Owner AGENT-007 perche il documento e suo e perche la valutazione di A-04 richiede di leggere le regole di eleggibilita, che lei dichiara di non aver letto abbastanza a fondo per pronunciarsi."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-018-EVENT-002"
+    timestamp: "2026-08-26T01:42:55.569315900+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "L'esito che chiude il debito non e' il conteggio ma una riga: A-09 non ha piu' alcuna n/a. L'isolamento della sandbox non ha difese indipendenti dall'host, e sei celle dicevano il contrario. Il debito nasceva sostenendo che una n/a sbagliata dice al lettore successivo di smettere di cercare: su quell'asset gli diceva di non cercare affatto. La cascata su A-09 x T-02 e T-06 non era richiesta: l'implementatrice ha applicato la monotonia di R-NA.4 contro se stessa, e l'argomento con cui aveva confermato A-09 x T-02 conteneva la propria confutazione, perche' se possedere l'host basta a rinunciare al confine, possederne molti e' l'attacco. Il difetto piu' grave corretto era dentro il rimedio: A-09 x T-01 citava a §2 un qualificatore che §2 non contiene, cioe' R-NA.1(b) violata da chi aveva scritto R-NA. Restano aperti DEBT-024 e DEBT-025, nati qui e non chiudibili qui."
+    evidence_refs: ["SPEC-018", "REVIEW-026"]
 ---
 # Nella matrice del threat model l'argomento «non puo' scrivere, quindi n/a» confonde falsificazione e perdita
 
@@ -311,3 +323,5 @@ e a due regole di validità il perimetro di una passata sola. La forma giusta è
 
 ## Resolution evidence
 
+Chiuso da SPEC-018, accettata con REVIEW-026 dopo un giro di remediation su due finding del Lead. Riverificato dal Lead enumerando la tabella: 104 celle (13 x 8), 97 coperte, 7 n/a; prima 91, 60, 31. sim/tools/threat_model_matrix_coherence.py verde su sette controlli, provato in negativo reintroducendo due occorrenze reali. R-NA e' in §4, scritta prima che una cella fosse toccata. Trentuno celle risottoposte e non venticinque: 24 falsificate, 7 confermate, e due delle sei che il debito escludeva sono cadute. A-09 x T-07 chiusa falsificando la cella. Le quattro celle di T-01 argomentate dal movente: due riscritte per capacita', due dichiarate false. T-08 esiste con tredici celle e nessuna n/a. TM-31, TM-37 e TM-38 sistemati.</resolution_evidence>
+</invoke>
