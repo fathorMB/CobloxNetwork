@@ -69,6 +69,20 @@ Verificabile con i test `AT-07` e `AT-10` di [SPEC-004]. Il valore di `X` è una
 - L'eleggibilità a validatore non può più essere definita sul solo uptime: vincola la specifica di elezione di M-02.
 - Il progetto rinuncia formalmente a dichiararsi resistente ai Sybil per via crittografica. Resta difendibile, e va dichiarato in questi termini, che la rete è **robusta contro la falsificazione** — saldi, firme, doppia spesa — anche quando non è resistente ai Sybil.
 
+## Annotazione del 2026-08-25 — ciò che [SPEC-007] ha stabilito
+
+> Aggiunta su conferma esplicita dell'operatore, dopo [REVIEW-011]. **La decisione non è superata e nessuno dei cinque punti è falsificato**: AGENT-007 ha stabilito che l'annotazione è la disposizione corretta e non la supersessione. Ciò che segue è ciò che il lavoro di taratura ha reso noto e che questa ADR, quando fu scritta, non poteva sapere.
+
+**`α` non è una manopola: è un'identità, e la scelta non è selezionata dall'aritmetica.** Con il fondo a tetto ripartito uniformemente, la quota catturata da una flotta di `N` identità emulate contro `H` nodi onesti vale esattamente `α · N/(N+H)`, e la cattura è **lineare in `α` su tutto l'intervallo, senza ginocchio**. Il simulatore ha riprodotto i due valori citati sopra e non ha trovato alcun punto preferito: il valore adottato, `α = 0,15` con banda `[0,10 – 0,20]`, è il centro di un budget dichiarato dall'operatore, non un ottimo misurato.
+
+**La grandezza rivolta all'utente non era scritta, ed è la correzione principale.** Questa ADR misura ciò che l'attaccante ottiene, e su quello ha ragione. Ma il reddito di un nodo di sola availability rapportato al reddito medio vale **`α` esattamente**, quindi difendibilità e significato del reddito sono lo stesso numero letto due volte; e la perdita di quel nodo sotto attacco vale **`H/(N+H)` e non contiene `α`**. Ne segue che **abbassare `α` non protegge il dispositivo onesto**: rimpicciolisce il canale per tutti, non la quota dell'onesto dentro il canale. Al banco di prova tollerato da questa ADR — 10.000 emulati contro 100 onesti — il telefono conserva lo 0,99% del proprio reddito qualunque sia `α`. Verificato in modo indipendente dal Lead.
+
+**Il criterio (a) è vero per regola solo a condizione che nessun canale paghi per nodo senza tetto aggregato**, condizione che al momento della stesura non era imposta da nulla. La difesa che questa ADR descrive viveva interamente nella reward policy, un documento governato privo di limiti di magnitudine. [ADR-010] chiude quella superficie.
+
+**Il criterio (c) non è raggiunto durante l'avviamento.** `α` è una grandezza **osservata** e non impostata: al lancio non c'è lavoro che la diluisca, quindi vale circa 1 e la quota catturata è vicina al 99%, contro il `X = 20%` che questa ADR fissa come tollerato. La metrica riformulata è quindi vera **sopra una soglia d'uso dichiarata**, e la determinazione di quella soglia e del dimensionamento del fondo alla genesi è decisione aperta dell'operatore.
+
+**Ciò che il progetto non può dichiarare, e va detto qui perché questa è l'ADR che governa il claim:** che la resistenza ai Sybil sia una proprietà *stabile*. Questa ADR dice correttamente che è un parametro economico e non una garanzia crittografica; la seconda metà è che **ciò che è governato senza limiti di magnitudine non è un parametro, è una preferenza** — formulazione di AGENT-007 in [REVIEW-011], adottata da [ADR-010].
+
 ## Review conditions
 
 Rivedere se: il simulatore di M-02 mostra che `α` non può essere tenuta abbastanza bassa senza svuotare di senso il reddito di esistenza; il benchmark reale di Argon2id sul parco dispositivi target risulta molto peggiore degli ordini di grandezza stimati; cade una delle tre incertezze di [SPEC-004] §7.5 sull'attestazione, in particolare se un vTPM risultasse distinguibile da hardware fisico; oppure se l'operatore non concorda con questa decisione presa su delega.
