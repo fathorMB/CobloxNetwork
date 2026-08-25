@@ -409,7 +409,7 @@ fn sign_test_attestation(
 
     let mut h = Sha512::new();
     h.update(&az[32..]);
-    h.update(&preimage);
+    h.update(preimage.as_bytes());
     let r_wide = h.finalize();
     let r_scalar = Scalar::from_bytes_mod_order_wide(&r_wide.into());
     let r_point = ED25519_BASEPOINT_POINT * r_scalar;
@@ -418,7 +418,7 @@ fn sign_test_attestation(
     let mut h = Sha512::new();
     h.update(r_bytes);
     h.update(identity_public_key);
-    h.update(&preimage);
+    h.update(preimage.as_bytes());
     let k_wide = h.finalize();
     let k_scalar = Scalar::from_bytes_mod_order_wide(&k_wide.into());
 

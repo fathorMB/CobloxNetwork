@@ -20,11 +20,12 @@
 //! to these four rules. The hash for `k` uses the original encodings, not
 //! re-encoded points.
 //!
-//! # Vetted library choice
+//! # Primitive library choice
 //!
 //! Rather than hand-rolling curve arithmetic (where field arithmetic mistakes
 //! cause invisible and catastrophic security failures), this implementation
-//! composes on the audited primitive crate [`curve25519-dalek`]:
+//! composes on the primitive crate [`curve25519-dalek`] (see `Cargo.toml` for
+//! the version-level audit provenance note):
 //! - [`CompressedEdwardsY::decompress`] performs complete twisted Edwards curve
 //!   decompression with non-canonical y-coordinate reduction modulo `2^255-19`
 //!   (satisfying rule 1);
@@ -45,6 +46,7 @@ use curve25519_dalek::{
 use sha2::Sha512;
 
 use crate::SignatureVerifier;
+use crate::registry::SigningPreimage;
 
 /// The canonical consensus-critical Ed25519 signature verifier.
 ///
@@ -54,12 +56,17 @@ use crate::SignatureVerifier;
 pub struct ConsensusVerifier;
 
 impl SignatureVerifier for ConsensusVerifier {
-    /// Verifies `signature` over `message` under `public_key`.
+    /// Verifies `signature` over `preimage` under `public_key`.
     ///
-    /// `message` is the chain-bound preimage produced by
+    /// `preimage` is the chain-bound preimage produced by
     /// [`crate::registry::signing_preimage`], not a digest of it.
-    fn verify(&self, public_key: &[u8; 32], message: &[u8], signature: &[u8; 64]) -> bool {
-        verify_consensus_ed25519(public_key, message, signature)
+    fn verify(
+        &self,
+        public_key: &[u8; 32],
+        preimage: &SigningPreimage,
+        signature: &[u8; 64],
+    ) -> bool {
+        verify_consensus_ed25519(public_key, preimage, signature)
     }
 }
 
@@ -70,7 +77,7 @@ impl SignatureVerifier for ConsensusVerifier {
 #[must_use]
 pub fn verify_consensus_ed25519(
     public_key: &[u8; 32],
-    message: &[u8],
+    preimage: &SigningPreimage,
     signature: &[u8; 64],
 ) -> bool {
     // 1. Decode A_enc as point A on the complete Ed25519 twisted Edwards curve;
@@ -105,7 +112,7 @@ pub fn verify_consensus_ed25519(
     let mut hasher = Sha512::new();
     hasher.update(r_bytes);
     hasher.update(public_key);
-    hasher.update(message);
+    hasher.update(preimage.as_bytes());
     let k_output: [u8; 64] = hasher.finalize().into();
     let k = Scalar::from_bytes_mod_order_wide(&k_output);
 

@@ -533,19 +533,17 @@ fn the_reward_policy_acceptance_rules() {
 
     // Rule 1: availability tariff must be 0
     assert!(
-        RewardPolicy {
+        validate_reward(&RewardPolicy {
             availability_microtokens_per_unit: 1,
             ..base
-        }
-        .check_internal()
+        })
         .is_err()
     );
     assert!(
-        RewardPolicy {
+        validate_reward(&RewardPolicy {
             availability_microtokens_per_unit: 1000,
             ..base
-        }
-        .check_internal()
+        })
         .is_err()
     );
 
@@ -577,7 +575,7 @@ fn the_reward_policy_acceptance_rules() {
             ..base
         },
     ] {
-        assert!(bad.check_internal().is_err());
+        assert!(validate_reward(&bad).is_err());
     }
 }
 

@@ -26,7 +26,7 @@
 use coblox_core::SignatureVerifier;
 use coblox_core::encoding::{hex_lower, hex_lower_decode};
 use coblox_core::hash::{ChainId, Digest32, Domain};
-use coblox_core::registry::signing_preimage;
+use coblox_core::registry::{SigningPreimage, signing_preimage};
 use coblox_core::verifier::{ConsensusVerifier, verify_consensus_ed25519};
 use curve25519_dalek::digest::Digest;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
@@ -360,8 +360,9 @@ fn gate_speccheck_table_conformance_vector_by_vector() {
         } else {
             "reject"
         };
-        let observed_fn = verify_consensus_ed25519(&tv.pub_key, &tv.message, &tv.signature);
-        let observed_trait = verifier.verify(&tv.pub_key, &tv.message, &tv.signature);
+        let msg_preimage = SigningPreimage::from_raw_bytes_non_consensus(&tv.message);
+        let observed_fn = verify_consensus_ed25519(&tv.pub_key, &msg_preimage, &tv.signature);
+        let observed_trait = verifier.verify(&tv.pub_key, &msg_preimage, &tv.signature);
         assert_eq!(
             observed_fn, observed_trait,
             "standalone function and trait implementation must agree"
@@ -448,7 +449,8 @@ fn gate_cofactor_differential_verification() {
     let v4 = &vectors[4];
     assert_eq!(v4.index, 4);
 
-    let cofactored_result = verify_consensus_ed25519(&v4.pub_key, &v4.message, &v4.signature);
+    let v4_preimage = SigningPreimage::from_raw_bytes_non_consensus(&v4.message);
+    let cofactored_result = verify_consensus_ed25519(&v4.pub_key, &v4_preimage, &v4.signature);
     let cofactorless_result =
         verify_cofactorless_differential(&v4.pub_key, &v4.message, &v4.signature);
 
@@ -496,8 +498,10 @@ fn original_encodings_hash_differential() {
     let v9 = &vectors[9];
 
     // Under normative Coblox rule (raw R_enc in hash):
-    let v8_normative = verify_consensus_ed25519(&v8.pub_key, &v8.message, &v8.signature);
-    let v9_normative = verify_consensus_ed25519(&v9.pub_key, &v9.message, &v9.signature);
+    let v8_preimage = SigningPreimage::from_raw_bytes_non_consensus(&v8.message);
+    let v9_preimage = SigningPreimage::from_raw_bytes_non_consensus(&v9.message);
+    let v8_normative = verify_consensus_ed25519(&v8.pub_key, &v8_preimage, &v8.signature);
+    let v9_normative = verify_consensus_ed25519(&v9.pub_key, &v9_preimage, &v9.signature);
 
     // Under recompressed hash (wrong behavior):
     let v8_recompressed =
@@ -579,11 +583,12 @@ fn small_order_public_keys_are_strictly_rejected() {
         ],
     ];
 
-    let message = b"test message for small order pk rejection";
+    let message =
+        SigningPreimage::from_raw_bytes_non_consensus(b"test message for small order pk rejection");
     let dummy_signature = [0u8; 64];
 
     for (i, pk) in small_order_points.iter().enumerate() {
-        let result = verify_consensus_ed25519(pk, message, &dummy_signature);
+        let result = verify_consensus_ed25519(pk, &message, &dummy_signature);
         assert!(
             !result,
             "small order point {i} must be rejected by ConsensusVerifier"
@@ -598,14 +603,14 @@ fn verifier_respects_signing_preimage_contract() {
     let preimage = signing_preimage(Domain::SIG_BLOCK_VOTE, &chain_id, payload);
 
     // The preimage starts with the domain string, zero byte, and chain_id bytes
-    assert!(preimage.starts_with(b"coblox-block-vote-v0\0"));
+    assert!(preimage.as_bytes().starts_with(b"coblox-block-vote-v0\0"));
     assert_eq!(
-        &preimage[Domain::SIG_BLOCK_VOTE.as_str().len() + 1
+        &preimage.as_bytes()[Domain::SIG_BLOCK_VOTE.as_str().len() + 1
             ..Domain::SIG_BLOCK_VOTE.as_str().len() + 1 + 32],
         chain_id.as_digest().as_bytes()
     );
 
-    // Verifier takes the full preimage message slice, not a 32-byte digest
+    // Verifier takes the typed SigningPreimage, not a 32-byte digest or arbitrary slice
     let verifier = ConsensusVerifier;
     let dummy_key = [0x11; 32];
     let dummy_sig = [0x22; 64];
@@ -743,8 +748,9 @@ fn gate_speccheck_extension_table_conformance_vector_by_vector() {
     let mut all_match = true;
     for tv in &vectors {
         let published_outcome = published[tv.index];
-        let observed_fn = verify_consensus_ed25519(&tv.pub_key, &tv.message, &tv.signature);
-        let observed_trait = verifier.verify(&tv.pub_key, &tv.message, &tv.signature);
+        let msg_preimage = SigningPreimage::from_raw_bytes_non_consensus(&tv.message);
+        let observed_fn = verify_consensus_ed25519(&tv.pub_key, &msg_preimage, &tv.signature);
+        let observed_trait = verifier.verify(&tv.pub_key, &msg_preimage, &tv.signature);
         assert_eq!(
             observed_fn, observed_trait,
             "standalone function and trait implementation must agree"
@@ -844,7 +850,8 @@ fn strict_y_decoding_agrees_on_the_twelve_and_diverges_on_the_extension() {
     let mut upstream_disagreements = Vec::new();
     let mut rfc_disagreements = Vec::new();
     for tv in &upstream {
-        let coblox = verify_consensus_ed25519(&tv.pub_key, &tv.message, &tv.signature);
+        let msg_preimage = SigningPreimage::from_raw_bytes_non_consensus(&tv.message);
+        let coblox = verify_consensus_ed25519(&tv.pub_key, &msg_preimage, &tv.signature);
         let strict_y =
             verify_with_decoder_variant(&tv.pub_key, &tv.message, &tv.signature, true, false);
         let rfc8032 =
@@ -859,7 +866,8 @@ fn strict_y_decoding_agrees_on_the_twelve_and_diverges_on_the_extension() {
 
     let mut extension_disagreements = Vec::new();
     for tv in &extension {
-        let coblox = verify_consensus_ed25519(&tv.pub_key, &tv.message, &tv.signature);
+        let msg_preimage = SigningPreimage::from_raw_bytes_non_consensus(&tv.message);
+        let coblox = verify_consensus_ed25519(&tv.pub_key, &msg_preimage, &tv.signature);
         let strict_y =
             verify_with_decoder_variant(&tv.pub_key, &tv.message, &tv.signature, true, false);
         println!(

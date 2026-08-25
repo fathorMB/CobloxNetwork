@@ -119,6 +119,7 @@ pub mod verifier;
 
 pub use error::{Error, Result};
 pub use identity::TransportKeyAttestation;
+pub use registry::SigningPreimage;
 pub use verifier::{ConsensusVerifier, verify_consensus_ed25519};
 
 /// Returns the semantic version exposed by every native shell.
@@ -135,11 +136,16 @@ pub const fn core_version() -> &'static str {
 /// vectors 0–11 of `novifinancial/ed25519-speccheck` before it is used on a
 /// Coblox network. [`ConsensusVerifier`] provides the canonical implementation.
 pub trait SignatureVerifier {
-    /// Verifies `signature` over `message` under `public_key`.
+    /// Verifies `signature` over `preimage` under `public_key`.
     ///
-    /// `message` is the chain-bound preimage produced by
+    /// `preimage` is the chain-bound preimage produced by
     /// [`registry::signing_preimage`], not a digest of it.
-    fn verify(&self, public_key: &[u8; 32], message: &[u8], signature: &[u8; 64]) -> bool;
+    fn verify(
+        &self,
+        public_key: &[u8; 32],
+        preimage: &SigningPreimage,
+        signature: &[u8; 64],
+    ) -> bool;
 }
 
 #[cfg(test)]

@@ -117,7 +117,7 @@ pub fn consensus_key_binding_preimage(
     consensus_public_key: &[u8; 32],
     node_id: &str,
     validator_id: &str,
-) -> Result<Vec<u8>> {
+) -> Result<registry::SigningPreimage> {
     let object = consensus_key_binding_object(
         activation_height,
         consensus_public_key,

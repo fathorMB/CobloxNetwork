@@ -717,7 +717,7 @@ impl RewardPolicy {
     }
 
     /// The internal validity rules of `RewardPolicyBody` that do not depend on `RewardBounds`.
-    pub fn check_internal(&self) -> Result<()> {
+    fn check_internal(&self) -> Result<()> {
         if self.availability_microtokens_per_unit != 0 {
             return Err(ParameterError::RewardPolicy {
                 rule: "availability_microtokens_per_unit == 0",
@@ -764,7 +764,7 @@ impl RewardPolicy {
     }
 
     /// Magnitude bounds against genesis `RewardBounds`.
-    pub fn check_magnitudes(&self, bounds: &RewardBounds) -> Result<()> {
+    fn check_magnitudes(&self, bounds: &RewardBounds) -> Result<()> {
         if self.existence_fund_microtokens_per_epoch
             > bounds.existence_fund_microtokens_per_epoch_max
         {
