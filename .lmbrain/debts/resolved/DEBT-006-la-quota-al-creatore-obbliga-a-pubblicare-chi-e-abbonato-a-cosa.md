@@ -1,7 +1,7 @@
 ---
 id: DEBT-006
 title: "La quota al creatore obbliga a pubblicare chi e abbonato a cosa"
-status: open
+status: resolved
 category: "privacy"
 severity: "high"
 origin_severity: "high"
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-003"]
 related_decisions: ["ADR-006"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["ADR-014","ADR-015"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
 updated: 2026-08-25
 tags: ["privacy","ledger","governance"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-25
+    action: "resolved: Risolto dalla decisione dell'operatore del 2026-08-25, che e esattamente la forma che il criterio di risoluzione richiedeva. Chiuso ora e non alla scrittura del testo pubblico perche il debito chiedeva la decisione, non la sua esecuzione, e lasciarlo aperto fino all'esecuzione confonderebbe due cose che hanno owner e scadenze diverse."
 debt_events:
   - schema_version: "1"
     id: "DEBT-006-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Promosso a debito dal Lead durante la review di SPEC-004, su mandato dell'operatore di salvare tutti i debiti emergenti. Sopravvive alla spec che l'ha scoperto e nessuna spec aperta lo copre."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-006-EVENT-002"
+    timestamp: "2026-08-25T18:50:43.071395+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Risolto dalla decisione dell'operatore del 2026-08-25, che e esattamente la forma che il criterio di risoluzione richiedeva. Chiuso ora e non alla scrittura del testo pubblico perche il debito chiedeva la decisione, non la sua esecuzione, e lasciarlo aperto fino all'esecuzione confonderebbe due cose che hanno owner e scadenze diverse."
+    evidence_refs: ["ADR-014", "ADR-015"]
 ---
 # La quota al creatore obbliga a pubblicare chi e abbonato a cosa
 
@@ -59,3 +71,10 @@ Una ADR dedicata alla privacy che dichiari esplicitamente cosa e pubblico e corr
 
 ## Resolution evidence
 
+Il criterio di risoluzione chiedeva una ADR dedicata alla privacy che dichiarasse esplicitamente cosa e pubblico e correlabile nella rete, e che scegliesse fra le tre opzioni, prima che una rete pubblica accumulasse abbonamenti reali. ADR-014, accettata dall'operatore il 2026-08-25, sceglie l'opzione (a): il conteggio per identita resta e la proprieta che ne discende e dichiarata pubblicamente prima del primo partecipante esterno, con SEC-REQ-22 come obbligo con scadenza e non come nota. Le altre due opzioni sono registrate con il motivo del rifiuto, e la prova aggregata e nominata come ricerca e non come promessa, perche annunciare una privacy futura incassa oggi la fiducia che quella privacy meriterebbe domani.
+
+La decisione e presa avendo prima stabilito dove sta davvero la fuga, che il debito non nominava: non nel conteggio ma nel burn, che porta payer_node_id perche e la firma del pagatore ad autorizzare l'addebito. Ne consegue che togliere la quota al creatore toglie la ragione di contare e lascia la lista intatta, e che la grandezza da cui la proprieta dipende e l'invariante un pagatore un voto. Questo e il motivo per cui l'opzione (b) del debito e stata rifiutata sul merito e non sul costo.
+
+Il debito nominava una sola meta della superficie. L'altra — il legame fra pseudonimo e indirizzo IP, TM-28, alta severita e senza alcun ADR alle spalle — e stata affrontata nella stessa passata con ADR-015, che separa la chiave di trasporto dalla chiave di identita.
+
+Resta lavoro a valle e non e risoluzione di questo debito: il testo pubblico va scritto una volta sola e citato, ed e deliverable di una spec con GATE-SECREVIEW perche e un documento di sicurezza rivolto all'utente.

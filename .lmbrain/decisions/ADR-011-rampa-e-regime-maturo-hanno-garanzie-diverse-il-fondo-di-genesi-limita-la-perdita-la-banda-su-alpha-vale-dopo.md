@@ -58,9 +58,28 @@ Questa disposizione è di **natura diversa** dalle tre di [ADR-010] e per questo
 - **Tetto del fondo proporzionale agli eleggibili.** Rifiutata sopra, ed è il rimedio che sembra ovvio.
 - **Accettare `α ≈ 1` in avviamento senza alcuna garanzia sostitutiva**, dichiarandolo e basta. È la posizione più semplice e sarebbe onesta, ma lascia senza risposta la domanda che un utente della prima ora porrà — *quanto posso perdere* — quando la risposta esiste ed è limitata.
 
+## Annotazione del 2026-08-25 — il numero è stato deciso
+
+> L'operatore ha fissato la **popolazione onesta attesa al lancio a ~200 nodi**,
+> quindi `existence_fund_microtokens_per_epoch` di genesi = **300 000 000 µt**
+> (300 cr/epoca), contro un tetto `F_max` di 15 882 352 941 µt.
+>
+> **Il criterio con cui è stato scelto non è la cautela ma l'accuratezza**, e va
+> registrato perché è ciò che rende la scelta rivedibile nel modo giusto. Il
+> reddito per nodo è `F/E`: sovradimensionare mette a rischio un importo che non
+> serve a nessuno, sottodimensionare **diluisce il reddito reale dei primi utenti
+> onesti**, che è la promessa di prodotto. Non esiste un lato prudente, e la
+> condizione di revisione qui sotto — un ordine di grandezza, non il doppio — è
+> scritta per questo.
+>
+> Costo operativo che ne discende, con il blocco a 5 s fissato da [ADR-013]:
+> arrivare alla scala di riferimento richiede **~18 documenti** al rapporto ×5/4,
+> distanziati di almeno un'epoca di elezione, cioè **circa un documento a
+> settimana per quattro mesi** — e solo se la rete cresce davvero.
+
 ## Consequences
 
-- Il dimensionamento del fondo di genesi diventa una **decisione da prendere con un numero**, cioè la popolazione attesa al lancio. Non è fissata qui: appartiene alla spec che attua questa ADR insieme ad [ADR-010].
+- ~~Il dimensionamento del fondo di genesi diventa una **decisione da prendere con un numero**, cioè la popolazione attesa al lancio. Non è fissata qui: appartiene alla spec che attua questa ADR insieme ad [ADR-010].~~ **Deciso il 2026-08-25**, vedi l'annotazione sopra. Il valore deve entrare nella fixture `reward_policy` `PD-0`, quindi cambia il `policy_hash` pubblicato: è un artefatto pubblicato e la gate di [ADR-012] si applica alla spec che lo scrive.
 - La crescita del fondo verso la scala di riferimento richiede **governance attiva**: una successione di documenti al limite di variazione, con la spaziatura minima in altezze di catena. È un costo operativo ricorrente e va dichiarato come tale, non scoperto.
 - La comunicazione di prodotto acquista una seconda frase e ne perde una falsa. Il reddito della prima ora è **più piccolo in valore assoluto** di quello a regime, per costruzione e non per accidente, e questo va detto a chi entra presto invece di essere lasciato scoprire.
 - `RewardBounds` di [ADR-010] deve poter esprimere un tetto che il fondo di genesi rispetta e che la crescita successiva non viola: le due ADR si attuano insieme, in una sola spec.

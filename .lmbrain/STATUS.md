@@ -19,7 +19,25 @@ Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007]
 
 Il passaggio a pubblico ha portato con sé il proprio lavoro di sicurezza; vedi la sezione *Postura di sicurezza del repository pubblico*. È chiuso: pin a SHA con refresh via Dependabot, canale di disclosure privato, `LICENSE` Apache-2.0, harness esclusi da regola, e [DEBT-009] risolto.
 
-**M-01 è completa.** [SPEC-003] è passata a `done` quando l'operatore ha attestato `GATE-OPERATOR-LOOK`: quattro spec su quattro chiuse. Il prossimo lavoro è M-02, che non ha ancora spec redatte e la cui priorità è dettata dai debiti — [DEBT-005], critico, viene prima di tutto.
+**M-01 è completa.** [SPEC-003] è passata a `done` quando l'operatore ha attestato `GATE-OPERATOR-LOOK`: quattro spec su quattro chiuse. Il prossimo lavoro è M-02, che non ha ancora spec redatte e la cui priorità è dettata dai debiti — [DEBT-005], critico, veniva prima di tutto, ed è chiuso da [SPEC-006].
+
+## Passata di chiusura delle decisioni di prodotto — 2026-08-25
+
+L'operatore ha chiesto di risolvere in una sola passata tutti i punti aperti che dipendevano da lui. **Cinque decisioni**, le prime quattro censite dal Lead e la quinta emersa preparando la terza.
+
+| # | Decisione | Esito | Registrata in |
+| --- | --- | --- | --- |
+| 1 | Intervallo di blocco | **5 s**, costante di genesi dichiarata e non parametro governato | [ADR-013] |
+| 2 | Popolazione attesa al lancio | **~200 nodi** → `F` di genesi = **300 000 000 µt** contro un tetto di 15 882 352 941 | annotazione su [ADR-011] |
+| 3 | Privacy degli abbonati | **Accettare e dichiarare**; prova aggregata come ricerca, mai come promessa | [ADR-014], chiude [DEBT-006] |
+| 4 | Identità di trasporto | **Separare le chiavi in v0**, subordinate e ruotabili | [ADR-015] |
+| 5 | [DEBT-010] | **Differito a M-07**, con la dimostrazione come criterio di una spec di M-02 | evento sul debito |
+
+**Due cose che il pulse dava per aperte e non lo erano**, corrette in questa passata: il valore `X` di [ADR-007] è fissato a 20% da [SPEC-007], e la forma del fondo è decisa. Erano affermazioni rimaste indietro rispetto ai fatti, cioè la famiglia 2 applicata a questo stesso documento.
+
+**Un errore del Lead corretto prima che entrasse in un artefatto.** L'opzione offerta all'operatore sulla decisione 4 diceva che la separazione delle chiavi *«chiude TM-28 alla radice»*. È falso: il legame `node_id → IP` non passa dalla chiave di trasporto ma dal certificato che `identity.md` impone di presentare prima di pubblicare gossip, e da `sender_node_id` in chiaro nell'envelope. L'avversario di TM-28 tiene sessioni Coblox, quindi il certificato lo riceve comunque. La decisione non cambia — la separazione resta necessaria e la sua finestra si chiude davvero all'enrollment — ma [ADR-015] è scritta per ciò che fa davvero: sposta il costo dell'attacco da **lettura gratuita e retroattiva del ledger** a **partecipazione attiva e contemporanea**, e dichiara il residuo invece di tacerlo.
+
+**Conseguenza sul piano di M-02.** Due delle cinque decisioni cambiano artefatti pubblicati — il fondo di genesi cambia il `policy_hash`, la separazione delle chiavi cambia lo schema del certificato — quindi la gate di [ADR-012] si applica, e quella gate **oggi non è eseguibile** perché l'inventario su cui dovrebbe girare non esiste. L'inventario degli artefatti pubblicati passa da lavoro di smaltimento a **prerequisito**.
 
 ## Handoff attivo
 
@@ -39,12 +57,7 @@ Nessuna. Non ci sono spec in `ready`: quelle di M-02 vanno ancora redatte.
 
 Nessuna. Le prime due spec di M-02 sono chiuse.
 
-**Due spec redatte e in `backlog`, in attesa della tua approvazione.** Sono deliberatamente parallele: la prima produce *numeri*, la seconda produce *codice che li prende come configurazione*. A differenza della volta scorsa non c'è rischio di pianificare sulla sabbia, perché le regole sono scritte e stabili.
-
-- [SPEC-007] **Simulatore economico e taratura di `α`** → AGENT-002. `sol`/`extended`. Chiude [DEBT-007]. Fissa la forma del fondo del reddito di esistenza, `α` con il suo intervallo di sorveglianza, il valore `X` di [ADR-007] e i diciassette parametri che [SPEC-006] ha lasciato simbolici. Il suo prodotto più prezioso non è il numero ma **la curva che lega difendibilità e significato del reddito**: `α` bassa rende la rete difendibile e svuota la promessa di prodotto, ed è il compromesso che [ADR-007] ha rimandato qui invece di scioglierlo.
-- [SPEC-008] **Core del ledger in Rust** → AGENT-001. `sol`/`extended`. È la **prima implementazione reale del progetto**: oggi `coblox-core` ha sessanta righe. Il criterio di accettazione è insolitamente netto — riprodurre ogni valore del registro di conformità, che il Lead ha ricalcolato in modo indipendente quattro volte durante [SPEC-006]. **Sono una suite di test scritta prima del codice.**
-
-Restano fuori light client con prove Merkle e mint & burn: dipendono dalla forma delle API che [SPEC-008] fisserà, e scriverli ora sarebbe pianificare sulla sabbia.
+**Nessuna spec in lavorazione.** Le nove redatte finora sono tutte `done`. Le quattro di M-02 elencate in *Lavoro immediato* sono da redigere: nessuna esiste ancora come file.
 
 ## Done
 
@@ -61,7 +74,7 @@ Restano fuori light client con prove Merkle e mint & burn: dipendono dalla forma
 ## Blockers and risks
 
 - **Il claim di sicurezza, nella forma che AGENT-007 giudica difendibile.** La rete è robusta contro la falsificazione ma **non** resistente ai Sybil per via crittografica, e tre cose non sono garantite: la disponibilità dell'enrollment sotto attacco sostenuto (i dispositivi lenti soffrono per primi), la resistenza Sybil crittografica, e la verifica indipendente dell'eleggibilità a validatore prima di M-02. Parole della reviewer: *"il progetto non deve chiamare la rete super-sicura senza quelle tre frasi accanto; con quelle accanto il claim è più solido della media a questo stadio, e la parte migliore non è nessun singolo meccanismo ma il fatto che i limiti siano quantificati."*
-- **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Confermata dall'operatore il 2026-08-25**, dopo revisione congiunta: [ADR-007] resta `accepted`. Nella stessa sessione l'operatore ha però chiesto di riaprire le esclusioni permanenti che avevano collassato lo spazio delle alternative prima ancora che [SPEC-004] cominciasse a enumerarle — ne è nata [ADR-008]. Resta aperto il valore `X` della metrica riformulata, che dipende dal simulatore di M-02 e da [DEBT-007].
+- **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Confermata dall'operatore il 2026-08-25**, dopo revisione congiunta: [ADR-007] resta `accepted`. Nella stessa sessione l'operatore ha però chiesto di riaprire le esclusioni permanenti che avevano collassato lo spazio delle alternative prima ancora che [SPEC-004] cominciasse a enumerarle — ne è nata [ADR-008]. ~~Resta aperto il valore `X`~~ — **chiuso il 2026-08-25 da [SPEC-007]**: `X = 20%`, pari al bordo superiore della banda di sorveglianza su `α`. Questa riga dava per aperto un punto chiuso ed è stata corretta nella passata di decisioni.
 - **Attenzione, decisione delegata di rilievo:** il progetto ora dichiara di essere robusto contro la falsificazione ma **non** resistente ai Sybil per via crittografica. È una rinuncia esplicita a una promessa, resa in cambio di onestà verificabile.
 - **BLOCCO 2 — chiuso.** La prima run CI (commit `4ea0db9`) era fallita in 6 secondi **senza eseguire alcun job**, per la fatturazione dell'account GitHub e non per il codice; l'operatore aveva concesso la deroga su `GATE-CI-GREEN`, registrata come [DEBT-001]. Il 2026-08-25 la fatturazione è stata sbloccata, la pipeline ha eseguito e, dopo due giri di remediation, la run 32821923135 è verde su tutti i job. [DEBT-001] è **risolto**. I criteri di [SPEC-002] marcati `[~] ... | waived=DEBT-001` non sono più coperti da una deroga ma da una run reale.
 - ~~Nome del token e font monospace~~ — **decisi dall'operatore il 2026-08-25**, [ADR-009]. L'unità è `credit`/`credits`, forma compatta `cr` posposta al numero; il glifo `◇` e la classe `.cbx-unit--provisional` sono ritirati. Font: JetBrains Mono. **Resta lavoro di applicazione** nel pacchetto di design, che è di AGENT-006 e non del Lead.
@@ -70,22 +83,34 @@ Restano fuori light client con prove Merkle e mint & burn: dipendono dalla forma
 
 | ID | Severità | Owner | Questione |
 | --- | --- | --- | --- |
-| [DEBT-010] | medium | AGENT-002 | La monotonicità del limite di mandato è un cricchetto spingibile da un avversario e non tirabile indietro da nessuno. Sorveglianza, non lavoro: il presidio è il tetto di genesi, che M-02 deve tarare stretto. |
-| [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
 | [DEBT-012] | high | AGENT-001 | `lifecycle_u8` è commesso in `app_leaf` ma nessun documento gli assegna valori numerici: due implementazioni conformi divergono sulla `state_root`. |
+| [DEBT-013] | medium | AGENT-007 | Nessuna regola impone il passo di produzione dei blocchi: il set attivo decide la durata reale delle proprie epoche, quindi la propria incumbency. Aperto con [ADR-013], **da valutare in adversariale e non dal Lead che l'ha osservato**. |
 | [DEBT-008] | low | AGENT-001 | Due frasi della specifica del protocollo promettono poco più di quanto le regole impongano. Una riga ciascuna, M-02. |
 
 **Nessun debito `critical` aperto.** [DEBT-005] era l'unico ed è chiuso.
+
+**Differito:** [DEBT-010] a M-07, il 2026-08-25. Non chiuso come rischio accettato benché i numeri lo suggeriscano — con il blocco a 5 s una spinta irreversibile porta l'incumbency massima da 63 a 84 giorni e il pavimento di ricambio non si muove, perché `ceil(27/9)` e `ceil(27/12)` valgono entrambi 3. **Ma è aritmetica del Lead, non la dimostrazione che il debito pone come condizione**, e accettare un rischio su un'affermazione non dimostrata è la famiglia 2 di `recurring-defects.md`. La dimostrazione è ora un criterio della spec di M-02 che tocca i parametri di consenso.
 
 Risolti, tutti il 2026-08-25 — **cinque su dieci**: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop; **[DEBT-005] con [SPEC-006]**, dopo quattro giri di review adversariale e tredici finding; e **[DEBT-007] con [SPEC-007]**. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
 
 ## Lavoro immediato di M-02
 
-**[SPEC-009] e' redatta e in `backlog`**, in attesa della tua approvazione. Attua [ADR-010] e [ADR-011] insieme, perche' si attuano insieme: `RewardBounds` deve poter esprimere un tetto che il fondo di genesi rispetta e che la crescita successiva non viola. Contiene tre regole di validita nuove — tariffa di availability a zero, `3·min_set >= 2V`, e i limiti di magnitudine della reward policy — piu il dimensionamento del fondo alla genesi e la riformulazione della dichiarazione in due regimi. Serve anche la fixture di conformita corrispondente, e a seguire la validazione di `RewardBounds` in `coblox-core` con lo stesso trattamento gia dato a `ValidatedConsensusParameters`.
+**Il divario che il pulse non diceva, verificato il 2026-08-25.** [SPEC-009] ha cambiato le regole **nei documenti e non nel codice**: il commit `eadba2d` tocca `core/coblox-core/tests/` e non tocca `core/coblox-core/src/` in nessuna riga. Tre conseguenze verificate una per una:
 
-**Una spec dedicata al verificatore Ed25519**, con la tabella speccheck 0-11 come proprio gate, **prima di qualunque devnet**. Raccomandazione di AGENT-001 in [SPEC-008], condivisa dal Lead: senza oracolo un verificatore crittografico e indistinguibile da uno corretto fino a una divisione della catena.
+- `RewardPolicyConstraints::from_body` non legge affatto `availability_microtokens_per_unit`, quindi il crate **accetta la tariffa positiva** che `ledger.md` dichiara rifiutata in accettazione;
+- `check_relations` contiene `3c < V` e `3cm ≤ V` ma **non** `3·min_set ≥ 2V`, cioè il vincolo su cui poggia l'intera sezione *«Owning the set and controlling it are different thresholds»*;
+- **`RewardBounds` non esiste come tipo**: c'è `ElectionBounds`, non il suo gemello.
 
-Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla forma delle API fissate da [SPEC-008].
+Quattro fixture di frontiera pubblicate in `docs/protocol/README.md` dichiarano `invalid` casi che **oggi nessuna implementazione rifiuta**.
+
+### Ordine delle spec di M-02, rivisto dopo la passata di decisioni
+
+1. **SPEC-012 — inventario degli artefatti pubblicati, `lifecycle_u8` ([DEBT-012]), [DEBT-008].** Era terza, è diventata **prerequisito**: due delle cinque decisioni cambiano artefatti pubblicati, la gate di [ADR-012] si applica, e quella gate non è eseguibile finché nessuno sa quale sia l'elenco su cui girare. [ADR-012] lo dice di sé — *la quarta occorrenza esiste perché quell'inventario non era mai stato fatto*.
+2. **SPEC-010 — `RewardBounds` e le tre regole in `coblox-core`**, più i valori decisi dall'operatore e l'intervallo di blocco di [ADR-013] nei documenti di protocollo. Criterio che la rende utile: **ogni fixture dichiarata `invalid` dev'essere rifiutata**. Una suite di soli casi validi la passerebbe anche un validatore che accetta tutto — è la precisazione n.3 di [ADR-012] applicata a se stessa.
+3. **SPEC-011 — verificatore Ed25519**, con i vettori 0–11 di `ed25519-speccheck` come gate. Isolata e dispatchabile in parallelo in qualunque momento. Raccomandazione di AGENT-001 in [SPEC-008]: *senza oracolo un verificatore crittografico è indistinguibile da uno corretto fino a una divisione della catena*.
+4. **SPEC-013 — separazione della chiave di trasporto**, attuazione di [ADR-015], **prima che la devnet emetta il primo certificato**.
+
+Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla forma delle API fissate da [SPEC-008]. Costruirli prima significherebbe poggiare il consenso su uno strato di firme che nessuno ha verificato e su un validatore di parametri che accetta genesi inammissibili.
 
 ## Next recommended actions
 
@@ -98,12 +123,14 @@ Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla
 
 5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. ~~Vanno aggiunti al `.gitignore` oppure resi portabili.~~ **Fatto il 2026-08-25:** aggiunti al `.gitignore`, quindi esclusi da una regola e non più dalla disciplina manuale.
 6. ~~Decidere sulla `LICENSE`~~ — **fatto il 2026-08-25**: `LICENSE` Apache-2.0 in radice, allineato a quanto i manifest già dichiaravano. Anche `SECURITY.md` è in piedi.
-7. **Redigere le spec di M-02.** È il prossimo lavoro reale e non ne esiste ancora una. L'ordine è dettato dai debiti: la regola di elezione dei validatori ([DEBT-005], critico) viene prima di tutto, poi il simulatore economico che fissa `α` ([DEBT-007]) e da cui dipende il valore `X` di [ADR-007], poi un ADR sulla privacy ([DEBT-006]).
+7. ~~Redigere le spec di M-02~~ — **in corso**: cinque redatte e chiuse ([SPEC-005]…[SPEC-009]), quattro da redigere nell'ordine rivisto in *Lavoro immediato di M-02*.
+8. ~~Prendere le decisioni di prodotto aperte~~ — **fatto il 2026-08-25**, tutte e cinque; vedi *Passata di chiusura delle decisioni di prodotto*.
+9. **Leggere [ADR-015] e accettarla o rimandarla.** È l'unica ADR lasciata deliberatamente in `proposed`: supera una regola già accettata, e il Lead si era impegnato a portarla in lettura prima dell'accettazione.
 
 **Per il Lead, in autonomia:**
 
-6. Alla consegna del Lotto B: verificare, poi chiedere ad AGENT-007 la ri-attestazione di `GATE-SECREVIEW` e chiudere SPEC-001. È l'ultima spec aperta di M-01.
-7. A ogni spec che passa a `done`: commit e push su `main`.
+- A ogni spec che passa a `done`: commit e push su `main`.
+- Prima di ogni `spec_done`: il controllo sullo stato delle review, che `spec_done` non fa e `lmbrain_validate` non segnala — vedi `.lmbrain/knowledge/review-lifecycle-discipline.md`.
 
 ## Postura di sicurezza del repository pubblico
 
@@ -147,6 +174,9 @@ Dichiarata dall'operatore il 2026-08-25 e registrata in `.lmbrain/BRANCHING.json
 
 ## Recent decisions
 
+- ADR-015 — L'identità di trasporto è subordinata e ruotabile, non è la chiave di identità (**proposed**, 2026-08-25). Decisa dall'operatore, in attesa della sua lettura prima dell'accettazione perché **supera una regola già accettata**: `identity.md` §*Key hierarchy* impone oggi la chiave unica, e quella frase diventa falsa nel momento in cui la ADR è attuata. Affronta TM-28, severità alta e finora senza alcun ADR né debito alle spalle. **Impatto su lavoro futuro:** tocca `identity.md`, `wire.md`, lo schema di richiesta e certificato di enrollment e le preimmagini che ne discendono; deve atterrare **prima che la devnet emetta il primo certificato**, dopo di che non è più una decisione ma una migrazione. La conseguenza che il Lead giudica più probabile fonte di difetto, e la segnala come tale a chi farà la review: una chiave di trasporto ruotabile azzera lo stato per peer, quindi tocca code e backpressure di `wire.md` e va confrontata con lo scudo di ammissione di [ADR-007].
+- ADR-014 — Gli abbonamenti sono pubblici e correlabili, e il progetto lo dichiara prima che lo siano (accepted, 2026-08-25). Decisa dall'operatore, coincide con la raccomandazione di AGENT-007 per v0. Chiude [DEBT-006]. Il ragionamento che la tiene insieme non è la proporzionalità ma **dove sta davvero la fuga**: non nel conteggio degli abbonati ma nel **burn**, che nomina `payer_node_id` perché è la firma del pagatore ad autorizzare l'addebito — quindi togliere la quota al creatore toglie la ragione di contare e **lascia la lista intatta**. La grandezza da cui la proprietà dipende è l'invariante *un pagatore, un voto*. **Impatto su lavoro futuro:** il testo pubblico va scritto **una volta sola** e citato, ed è deliverable di una spec con `GATE-SECREVIEW`, con scadenza al primo partecipante esterno e non al lancio.
+- ADR-013 — L'intervallo di blocco è una costante di genesi dichiarata, non un parametro governato (accepted, 2026-08-25). Decisa dall'operatore. **Ha reso normativo un numero che esisteva in un solo punto del repository come assunzione** (`sim/coblox_sim/recommended.py:21`), e su cui poggiava la taratura dei ventidue parametri di [SPEC-007]: `election_epoch_blocks = 120 960` significa «7 giorni» solo se un blocco dura 5 secondi. È la domanda di [REVIEW-014] — *qual è il denominatore* — applicata alla metà che quella review non guardava: l'emissione è denominata in millisecondi e il suo denominatore fu chiuso da [SPEC-009], l'elezione è denominata in blocchi e il suo no. **Impatto su lavoro futuro:** contenuto normativo nuovo nei documenti di protocollo, quindi la gate di [ADR-012] si applica; e la parte 3 della decisione — v0 dichiara la cadenza e non la impone — ha aperto [DEBT-013].
 - ADR-009 — L'unità del token si chiama credit e si scrive come una misura, non come una valuta (accepted, 2026-08-25). Decisa dall'operatore. Il ragionamento che la tiene insieme: il vincolo di non convertibilità spinge verso un nome **poco brandizzabile**, non solo non-monetario, perché la speculazione ha bisogno di un brand su cui aggrapparsi; e la posizione dell'unità porta significato, perché `1 240 cr` è la grammatica della misura mentre `◇1 240` è quella del denaro. Ha corretto un dato di [SPEC-003]: JetBrains Mono è sotto SIL OFL 1.1, non Apache-2.0 — quest'ultima copre il codice sorgente del repository, non il carattere — e poiché anche gli altri due candidati sono OFL 1.1, l'argomento della licenza non li distingueva. **Impatto su lavoro futuro:** aggiornamento del pacchetto di design e di `PRINCIPLES.md`, lavoro di AGENT-006; e con OFL 1.1 la licenza del font andrà inclusa accanto all'Apache-2.0 quando il font sarà incorporato nel bundle Tauri.
 - ADR-008 — Il divieto di proof-of-work continuo colpisce il lavoro sprecato, non il lavoro campionato (accepted, 2026-08-25). Nata dalla revisione di [ADR-007] con l'operatore. Non abroga l'esclusione: la sostituisce con un principio più un test in tre punti. **Ha sanato una contraddizione che nessuno aveva messo alla prova:** `PROJECT.md` escludeva il proof-of-work continuo «di qualsiasi tipo» mentre [ADR-002] prescrive proof-of-retrievability continuo e ri-esecuzione WASM, quindi il protocollo violava già una propria esclusione dichiarata. **Impatto su lavoro futuro:** ogni ADR o spec che introduca lavoro remunerato deve dichiarare l'esito dei tre punti del test, ed è materia di review verificarlo; il punto 1 vincola la specifica di elezione dei validatori di M-02, già gravata da [DEBT-005].
 - ADR-006 — Pubblicazione delle app e ricompensa al creatore (accepted, 2026-08-25). Estende ADR-005 con una nuova categoria di emissione. **Impatto su lavoro in corso:** vincola i campi del manifest in SPEC-001 (repliche, tetti di risorse, prezzo di abbonamento) — da comunicare all'implementatore o da verificare in review.
