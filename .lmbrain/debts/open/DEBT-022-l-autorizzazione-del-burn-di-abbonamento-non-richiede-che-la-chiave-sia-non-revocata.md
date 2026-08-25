@@ -57,7 +57,11 @@ Da stabilire, ed e il lavoro. La superficie e la spesa dal saldo di un nodo la c
 
 Va valutato separatamente cosa accada agli abbonamenti gia attivi al momento della revoca, perche e una questione diversa dall'aprirne di nuovi, e cosa comporti per la ricompensa al creatore, che conta gli abbonati attivi e li deriva dai burn finalizzati.
 
-Severita high e non critical perche richiede una chiave gia compromessa, quindi un fallimento a monte, e perche nessuna rete esiste; ma e una regola di validita mancante su un percorso di spesa, ed e la classe piu economica da correggere adesso e piu cara dopo.
+~~Severita high e non critical perche richiede una chiave gia compromessa, quindi un fallimento a monte, e perche nessuna rete esiste; ma e una regola di validita mancante su un percorso di spesa, ed e la classe piu economica da correggere adesso e piu cara dopo.~~
+
+**Motivazione sostituita dal Lead il 2026-08-26, severita' `high` confermata.** AGENT-007 ha mostrato che la motivazione precedente era **debole e sarebbe stata motivo di declassamento**: fondava la gravita' su un percorso — la chiave rubata — che presuppone un fallimento a monte, e una gravita' che poggia su un fallimento altrui si lascia sempre declassare. La ragione per cui `high` regge e' un'altra e non ha mitigazioni a monte: **l'ambiguita' fra due letture entrambe conformi che divergono sulla validita' di un blocco**. Chi legge la riga alla lettera accetta il burn di una chiave revocata, chi generalizza dalle tre sorelle lo rifiuta, e il disaccordo e' un fork. Nessuna chiave rubata e' richiesta, e nessun fallimento a monte mitiga alcunche'. E' la famiglia 4 del censimento — clausola normativa che nessun oracolo esercita — nella sua forma peggiore.
+
+**Due aggiunte della valutazione che cambiano il perimetro del rimedio, non solo la motivazione.** La prima: il drenaggio massimo **non dipende dalla finestra temporale**, perche' prezzo e periodo del burn sono scelti da chi attacca e una sola transazione puo' azzerare il saldo — la finestra, che il Lead aveva chiesto di stabilire, non e' la grandezza da cui la perdita dipende. La seconda, ed e' quella che impedisce una chiusura falsa: **`unrevoked` non e' definito da nessuna parte per l'autorizzazione delle transazioni**, e il documento ne usa due letture diverse — «finalizzata» in `identity.md`, «efficace a una certa altezza» in `ledger.md`. Poiche' `min_revocation_effective_delay_blocks` e' dichiaratamente scelto lungo, **allineare la sola riga alle tre sorelle chiude l'asimmetria e non chiude il buco**: e' un rimedio che sembra completo e non lo e', e la spec deve trattare la definizione prima dell'allineamento.
 
 ## Decision log
 
@@ -69,7 +73,7 @@ Una valutazione che stabilisca se l'omissione sia deliberata o accidentale, pron
 
 Va inoltre stabilito nella stessa occasione se altre regole di autorizzazione del protocollo omettano la stessa qualificazione, perche il difetto e nell'asimmetria e non nella singola riga.
 
-Da chiudere prima che una devnet accumuli saldi reali.
+~~Da chiudere prima che una devnet accumuli saldi reali.~~ **Corretto dal Lead il 2026-08-26 dopo la valutazione di AGENT-007: da chiudere prima che esista una seconda implementazione.** La condizione precedente era tarata sull'esito che il Lead aveva immaginato — la spesa indebita, che ha bisogno di saldi reali per fare danno. L'esito peggiore accertato e' un altro: **due letture conformi che divergono sulla validita' di un blocco**, cioe' un fork, che non ha bisogno di saldi ne' di chiavi rubate ma di un secondo lettore del documento. La grandezza da cui il pericolo dipende non e' il valore in gioco: e' il numero di implementazioni.
 
 ## Valutazione — 2026-08-26 (AGENT-007)
 

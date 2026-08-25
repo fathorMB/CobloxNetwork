@@ -65,6 +65,16 @@ La cella A-04 per T-06 e sottoposta allo stesso test e confermata o corretta, co
 
 Va inoltre stabilito se l'argomento non puo scrivere quindi n/a compaia altrove nella matrice fuori dalla colonna T-06, perche il difetto e nell'argomento e non nella colonna. Se ne compare, ogni occorrenza va risottoposta.
 
+**Risposta, dalla valutazione di AGENT-007 del 2026-08-26, e correzione dell'ampiezza da parte del Lead.** Ne compare, e non di poco: **25 delle 31 celle `n/a` della matrice** poggiano sull'argomento del percorso di scrittura, e tre sono gia' state falsificate. Il conteggio delle celle `n/a` e' stato riverificato dal Lead enumerando la tabella: **31 esatte** su 91 celle totali.
+
+**Questo debito dichiarava quindi un lavoro circa tre volte piu' piccolo di quello che e', e va corretto qui perche' una spec dimensionata su questo file sarebbe stata sottodimensionata.** La correzione non e' solo di taglia ma di **forma del rimedio**: tre modifiche puntuali non chiudono venticinque celle. Serve una **regola di metodo** — quando `n/a` sia un esito ammissibile e quale argomento lo sostenga — **piu' una passata** che la applichi a tutte le celle. Un rimedio cella per cella lascerebbe il difetto libero di rientrare alla prossima cella scritta.
+
+**Il titolo di questo debito copre la maggioranza dei casi ma non tutti, e la cella piu' grave e' fra le eccezioni.** Su `A-09` x `T-07` il difetto non e' la confusione fra falsificazione e perdita: e' una **contraddizione piatta dentro lo stesso documento**. La cella dice che l'insider agisce su parametri e liste e non sul runtime; la definizione di `T-07`, ventitre' righe sopra, gli attribuisce «la distribuzione dei trust anchor e dei binari», e TM-36 nomina build, installer e store. Chi controlla il binario controlla il runtime che quel binario contiene. Verificato dal Lead alle righe 112 e 135 di `threat-model.md`. E' il difetto gia' scritto e non guardato nella sua forma piu' pura, ed e' dentro il documento di chi lo ha censito.
+
+**Un secondo difetto della matrice, che nessuno aveva censito e che questo debito non copriva.** Quattro celle della colonna `T-01` si giustificano col **movente** invece che con la capacita', in violazione del metodo che il documento si impone alla riga 101 — *«Ogni attore e' descritto per capacita' e budget, non per intenzione: la difesa si progetta sul primo, non sulla seconda»*. AGENT-007 non afferma che quelle celle siano false; afferma che **i loro motivi non sono del tipo ammesso**, il che e' la distinzione giusta e va conservata nella spec: una conclusione corretta raggiunta con un argomento inammissibile e' comunque da riscrivere, perche' e' l'argomento che il lettore successivo riusera'.
+
+**Uscita per TM-37 sciolta da AGENT-007**, che il debito aveva lasciata aperta fra tre: **attore nuovo `T-08`, compromissione dell'endpoint** — tredici celle nuove piu' tre `n/a` da riesaminare. E' la piu' cara delle tre uscite, ed e' la ragione per cui e' quella giusta.
+
 ## Valutazione — 2026-08-26 (AGENT-007)
 
 Il documento è mio, quindi questa non è una review indipendente: è

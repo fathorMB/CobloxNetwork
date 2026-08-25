@@ -1,6 +1,6 @@
 ---
 id: DEBT-017
-title: "La finestra di esposizione dell'attestazione e' skew piu' durata, e solo la durata e' limitata"
+title: "L'esposizione dell'attestazione e' misurata su un orologio che nessuno attesta"
 status: open
 category: "security"
 severity: "medium"
@@ -309,6 +309,56 @@ dipende»*, rinviando a questo debito. Quella frase è corretta ma indica il
 termine sbagliato, ed è la famiglia 2 in attesa: un'affermazione che resterà
 indietro rispetto alla regola. Va riscritta **nella stessa passata** in cui
 questo debito chiude, non dopo.
+
+## Nota del Lead — 2026-08-26
+
+**Titolo riformulato.** Il precedente era *«La finestra di esposizione
+dell'attestazione e' skew piu' durata, e solo la durata e' limitata»*, ed e'
+conservato nella storia di questo file. La riformulazione e' raccomandata da
+AGENT-007 e accolta per la ragione che porta: il titolo vecchio e' **vero e
+fuorviante**, perche' nomina il termine minore. Un debito il cui titolo indica
+la grandezza sbagliata produce una spec che vincola la grandezza sbagliata — la
+famiglia 3 del censimento, entrata dal titolo invece che dal rimedio. Il titolo
+e' un artefatto del Lead ed e' il Lead a correggerlo.
+
+**Un costo dell'esito (A) che la valutazione non nomina, e che ne cambia il
+prezzo.** AGENT-007 stabilisce che l'abuso del minorante da parte dei validatori
+e' **fail-closed**, e la direzione e' verificata: gonfiare `timestamp_ms` alza il
+minorante, quindi fa **rifiutare** piu' attestazioni. Ma *fail-closed* qualifica
+la sicurezza, non la disponibilita', e qui le due divergono in modo che va
+scritto.
+
+`identity.md` non dice che un peer senza attestazione valida viene ignorato:
+dice che **MUST be rejected and disconnected**. Ne segue che un set di validatori
+che gonfia `timestamp_ms` non degrada una verifica — **disconnette la rete**, su
+ogni nodo onesto che possieda una testa finalizzata, simultaneamente, senza
+firmare nulla di invalido.
+
+Perche' questo conta piu' di un costo generico: **e' esattamente l'attore di
+[DEBT-013], con esattamente la capacita' che [DEBT-013] gli ha accertato.** Quel
+debito ha stabilito che il set attivo scrive gli orologi della catena e che un
+terzo bloccante puo' muoverli con la catena viva e ogni blocco valido. L'esito
+(A) prenderebbe quella capacita' — oggi limitata a **rallentare** — e la
+convertirebbe in una leva di **partizione del livello di trasporto**. Il rimedio
+sposterebbe cioe' un rischio da una dimensione a un'altra, e la seconda e'
+peggiore della prima: un rallentamento e' invisibile e reversibile, una
+disconnessione di massa e' immediata.
+
+**Questo non affonda l'esito (A), e va detto anche questo.** L'ampiezza della
+leva dipende interamente dall'**unica interazione che AGENT-007 ha dichiarato non
+istruita**: se il controllo di drift verso l'alto su `timestamp_ms`
+(`ledger.md` §*Block header*) sia applicato dai validatori onesti in accettazione
+del blocco, l'inflazione e' limitata dal loro orologio e la leva e' piccola; se
+non lo sia, la leva e' illimitata. La stessa domanda aperta regge dunque **due**
+proprieta' e non una — il sync di un nodo con orologio indietro, che AGENT-007
+ha nominato, e la dimensione di questa leva, che non aveva ragione di cercare
+perche' l'aveva classificata come fallimento sicuro.
+
+**Conseguenza per la spec.** La verifica di quell'interazione non e' una
+precondizione fra le altre: e' la **prima cosa** che la spec deve stabilire, e il
+suo esito decide se (A) sia il rimedio piu' forte o il piu' caro. Se la leva
+risultasse illimitata, l'ordine di forza cambia e diventa **B+C > A**.
+
 
 ## Resolution evidence
 
