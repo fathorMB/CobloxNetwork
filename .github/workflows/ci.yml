@@ -54,6 +54,11 @@ jobs:
         run: |
           sdkmanager --install "ndk;28.2.13676358"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          # The runner image preinstalls an older NDK and exports
+          # ANDROID_NDK_ROOT for it. cargo-ndk reads both variables and warns
+          # on a mismatch; pin ROOT to the same NDK so the toolchain actually
+          # used is unambiguous rather than dependent on lookup precedence.
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_ENV"
           cargo install cargo-ndk --version 4.1.2 --locked
       - name: Build Android library and test generated Kotlin binding
         run: ./scripts/build-android.sh
