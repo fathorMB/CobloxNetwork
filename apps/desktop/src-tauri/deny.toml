@@ -1,0 +1,113 @@
+# cargo-deny configuration for the desktop shell.
+#
+# WHY THIS FILE EXISTS SEPARATELY FROM THE ROOT deny.toml
+#
+# apps/desktop/src-tauri is excluded from the root Cargo workspace, so the
+# root `cargo deny check` never sees its dependency graph -- the gap recorded
+# as DEBT-009, found when Dependabot reported an advisory on a crate the CI
+# had just declared green. The fix is a second cargo-deny run over this
+# manifest, and it needs its own configuration rather than reusing the root
+# one for a specific reason: the Tauri/GTK graph requires derogations that the
+# core workspace must NOT inherit. cargo-deny's `advisories.ignore` is keyed
+# by advisory ID with no crate scoping, so putting these entries in the shared
+# file would silently suppress the same advisories for coblox-core the day one
+# of these crates appeared in its graph. A separate file fails loudly instead.
+#
+# The cost of the separation is that the license allow-list is duplicated and
+# can drift. That trade is deliberate: a drifting allow-list produces a noisy
+# rejection in one graph and not the other, which is confusing but visible,
+# whereas a silently inherited advisory ignore is invisible. Prefer the loud
+# failure.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+
+# Every entry below is upstream of Tauri and has no resolvable fix at the
+# pinned Tauri version: cargo-deny itself reports "No safe upgrade is
+# available" for the unmaintained ones, and Dependabot confirmed the same for
+# glib (security_update_not_possible, latest resolvable 0.18.5 against a
+# lowest non-vulnerable 0.20.0). They are derogations of an unfixable
+# condition, not of an unexamined one. All of them lapse when Tauri moves off
+# the GTK3 stack; see the review condition at the bottom of this file.
+ignore = [
+  # glib::VariantStrIter has unsound Iterator/DoubleEndedIterator impls.
+  # Reachable only by calling that iterator; neither coblox-desktop nor
+  # coblox-core does -- it is pulled in transitively by the GTK3 stack that
+  # webkit2gtk requires on Linux. Re-examine if the desktop shell ever reads
+  # GVariant string arrays directly.
+  "RUSTSEC-2024-0429",
+
+  # The gtk-rs GTK3 bindings are unmaintained as a family. Tauri v2 depends on
+  # them on Linux through webkit2gtk; there is no GTK4 path available to us
+  # independently of Tauri. Ten advisories, one cause.
+  "RUSTSEC-2024-0411",
+  "RUSTSEC-2024-0412",
+  "RUSTSEC-2024-0413",
+  "RUSTSEC-2024-0414",
+  "RUSTSEC-2024-0415",
+  "RUSTSEC-2024-0416",
+  "RUSTSEC-2024-0417",
+  "RUSTSEC-2024-0418",
+  "RUSTSEC-2024-0419",
+  "RUSTSEC-2024-0420",
+
+  # The open-i18n/rust-unic Unicode crates are unmaintained as a family,
+  # reaching us through urlpattern -> tauri-utils. Five advisories, one cause.
+  "RUSTSEC-2025-0075",
+  "RUSTSEC-2025-0080",
+  "RUSTSEC-2025-0081",
+  "RUSTSEC-2025-0098",
+  "RUSTSEC-2025-0100",
+
+  # proc-macro-error is unmaintained; transitive build-time dependency only,
+  # it contributes no code to the shipped binary.
+  "RUSTSEC-2024-0370",
+]
+
+[licenses]
+version = 2
+# Kept in sync with the root deny.toml by hand -- see the note at the top of
+# this file. Two entries exist here and not there, because they arrive only
+# with the desktop graph and the root list should keep describing what the
+# core workspace actually contains:
+#   BSD-3-Clause  alloc-no-stdlib, alloc-stdlib, brotli
+#   Zlib          foldhash
+# Both are OSI-approved and FSF Free/Libre permissive licences with no
+# copyleft obligation, so they raise no compatibility question against the
+# project's own Apache-2.0.
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "LGPL-2.1-or-later",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib"
+]
+confidence-threshold = 0.8
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# coblox-desktop depends on the in-workspace coblox-core crate via a bare
+# `path` with no version. The crate sets `publish = false`, which makes this a
+# private path dependency in cargo-deny's terms -- exactly what this flag
+# exempts, without weakening the check for any published dependency.
+allow-wildcard-paths = true
+highlight = "all"
+
+# REVIEW CONDITION
+#
+# Every advisory ignored above is a consequence of Tauri v2 sitting on GTK3 on
+# Linux, or of crates reached through tauri-utils. None is a judgement that the
+# risk is acceptable in itself; each is a statement that no fix exists at the
+# pinned version. Revisit the whole `ignore` list -- do not extend it by habit
+# -- when Tauri publishes a release that moves off the GTK3 stack, or when any
+# entry acquires a resolvable upgrade path. An advisory that becomes fixable
+# and stays ignored is a real suppression, which is the failure mode DEBT-009
+# was opened about.

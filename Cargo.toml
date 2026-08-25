@@ -12,7 +12,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.96"
 license = "Apache-2.0"
-repository = "https://github.com/cobloxnetwork/coblox"
+repository = "https://github.com/fathorMB/CobloxNetwork"
 # Internal workspace crates only; none of them are published to crates.io.
 # This also makes coblox-ffi/coblox-node's path dependency on coblox-core a
 # "private path dependency" for cargo-deny's allow-wildcard-paths check.

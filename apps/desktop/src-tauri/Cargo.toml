@@ -4,6 +4,15 @@ version = "0.1.0"
 description = "Coblox desktop shell"
 edition = "2024"
 rust-version = "1.96"
+# src-tauri is excluded from the root workspace (see the root Cargo.toml
+# `exclude`), so it inherits none of [workspace.package]. These three fields
+# mirror it deliberately: without `license` cargo-deny reports the crate as
+# unlicensed, and without `publish = false` it treats the crate as public and
+# rejects the path dependency on coblox-core that allow-wildcard-paths exists
+# to permit.
+license = "Apache-2.0"
+repository = "https://github.com/fathorMB/CobloxNetwork"
+publish = false
 
 [build-dependencies]
 tauri-build = { version = "2.5.0", features = [] }
