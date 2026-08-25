@@ -132,6 +132,16 @@ profile (`memory_kib`, `iterations`, `lanes`, `tag_length_bytes`), and its own
 `iterations`, and `lanes`; each MUST exactly equal the active parameter set, so
 a validator can reject a mismatched cost before allocating any memory.
 
+That cost profile is not free to choose. The RFC 9106 parameter ranges are the
+domain of the function and are **not** a security floor: read as one, they would
+let a signed, fully conformant parameter set drop `memory_kib` to 8 KiB and
+revoke the memory-hard floor that [ADR-007] rests on, leaving no trace on chain.
+v0 therefore enforces a cost floor as a **validity rule on document acceptance**,
+specified once in
+[README.md](README.md#the-enrollment-cost-floor-is-a-validity-rule-not-a-recommendation).
+`memory_kib` and `iterations` are security parameters, not performance
+parameters.
+
 `difficulty_bits` is in the inclusive range **2–6**. That range is normative and
 replaces the 18–40 range of the SHA-256 design, which was a shape built around a
 cheap primitive and is meaningless here: with a memory-hard function the cost
@@ -195,26 +205,99 @@ order, and abandon the request at the first failure:
 7. `recent_block_id` is the locally finalized canonical block at
    `recent_block_height`, and that height is no more than the active parameter
    `recent_block_window` behind the validator's latest finalized height;
-8. **last**, and only if every check above passed, the Argon2id tag is computed
+8. the **admission shield** below is satisfied: the submitted `admission_nonce`
+   is one this validator issued to this transport peer, is unexpired and unused,
+   and `admission_tag` meets the difficulty that was issued with it;
+9. **last**, and only if every check above passed, the Argon2id tag is computed
    and MUST meet the target.
 
 Ordering alone is necessary but **not sufficient**, and the specification says so
 rather than assuming it: an attacker who holds a key can produce a request that
-passes steps 1–7 and fails only at step 8, so each such request still costs a
-validator one full evaluation. Validators therefore MUST additionally bound the
-memory-hard stage itself:
+passes the cheap checks and fails only at the memory-hard step, so each such
+request still costs a validator one full evaluation. Validators therefore MUST
+bound the memory-hard stage itself:
 
-- at most one in-flight step-8 evaluation per public key;
-- a declared maximum number of concurrent step-8 evaluations, whose product with
+- at most one in-flight step-9 evaluation per public key;
+- a declared maximum number of concurrent step-9 evaluations, whose product with
   `memory_kib` is the enrollment subsystem's declared peak memory budget;
 - a bounded admission queue that sheds with `rate_limited` when saturated,
   never by accepting unverified requests and never by unbounded queueing;
-- a failed step 8 counted against the source connection for rate limiting.
+- a failed step 9 counted against the source connection for rate limiting.
 
 These bounds are local operational policy, not consensus, and are deliberately
 not signed network parameters: they govern a validator's own resources and must
 be tunable per deployment. What is normative is that a bound exists, is
 declared, and fails closed.
+
+### The admission shield, and why bounded memory is not enough
+
+Bounding the memory-hard stage converts an exhaustion attack into a **starvation**
+attack, and v0 states the conversion rather than presenting the bounds as a
+solution. Signing a syntactically perfect request costs an attacker roughly
+20 µs on one core; refusing it at step 9 costs a validator a 64 MiB slot for
+hundreds of milliseconds. The asymmetry is of order **10⁴:1**. A validator with
+a 4 GiB peak budget sustains a few dozen evaluations per second and is saturated
+by a single attacking core with three orders of magnitude to spare. Because an
+enrollment certificate needs a quorum, an attacker does not have to reach every
+validator: saturating a little more than **one third of the voting power** — on
+a 100-member set, about 34 cores — means no request ever reaches the threshold,
+and onboarding stops network-wide at negligible cost, without the attacker
+holding a single token or enrolled identity.
+
+The shield therefore sits between step 7 and step 9, and it has two parts. Both
+are required; neither is sufficient alone.
+
+**Part 1 — a bound source.** A validator issues an `admission_nonce` only over
+an established, authenticated transport connection, and the nonce is bound to
+that libp2p Peer ID and the observed remote address, single-use, and short-lived
+(seconds, not minutes). It is not precomputable, not transferable between
+validators, and not reusable. This costs an honest requester one round trip and
+costs an attacker a distinct **reachable** address for every concurrent slot it
+wants to hold, which is the part of the attack that does not scale with CPU.
+
+**Part 2 — a constant-verification puzzle.** With the nonce, the validator
+issues `admission_difficulty_bits`. The requester searches `admission_solution`
+until `admission_tag` — defined in the
+[hash preimage registry](README.md#hash-preimage-registry) — has that many
+leading zero bits, most significant bit first. Verification is **one SHA-256**.
+The primitive is deliberately SHA-256 and not Argon2id, and this must not be
+"corrected" later: a memory-hard function costs the verifier what it costs the
+producer, which is exactly the property that makes it useless as a shield, and
+the hardware advantage that disqualifies SHA-256 for anti-Sybil work is harmless
+when the defender's cost is constant.
+
+**The difficulty is adaptive, and this is not a detail.** A fixed difficulty
+large enough to blunt a GPU is not affordable on the devices this network exists
+for. Sizing it against an attacker at ~10¹⁰ H/s and a validator capacity of tens
+of evaluations per second lands near 2^28 attempts, which the declared reference
+device would spend tens of seconds on — more than the enrollment proof of work it
+is meant to protect, and paid once **per validator** the requester must reach for
+quorum. Validators therefore MUST set `admission_difficulty_bits` as a function
+of observed saturation of the step-9 stage:
+
+- **zero** while the memory-hard queue is below its declared threshold, so that
+  ordinary onboarding pays nothing beyond the round trip of Part 1;
+- rising only under saturation, and only as far as a declared maximum;
+- that maximum MUST NOT exceed the difficulty whose expected solution time on
+  the **declared reference device** exceeds the time that same device spends on
+  the enrollment proof of work itself. A shield that costs the honest phone more
+  than the thing it shields has replaced the attack, not stopped it.
+
+**Declared limit — availability of enrollment is not a protocol guarantee.**
+This is stated with the same plainness as the Sybil limits below, because it is
+the same kind of honesty. Under sustained attack an honest requester pays a real
+puzzle, per validator, and slow devices are the ones that suffer; the shield
+converts a permanent, cost-free shutdown into a degradation whose cost the
+attacker also pays and cannot amortize across validators. It does not make
+enrollment always available. The bounds and the difficulty schedule are local
+operational policy and are **not** signed network parameters, so a deployment's
+onboarding availability depends on choices no certificate attests. The
+cryptographic guarantees of this document do not extend to it.
+
+Conformance fixture `ADM-1`: a burst of validly signed enrollment requests
+carrying no proof of work MUST leave bounded **both** the validator's enrollment
+memory **and** the admission latency of concurrent honest requests. A test that
+measures only memory does not exercise this section.
 
 ### Declared limits of this mechanism
 
@@ -239,7 +322,10 @@ omits them is dishonest rather than merely incomplete:
 2. **A one-time cost cannot price a perpetual flow.** Enrollment is paid once
    while existence income accrues every epoch, so any entry proof is amortized in
    finite time regardless of its difficulty. Argon2id raises the floor by about
-   two orders of magnitude over SHA-256; it does not change this.
+   two orders of magnitude over SHA-256 — an advantage that holds only because
+   the cost floor is a validity rule and not a recommendation, and that a
+   governed parameter set could otherwise have removed entirely — and it does not
+   change this.
 3. **Sybil containment in Coblox is therefore economic, not cryptographic.** It
    rests on the per-epoch existence fund being capped and shared rather than
    paid per node, and on validator eligibility being anchored to storage and
@@ -325,12 +411,16 @@ MUST NOT reveal key-store or validator-internal details.
 Open alternatives are (a) a fixed `difficulty_bits` and cost profile for an
 entire protocol epoch, simple and predictable, or (b) bounded adjustment at
 epoch boundaries using observed enrollment rate, more adaptive but manipulable.
-The launch values of `memory_kib`, `iterations`, and `lanes` are equally open
-and must be chosen together with `difficulty_bits`, against the declared
-reference device. AGENT-007 owns the security recommendation and the Project
-Lead/AGENT-002 own the signed parameter governance.
+The launch values of `memory_kib`, `iterations`, and `lanes` are open **only
+above the cost floor**, and must be chosen together with `difficulty_bits`,
+against the declared reference device. Governance may raise the floor; it cannot
+lower it. AGENT-007 owns the security recommendation and the Project
+Lead/AGENT-002 own the signed parameter governance. The admission shield's
+saturation threshold and maximum difficulty are per-deployment operational
+values, not governance values, and are open in the same sense.
 
 The algorithm, the salt and password construction, the verification rules, the
-mandatory validation order with its resource bounds, the 2–6 difficulty safety
-bounds, the per-identity linear cost, and the declared limits above are **not**
-draft.
+mandatory validation order with its resource bounds, the cost floor and its
+status as a validity rule, the admission shield and its adaptive-difficulty
+requirement, the 2–6 difficulty safety bounds, the per-identity linear cost, and
+the declared limits above are **not** draft.

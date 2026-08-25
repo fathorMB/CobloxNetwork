@@ -9,7 +9,11 @@ updated: 2026-08-25
 
 ## Current focus
 
-**Sessione autonoma del Lead, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead opera senza attendere conferme. Risultati finora: **[SPEC-004] chiusa** (prima spec `done` del progetto), **[ADR-007] accettato** con la decisione anti-Sybil presa su delega, metrica di successo di [[PROJECT]] riformulata, **[SPEC-003] accettata tecnicamente** ([REVIEW-004]) ma bloccata dal gate dell'operatore, tre debiti nuovi registrati, primo commit di chiusura spinto su `main`. In lavorazione: Lotto B su SPEC-001 e remediation su SPEC-002.
+**Sessione autonoma del Lead conclusa, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead ha operato senza attendere conferme.
+
+**M-01 è di fatto completata: tre spec su quattro sono `done`** ([SPEC-001], [SPEC-002], [SPEC-004]), e la quarta ([SPEC-003]) è accettata tecnicamente e attende solo che l'operatore guardi i mockup. Sette review prodotte, sette dispatch, [ADR-007] deciso su delega con la metrica di [[PROJECT]] riformulata, quattro debiti nuovi registrati, tre commit spinti su `main`.
+
+Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007] tocca una promessa di prodotto ed è superabile se non concorda; e un proprio errore di processo è documentato in `.lmbrain/knowledge/commit-discipline.md`.
 
 ## Current milestone
 
@@ -21,16 +25,18 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 
 ## In progress
 
-- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). In `review`. Lotto A rimediato e verificato. **Lotto B dispacciato dal Lead nella notte** (modello Opus), ora sbloccato da [ADR-007]: Argon2id al posto di SHA-256 con controlli riordinati contro il DoS, vincolo `k < 1` sulla quota al creatore, revoca che forza la transizione del validator set, casualità delle challenge verificabile, consenso dell'host valutabile automaticamente. Poi resta la sola ri-attestazione di `GATE-SECREVIEW` da parte di AGENT-007, ora libera. **In corso.**
+Nessuna spec in lavorazione. L'unica non chiusa è [SPEC-003], ferma sul solo gate dell'operatore.
 - [SPEC-003] Design system → AGENT-006 (Lia Wireframe). In `review`, **accettata tecnicamente** dal Lead con [REVIEW-004]: sette criteri su sette verificati meccanicamente, un solo finding di severità bassa che non blocca. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`. **Bloccata dal solo `GATE-OPERATOR-LOOK`:** il sistema rifiuta `spec_done` finché l'operatore non attesta di aver visto e approvato la direzione estetica, e il Lead non può farlo al suo posto.
 
 ## Done
 
+- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
 - [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` derogato e coperto da [DEBT-001]. Commit `81cca93`.
 - [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
 
 ## Blockers and risks
 
+- **Il claim di sicurezza, nella forma che AGENT-007 giudica difendibile.** La rete è robusta contro la falsificazione ma **non** resistente ai Sybil per via crittografica, e tre cose non sono garantite: la disponibilità dell'enrollment sotto attacco sostenuto (i dispositivi lenti soffrono per primi), la resistenza Sybil crittografica, e la verifica indipendente dell'eleggibilità a validatore prima di M-02. Parole della reviewer: *"il progetto non deve chiamare la rete super-sicura senza quelle tre frasi accanto; con quelle accanto il claim è più solido della media a questo stadio, e la parte migliore non è nessun singolo meccanismo ma il fatto che i limiti siano quantificati."*
 - **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Da rivedere con l'operatore al risveglio:** è una decisione di prodotto presa in sua assenza e, se non concorda, va superata con una nuova ADR e non modificata in silenzio.
 - **Attenzione, decisione delegata di rilievo:** il progetto ora dichiara di essere robusto contro la falsificazione ma **non** resistente ai Sybil per via crittografica. È una rinuncia esplicita a una promessa, resa in cambio di onestà verificabile.
 - **BLOCCO 2 — risolto per ora con una deroga.** La prima run CI (commit `4ea0db9`) è fallita in 6 secondi **senza eseguire alcun job**: `The job was not started because recent account payments have failed or your spending limit needs to be increased`. Problema dell'account GitHub, non del codice. L'operatore ha concesso il 2026-08-25 la deroga su `GATE-CI-GREEN`, registrata come **[DEBT-001]** (open, owner AGENT-008, severità high). I criteri che richiedevano la verifica *in CI* sono marcati `[~] ... | waived=DEBT-001`; la verifica locale equivalente **non** è derogata. Alla ripresa della fatturazione, DEBT-001 impone una run verde e la ri-attestazione del gate.
@@ -44,6 +50,7 @@ Nessuna: tutte e quattro le spec di M-01 sono avviate.
 | [DEBT-001] | high | AGENT-008 | La pipeline CI non è mai stata eseguita, `GATE-CI-GREEN` derogato. Sbloccabile solo dalla fatturazione GitHub dell'operatore. |
 | [DEBT-006] | high | AGENT-LEAD | La quota al creatore di [ADR-006] obbliga a pubblicare chi è abbonato a cosa. È l'unica superficie priva di un ADR alle spalle. |
 | [DEBT-007] | high | AGENT-002 | La forma del reddito di esistenza non è decisa e determina `α`, il parametro più importante dell'economia. |
+| [DEBT-008] | low | AGENT-001 | Due frasi della specifica del protocollo promettono poco più di quanto le regole impongano. Una riga ciascuna, M-02. |
 
 ## Next recommended actions
 

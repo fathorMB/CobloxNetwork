@@ -11,7 +11,8 @@ updated: 2026-08-25
 
 ### M-01 — Fondamenta: protocollo su carta e scheletro del core
 
-- `status`: proposed
+- `status`: active
+- `nota`: SPEC-001, SPEC-002 e SPEC-004 sono `done` al 2026-08-25. Resta SPEC-003, accettata tecnicamente e ferma sul solo gate dell'operatore. Debiti aperti che nascono da questa milestone: DEBT-001, DEBT-005, DEBT-006, DEBT-007, DEBT-008.
 - `outcome`: Le specifiche del protocollo (identità dei nodi, formato ledger, messaggi P2P, manifest delle app) esistono come documenti versionati; il workspace Rust `coblox-core` compila su Win/Linux/Android con CI multipiattaforma; il design system "hacker" ha i suoi token di base (palette, tipografia, componenti chiave); il threat model iniziale è redatto.
 - `specs`: [SPEC-001, SPEC-002, SPEC-003, SPEC-004]
 - `risks`: [toolchain Android/UniFFI, sotto-specificare l'elezione dei validatori]

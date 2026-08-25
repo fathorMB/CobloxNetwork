@@ -110,7 +110,8 @@ MUST NOT evict a still-live entry. Clock rollback, unavailable durable cache,
 or loss of cache integrity fails closed for protected protocols. Either
 duplicate is a replay. GossipSub's message-ID function MUST use this verified ID.
 
-The complete v0 enum is `enrollment_request`, `enrollment_response`,
+The complete v0 enum is `enrollment_admission_request`,
+`enrollment_admission_challenge`, `enrollment_request`, `enrollment_response`,
 `challenge_request`, `challenge_response`, `ledger_status_request`,
 `ledger_status_response`, `ledger_range_request`, `ledger_range_response`,
 `balance_proof_request`, `balance_proof_response`, `block_announcement`, and
@@ -127,12 +128,58 @@ Canonical serialized example:
 The `message_type` value determines the exact payload schema. No other custom
 message types exist in v0.
 
+### `enrollment_admission_request` / `enrollment_admission_challenge`
+
+The enrollment stream is a three-message exchange, not a single submission,
+because it is the only stream open to unauthenticated peers and the only one
+whose validation costs a 64 MiB memory-hard evaluation. The reasoning and the
+normative bounds are in
+[identity.md](identity.md#the-admission-shield-and-why-bounded-memory-is-not-enough);
+only the formats are here.
+
+```text
+EnrollmentAdmissionRequest = {
+  "public_key": base64url(32 bytes)
+}
+EnrollmentAdmissionChallenge = {
+  "admission_nonce": base64url(16 bytes),
+  "admission_difficulty_bits": u64-string,
+  "expires_at_ms": u64-string
+}
+```
+
+The validator generates `admission_nonce` from a cryptographically secure random
+generator, binds it to the authenticated libp2p Peer ID and observed remote
+address of the connection that asked for it, and accepts it exactly once before
+`expires_at_ms`. A nonce MUST NOT be accepted on another connection, from
+another public key, or by another validator. `admission_difficulty_bits` MAY be
+`"0"`, and is under normal load.
+
+This exchange is a resource shield, not an authorization step: satisfying it
+proves nothing about identity and grants nothing.
+
 ### `enrollment_request` / `enrollment_response`
 
-`enrollment_request` payload is the `EnrollmentRequest` defined in
-[identity.md](identity.md#enrollment-request). Because the sender is not yet
-enrolled, its envelope `sender_node_id` and envelope signature are checked
-against the request key, not a certificate.
+```text
+EnrollmentSubmission = {
+  "admission_nonce": base64url(16 bytes),
+  "admission_solution": u64-string,
+  "request": EnrollmentRequest
+}
+```
+
+`enrollment_request` payload is an `EnrollmentSubmission` wrapping the
+`EnrollmentRequest` defined in
+[identity.md](identity.md#enrollment-request). The wrapper carries the shield
+solution **outside** the signed object on purpose: `admission_nonce` is chosen
+by the validator and differs per validator, so putting it inside
+`EnrollmentRequest` would force one signature and one
+`enrollment_request_hash` per validator and break the single-certificate model.
+`admission_tag` is computed from the registry formula over
+`request.public_key`, which binds the solution to the enrolling key.
+
+Because the sender is not yet enrolled, its envelope `sender_node_id` and
+envelope signature are checked against the request key, not a certificate.
 
 ```text
 EnrollmentResponse = {
@@ -143,8 +190,12 @@ EnrollmentResponse = {
 }
 ```
 
-Allowed error codes are `invalid_request`, `invalid_pow`, `stale_parameters`,
-`duplicate_identity`, `rate_limited`, and `internal_unavailable`. The response
+Allowed error codes are `invalid_request`, `invalid_admission`, `invalid_pow`,
+`stale_parameters`, `duplicate_identity`, `rate_limited`, and
+`internal_unavailable`. `invalid_admission` covers an unknown, expired, reused,
+or wrongly bound `admission_nonce` and an `admission_tag` below the issued
+difficulty; a requester that receives it MUST obtain a fresh challenge rather
+than retrying the same submission. The response
 hash MUST equal the registry `enrollment_request_hash` of the received request.
 The response MUST NOT echo the proof or expose validation internals.
 
@@ -207,7 +258,13 @@ The subject-to-issuer assignment is likewise derived, not chosen: the
 `(issuer_node_id, subject_node_id)` pair MUST be one the epoch's assignment
 function produces from the same finalized beacon over the eligible sets, and
 every subject MUST be covered by at least two distinct issuers per epoch, none
-of which is the subject. The assignment function is deterministic, recomputable
+of which is the subject. **That coverage rule is the mitigation of beacon
+grinding, not a redundancy measure**: a proposer colluding with one issuer can
+search the legal `timestamp_ms` values for a favourable beacon, but the second
+independent issuer still queries the subject from an unground assignment, so the
+attack degrades from passing the challenge to passing one of two. The cost of
+that search is quantified in
+[ledger.md](ledger.md#challenge-evidence). The assignment function is deterministic, recomputable
 by any observer from finalized data, and specified with the challenge engine in
 M-03; the fields it needs are fixed here so that adding it later is not a
 breaking format change.
@@ -371,6 +428,15 @@ announcements require an enrolled validator sender but are treated as hints.
 Application objects MUST NOT use libp2p's anonymous author mode.
 
 Per-peer queues are bounded. When full, nodes drop duplicate/low-priority hints
-before finalized headers or direct responses. Challenge request and ledger sync
-streams use timeouts and explicit concurrency limits; no untrusted peer can
-cause an unbounded task, allocation, or retained response.
+before finalized headers or direct responses. Enrollment, challenge request, and
+ledger sync streams use timeouts and explicit concurrency limits; no untrusted
+peer can cause an unbounded task, allocation, or retained response. The
+enrollment stream is named first deliberately: it is the only one that accepts
+unauthenticated transport peers, so it is the only one to which "no untrusted
+peer" fully applies, and it is the most expensive to validate. Its specific
+bounds — the per-key and global caps on the memory-hard stage, the shedding
+queue, and the admission shield — are normative in
+[identity.md](identity.md#validation-order-and-its-reason) and are not restated
+here. An implementer building the transport layer from this document alone MUST
+follow that link; implementing the limits only for the streams historically
+listed here would leave the one stream that needs them unprotected.

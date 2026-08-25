@@ -60,9 +60,15 @@ Protobuf formats; only Coblox application payloads use JCS.
 - Hash: SHA-256.
 - Identity and validator signatures: Ed25519 (RFC 8032), 32-byte public keys and
   64-byte signatures.
-- Enrollment proof of work: Argon2id (RFC 9106), version `0x13`. SHA-256 is not
-  a proof-of-work primitive in v0; it remains the hash for identifiers,
-  commitments, and Merkle trees.
+- Enrollment proof of work: Argon2id (RFC 9106), version `0x13`. SHA-256 is
+  **not** the anti-Sybil proof-of-work primitive in v0; it remains the hash for
+  identifiers, commitments, and Merkle trees, and it is the primitive of the
+  enrollment admission shield of
+  [identity.md](identity.md#validation-order-and-its-reason). The two uses are
+  not in tension and the distinction is load-bearing: an anti-Sybil cost must be
+  expensive to *produce* and is ruined by a hardware advantage, whereas a
+  denial-of-service shield must be cheap to *verify* and tolerates one. SHA-256
+  is the wrong primitive for the first and the right one for the second.
 - `chain_id`: `sha256:` plus
   `SHA-256("coblox-chain-id-v0\0" || u32be(len(network_id_utf8)) ||
   network_id_utf8 || raw_32_bytes(genesis_block_id))`.
@@ -154,6 +160,13 @@ enrollment_pow_salt     = first 16 bytes of
                           H("coblox-enrollment-pow-salt-v0\0"
                             || chain_id_32 || public_key_32
                             || raw_32_bytes(recent_block_id))
+admission_tag           = H("coblox-enrollment-admission-v0\0"
+                            || chain_id_32 || admission_nonce_16
+                            || public_key_32 || u64be(admission_solution))
+weak_subjectivity_checkpoint_hash =
+                          H("coblox-weak-subjectivity-checkpoint-v0\0"
+                            || chain_id_32
+                            || JCS(UnsignedWeakSubjectivityCheckpoint))
 ```
 
 `ChallengeRequestWithoutIdOrSignature` is the challenge request with both
@@ -200,7 +213,17 @@ signature for subject `cblx1fixture`, issued by `cblx1issuerfixture` at 1,
 deadline 2, `randomness` equal to `RND-0`, `issuer_commitment` equal to `CMT-0`,
 the `RND-0` randomness source with `commitment_epoch:"1"`, and
 `response_bytes:"1"`. `RESP-0` is an unsigned response at time 2, challenge
-hash `33` repeated 32 bytes, and one zero response byte. These definitions are
+hash `33` repeated 32 bytes, and one zero response byte. `ADM-0` uses zero
+`chain_id`, `admission_nonce` `88` repeated 16 bytes (`iIiIiIiIiIiIiIiIiIiIiA`
+as unpadded base64url), the identity fixture public key of
+[identity.md](identity.md#node-identifier), and `admission_solution` `"0"`.
+`WSC-0` is the unsigned
+weak subjectivity checkpoint of [Trust anchors](#trust-anchors) with
+`schema_version:"0.1"`, `network_id:"fixture"`, zero `chain_id`, `height:"1"`,
+`block_id` `66` repeated 32 bytes, `timestamp_ms:"1"`, `issued_at_ms:"1"`,
+`validator_set_hash` `77` repeated 32 bytes,
+`max_weak_subjectivity_age_ms:"1"`, an empty `revoked_validators` array, and
+the corresponding empty `revocation_root` `H(0x33)`. These definitions are
 exact after JCS; no omitted/default fields are implied.
 
 | Hash | Fixture | Expected value |
@@ -216,6 +239,8 @@ exact after JCS; no omitted/default fields are implied.
 | `challenge_randomness` | `RND-0` | `sha256:8cebe4ad890bd41e8c37b87ad976ad92b8ef35aa3284c441d86691cfdaad88d7` |
 | `request_hash` | `REQ-0` | `sha256:8beb98273d89ed31dd62803506e6739fc83ccf3bbca9c20d1028b998fa033360` |
 | `response_hash` | `RESP-0` | `sha256:cb7b622e8c2530b8da824765ccdd58cc29b116824bc8ad527fde2f262647df41` |
+| `admission_tag` | `ADM-0` | `sha256:457915b8cd8816c5fe76651bdda0578983f8e393c7e4fe0b24376ca0bca22628` |
+| `weak_subjectivity_checkpoint_hash` | `WSC-0` | `sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e` |
 
 `challenge_randomness` is carried on the wire as the unpadded base64url of those
 32 bytes, which for `RND-0` is `jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc`.
@@ -286,11 +311,69 @@ ConsensusParametersBody = {
 }
 ```
 
-`pow_algorithm` MUST be `argon2id-leading-zero-bits-v0` in v0. Its cost
-parameters obey the RFC 9106 limits: `lanes` in 1–16, `memory_kib` at least
-`8 * lanes`, `iterations` at least 1, and `tag_length_bytes` exactly 32. A
-document outside those ranges is invalid, so a governance change cannot
-silently reduce the enrollment floor to zero cost.
+`pow_algorithm` MUST be `argon2id-leading-zero-bits-v0` in v0.
+
+#### The enrollment cost floor is a validity rule, not a recommendation
+
+The parameter ranges of [RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)
+— parallelism `p` "from 1 to 2^(24)-1", memory "from 8\*p to 2^(32)-1"
+kibibytes, passes "from 1 to 2^(32)-1" — are the **domain of the function**, not
+a secure configuration. Taking them for a security floor would leave
+`memory_kib` legally as low as 8 KiB at `lanes: 1`, which is roughly a
+factor 8,000 below the profile [ADR-007] assumed and a *larger* attacker
+advantage than the SHA-256 ratio that motivated that decision. A governed
+parameter set could then revoke the memory-hard floor while remaining fully
+conformant and leaving no on-chain trace.
+
+v0 therefore enforces a cost floor **when the document is accepted**, using the
+same mechanism as the creator-share cap of
+[ledger.md](ledger.md#creator-share-cap-a-validity-rule-not-a-policy-note). An
+`enrollment_parameters` document is **invalid**, not merely unwise, unless all
+of the following hold:
+
+```text
+lanes in 1..=16                                    // domain, narrowed
+tag_length_bytes == 32
+memory_kib      >= 65536                           // memory-hardness floor
+iterations      >= 1                               // domain
+memory_kib * iterations >= 196608                  // cost-area floor, checked u128
+```
+
+`memory_kib` and `iterations` are **security parameters, not performance
+parameters**, and this document says so explicitly so that future governance
+knows what it is touching. The two constraints are separate on purpose:
+
+- the `memory_kib >= 65536` floor preserves *memory-hardness itself*. Trading
+  memory for passes — say 8 KiB with 24,576 iterations — reaches the same
+  cost-area on paper while making the function compute-bound and perfectly
+  GPU-friendly, which is precisely the property [ADR-007] rejected SHA-256 for;
+- the `memory_kib * iterations >= 196608` floor fixes the *amount of work*, in
+  KiB-passes, at no less than the RFC's second recommended profile
+  (`m = 2^16`, `t = 3`).
+
+Expressing the second constraint as an area rather than as `iterations >= 3` is
+deliberate. A literal `iterations >= 3` rule would reject the RFC's **first**
+recommended profile — "a uniformly safe option", `t = 1`, `p = 4`,
+`m = 2^21` (2 GiB) — which is the *stronger* of the two. The area form admits
+both RFC recommendations and rejects everything weaker than either.
+
+Boundary conformance fixtures, which a suite MUST exercise:
+
+| `memory_kib` | `iterations` | Verdict | Reason |
+| --- | --- | --- | --- |
+| `"65536"` | `"3"` | valid | RFC second recommended profile; exactly at the floor |
+| `"65535"` | `"3"` | **invalid** | below the memory-hardness floor |
+| `"65536"` | `"2"` | **invalid** | area `131072 < 196608` |
+| `"2097152"` | `"1"` | valid | RFC first recommended profile, 2 GiB |
+| `"8"` | `"1"` | **invalid** | RFC domain minimum at `lanes: 1`; not a security floor |
+
+A network MUST NOT lower these minima by governance. Raising them is permitted
+and is the intended adjustment path. Because the floor is stated against the
+**declared reference device** of
+[identity.md](identity.md#one-time-anti-sybil-proof-of-work), any proposal to
+change it requires re-declaring and re-publishing that device and its measured
+onboarding time; a cost floor without the device it was measured on is not a
+bound.
 
 `publisher_reward_cap_denominator` MUST be non-zero and
 `publisher_reward_cap_numerator` MUST be strictly smaller than it. That
@@ -338,13 +421,116 @@ gossiped onward.
 
 A signed network distribution MUST ship the network ID, genesis block ID,
 derived chain ID, genesis validator set, initial protocol documents, and a weak
-subjectivity checkpoint `(height, block_id, timestamp_ms, validator_set_hash)`.
-The checkpoint MUST be finalized, no older than
-`max_weak_subjectivity_age_ms`, and signed by the network-release trust key. A
-fresh client MUST refuse genesis-only synchronization when the checkpoint is
-missing, invalid, or stale; it requires a newer distribution obtained through
-an authenticated release channel. These values are trust anchors, not
-discoverable security facts. Network peers cannot replace that external trust.
+subjectivity checkpoint. A fresh client MUST refuse genesis-only
+synchronization when the checkpoint is missing, invalid, or stale; it requires a
+newer distribution obtained through an authenticated release channel. These
+values are trust anchors, not discoverable security facts. Network peers cannot
+replace that external trust.
+
+### Weak subjectivity checkpoint
+
+The checkpoint is the light client's only anchor against the long-range attack,
+so it is specified here as a normative object rather than described in prose.
+This schema is the single definition; [ledger.md](ledger.md#light-client-balance-verification)
+consumes it and does not restate its fields.
+
+```text
+UnsignedWeakSubjectivityCheckpoint = {
+  "schema_version":"0.1",
+  "network_id":string,
+  "chain_id":sha256-string,
+  "height":u64-string,
+  "block_id":sha256-string,
+  "timestamp_ms":u64-string,
+  "issued_at_ms":u64-string,
+  "validator_set_hash":sha256-string,
+  "max_weak_subjectivity_age_ms":u64-string,
+  "revoked_validators":[{"node_id":string,"effective_height":u64-string}],
+  "revocation_root":sha256-string
+}
+WeakSubjectivityCheckpoint = UnsignedWeakSubjectivityCheckpoint + {
+  "trust_key":base64url(32 bytes),
+  "signature":base64url(64 bytes)
+}
+```
+
+`height`/`block_id`/`validator_set_hash` describe a **finalized** block and its
+active set; `timestamp_ms` is that block header's timestamp and `issued_at_ms`
+is when the checkpoint itself was produced. The two are distinct and both are
+required: age is measured on `issued_at_ms`, chain position on `timestamp_ms`.
+
+The signature uses domain `coblox-weak-subjectivity-signature-v0` and covers
+`raw_32_bytes(weak_subjectivity_checkpoint_hash)` from the preimage registry,
+through the global chain-bound procedure. A checkpoint whose `chain_id` does not
+equal the client's configured chain ID, or whose `trust_key` the client does not
+hold, is rejected; a client MUST NOT learn a trust key from a checkpoint, from a
+peer, or from any network source.
+
+**Revocation commitment.** `revoked_validators` lists every identity revoked by
+a finalized `revoke_identity` as of `height` that held a seat in any validator
+set active at or after its own `effective_height`. Entries are unique and sorted
+bytewise by `node_id`. The commitment mirrors the subscription tree of
+[ledger.md](ledger.md#mint-existence-income-work-compensation-and-publisher-reward):
+
+```text
+revocation_leaf  = H(0x30 || u32be(len(node_id_utf8)) || node_id_utf8
+                          || u64be(effective_height))
+revocation_node  = H(0x31 || left_32 || right_32)
+revocation_empty = H(0x32)
+```
+
+The tree preserves sorted order and pads to a power of two with
+`revocation_empty`; an empty list uses `H(0x33)` as `revocation_root`, which is
+`sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce`.
+Fixture `REVL-0`, the leaf for `cblx1revokedfixture` at `effective_height` 50,
+is `sha256:7fb1f4024627c413cbf70b49a390b6d31778e667e86042864c4bed107cd52497`,
+which is also the single-entry root. The list is carried in full because
+validator revocations are rare and the checkpoint is an out-of-band release
+artifact, not a wire object; the root exists so that a future proof-served form
+does not change the signed bytes.
+
+**Why the light client needs this.** It is the closure of the revocation rule
+of [ledger.md](ledger.md#revocation-forces-a-validator-set-transition) for
+clients that never see transactions. Without it, an attacker holding the leaked
+consensus keys of a revoked super-majority can continue an
+hash-continuous chain whose every `key_binding_signature` still verifies, and a
+light client following it passes every other check. The rule is stated with the
+verification algorithm at
+[ledger.md](ledger.md#light-client-balance-verification).
+
+### The network-release trust key
+
+The trust key is an Ed25519 key held by the network's release process, not by
+any validator, and not by a node. Its provenance and lifecycle are normative:
+
+- the 32-byte public key ships **inside** the signed network distribution and in
+  no other channel. It is configuration, not a discoverable fact;
+- a distribution MAY carry more than one trust key. A client accepts a
+  checkpoint signed by any key it currently holds, which is what makes rotation
+  possible without a flag day;
+- rotation is performed by publishing a new distribution that contains both the
+  outgoing and the incoming key, and then a later distribution that contains
+  only the incoming key. A client that skips the overlapping release cannot
+  verify newer checkpoints and MUST fail closed, reporting that it needs a newer
+  distribution — it MUST NOT accept an unknown key on the strength of a peer
+  claim, a self-signed successor, or a checkpoint that carries its own key;
+- compromise recovery is out-of-band by construction: it is a new authenticated
+  release, because a compromised signer can otherwise sign whatever supersession
+  message the protocol would define. v0 states this rather than implying that a
+  network mechanism exists;
+- **declared limit.** A client whose distribution is older than the compromise
+  will accept checkpoints from the compromised key until it updates. The
+  containment is the release channel's own authentication and the non-regression
+  rule of the light-client algorithm, not the protocol.
+
+**Resolving the parameter circularity.** `max_weak_subjectivity_age_ms` is a
+consensus parameter that a client would have to read from the chain before it is
+entitled to trust the chain. The checkpoint therefore carries its own copy, and
+the value a client uses at step 1 of the light-client algorithm is **the one in
+the signed checkpoint**, never one learned from a peer. Once the client has an
+authenticated header it MUST check that the two agree and fail closed if they do
+not; a mismatch means the distribution and the chain disagree about the trust
+window.
 
 ## DRAFT: governance-selected launch parameters
 

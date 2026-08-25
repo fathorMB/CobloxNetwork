@@ -172,6 +172,22 @@ There is no third outcome: a host MUST NOT grant a capability, raise a ceiling,
 partially accept, or defer to an operator prompt that nobody will answer. A
 missing or unparseable policy means `accept_protocol_assignments` is false.
 
+**Publication and discovery: the policy is local.** `HostAcceptancePolicy` is
+**not a network object** in v0. It is not published, not signed, not gossiped,
+and has no hash domain or preimage; it carries `schema_version` because it is a
+persisted local configuration file that must survive upgrades, not because it
+travels. Protocol assignment is therefore **optimistic**: the assigning path
+does not know a host's policy in advance, assigns, and learns the constraint
+from the refusal. The refusal is the designed discovery mechanism, and the
+per-node refusal list of [ADR-006] is its normal — not exceptional — input.
+
+The consequence is a liveness cost, stated rather than left to be discovered:
+assignment to a host whose policy excludes the app wastes one round of the
+reassignment path. It is not a security cost, because the failure mode is
+refusal and refusal is safe. Publishing the policy would turn it into a signed
+object needing a domain, a preimage, and a size limit, and would leak each
+host's configuration to the network; v0 declines that trade and says so.
+
 The interactive grant of the installation steps below applies only to a
 **voluntary installation by a user on their own device**, never to a protocol
 assignment. The two paths are disjoint and an implementation MUST NOT

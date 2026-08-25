@@ -99,6 +99,7 @@ MintBody = {
   "policy_hash":sha256-string,
   "evidence_tx_ids":[sha256-string],              // existence/work only
   "eligible_node_count":u64-string,               // existence only
+  "eligible_set_root":sha256-string,              // existence only
   "work_kind":"availability"|"storage"|"compute", // work only
   "app_id":sha256-string,                         // publisher only
   "active_subscriber_count":u64-string,           // publisher only
@@ -108,8 +109,8 @@ MintBody = {
 MintAuthorization = {"quorum_certificate":TransactionQuorumCertificate}
 ```
 
-For `existence_income`, `work_kind` is absent, `eligible_node_count` is
-required, and evidence MUST establish the configured availability threshold for
+For `existence_income`, `work_kind` is absent, `eligible_node_count` and
+`eligible_set_root` are required, and evidence MUST establish the configured availability threshold for
 that node and epoch. For `work_compensation`, `work_kind` is required and
 evidence MUST establish the measured resource contribution. Evidence IDs are
 unique and sorted bytewise. The reward function in the signed `policy_hash`
@@ -146,11 +147,36 @@ fraction is a governance quantity monitored under `SEC-REQ-18`, owned by M-02
 and M-03, and is deliberately not a schema field here: it is an observed ratio
 between channels, not a knob.
 
-Declared limit: `eligible_node_count` is committed in the mint and recomputed by
-full validators from finalized evidence, but v0 does not commit a per-epoch
-eligible-set root, so a light client verifies the arithmetic and the quorum
-rather than independently recomputing eligibility. A per-epoch eligibility
-commitment is M-02 work.
+`E` is a divisor, so a quorum that inflates it silently reduces every honest
+node's income and the difference is simply never minted, appearing nowhere as
+inflation. The count is therefore committed to the set it counts, using the same
+construction as the subscription tree below. Entries are the `account_key`s of
+the nodes that met the threshold for that epoch, unique and sorted bytewise:
+
+```text
+eligible_leaf  = H(0x24 || u64be(reward_epoch) || account_key_32)
+eligible_node  = H(0x25 || left_32 || right_32)
+eligible_empty = H(0x26)
+```
+
+The tree preserves sorted order and pads to a power of two with
+`eligible_empty`; zero entries use `H(0x27)` as the root, which cannot appear in
+a valid mint because `E > 0`. Full validators already recompute `E` from the
+finalized evidence of that epoch, so they hold the exact set: they MUST also
+recompute `eligible_set_root` from it and reject a mint whose root differs,
+exactly as they reject a mint whose count or quotient differs. `E` MUST equal
+the number of leaves. The commitment costs a validator nothing it was not
+already computing.
+
+Declared limit, narrowed but not closed: the root makes the count **falsifiable**
+— any full node, and any auditor replaying finalized evidence, can now contradict
+an inflated `E` with a recomputation instead of an assertion. A light client
+still verifies the arithmetic and the quorum rather than independently
+recomputing eligibility, because it has the root but not the leaves; serving
+per-epoch eligibility proofs is M-02 work. The field and its serialization are
+fixed **now** for the same reason the challenge-assignment fields were fixed
+before their algorithm existed: adding a commitment to `MintBody` after launch is
+a breaking format change, and a migration costs more than a reserved field.
 
 For `publisher_reward`, `evidence_tx_ids`, `eligible_node_count`, and
 `work_kind` are absent; `app_id`, `active_subscriber_count`,
@@ -217,7 +243,7 @@ simulator's mandatory checklist. What this document guarantees is only that the
 Canonical existence-income mint:
 
 ```json
-{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"amount_microtokens":"250000","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","eligible_node_count":"4000","evidence_tx_ids":["sha256:313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"],"policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"existence_income","reward_epoch":"17"},"created_at_ms":"1787654500000","expires_at_ms":"1787740900000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
+{"authorization":{"quorum_certificate":{"signatures":[{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","validator_id":"val-001"}],"validator_set_hash":"sha256:1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"}},"body":{"amount_microtokens":"250000","beneficiary_node_id":"cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka","eligible_node_count":"4000","eligible_set_root":"sha256:2f0e2c8a9d4b6f1c3e5a7b9d0f2468ace13579bdf02468ace13579bdf02468ac","evidence_tx_ids":["sha256:313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"],"policy_hash":"sha256:7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc","reason":"existence_income","reward_epoch":"17"},"created_at_ms":"1787654500000","expires_at_ms":"1787740900000","kind":"mint","network_id":"coblox-devnet-0","schema_version":"0.1"}
 ```
 
 Canonical storage-work mint:
@@ -403,11 +429,41 @@ unenforceable instruction into a rule: previously no verifier held the data
 needed to contradict a colluding issuer who picked the one chunk its subject had
 kept.
 
-Declared limit: in v0 the beacon value is a finalized `block_id`, so the
-proposer of the beacon block has a bounded grinding advantage — it can discard a
-candidate block and try another. The commit-before-beacon ordering removes the
-issuer's freedom but not the proposer's, and a dedicated randomness beacon is
-M-02 work. The residual is stated rather than assumed away.
+Declared limit, quantified. Two facts, and they point in opposite directions.
+
+**What the commitment does close.** `challenge_randomness` is a function of
+`beacon_block_id` *and* `issuer_secret_32`, and the secret is not revealed when
+the beacon is produced. A proposer that is **not** colluding with the issuer
+therefore cannot compute the randomness any candidate block would yield, and so
+cannot grind it at all, however many candidates it tries. This is the whole
+purpose of the commit-before-beacon ordering and it is met.
+
+**What remains open, with its cost.** With a colluding issuer that hands over
+its committed secret, the pair can search jointly. The search is cheaper than
+"discard a candidate block and try another" suggests: `BlockHeader` carries
+`timestamp_ms`, constrained only to exceed the median of the previous 11
+finalized blocks and not to exceed the maximum clock drift. At millisecond
+granularity that window admits on the order of **10³–10⁶ legal values**, each
+producing a different `block_id` for the cost of **one SHA-256** over a
+few-hundred-byte header. The proposer does not discard blocks; it enumerates a
+field. The pair looks for a beacon satisfying two conditions at once — that the
+epoch's assignment function pairs that issuer with the target subject, and that
+the resulting randomness selects a chunk the subject actually kept.
+
+**Why this is a reduction in detection rate and not a bypass.** The two-issuer
+coverage rule of [wire.md](wire.md#challenge_request) — every subject covered by
+at least two distinct issuers per epoch, none of them the subject — is
+**the mitigation of this grinding**, not a redundancy measure, and the two rules
+are stated in different documents so the link is made explicit here. The honest
+second issuer still queries the subject from an unground beacon, so a successful
+search degrades the attack from "pass the challenge" to "pass one of two".
+
+Two reductions are available and are not taken in v0: quantizing `timestamp_ms`
+to the consensus slot, or deriving beacon material from the `block_id`s of `K`
+consecutive blocks so that grinding requires `K` consecutive proposals by the
+same attacker. Both belong with the dedicated randomness beacon, which is M-02
+work under [DEBT-005]. The residual is stated with its order of magnitude rather
+than assumed away, and the word "bounded" without a number is not a bound.
 
 Canonical serialized example:
 
@@ -558,11 +614,53 @@ The rule is therefore a validity condition on the set itself:
    members have a bounded, declared window in which to commit a compliant
    successor set.
 
-A light client needs no new field to see this. Because the set must change, it
-observes the transition through the mechanism it already verifies: it fetches the
-new set, hashes it, and checks every `key_binding_signature`. That is why this
-rule is preferable to adding a revocation commitment to `BlockHeader` — it costs
-nothing on the wire and reuses a verification path the client already performs.
+Rules 1–3 are complete **for a full node**, which sees the `revoke_identity`
+transaction and can therefore evaluate them. They are not complete for a light
+client, and this document previously claimed otherwise. The claim was false and
+is corrected here, because a wrong safety statement is worse than a missing one:
+
+> A light client checks set-hash continuity and `key_binding_signature`s and
+> **never sees transactions**, so it does not know that a revocation exists or
+> whom it names. It observes *a* transition if one happens; it cannot establish
+> that a transition was *due*. A chain on which the transition never happened
+> satisfies continuity and every binding, and is therefore indistinguishable to
+> it.
+
+The consequence is concrete. If the consensus keys of validators summing to more
+than two thirds of the power leak — the exact scenario this rule exists for —
+honest full nodes stall as declared below, while the attacker signs a parallel
+chain from `effective_height` with the *old* set. That chain is hash-continuous,
+every binding verifies, and a light client passes all nine steps on it. Safety
+would then protect whoever runs a server and not whoever installed the app.
+
+The missing anchor is not a `BlockHeader` field — adding one would cost every
+block forever and would still be authenticated by the very set that is
+compromised. It is in the trust anchor. The closure is therefore:
+
+5. the weak subjectivity checkpoint carries `revoked_validators` and
+   `revocation_root`, defined in
+   [README.md](README.md#weak-subjectivity-checkpoint);
+6. a light client MUST reject any block at height `>= effective_height` whose
+   active validator set contains a `node_id` listed in its checkpoint, applying
+   rule 2 with the data the checkpoint gives it, and MUST reject any set
+   containing such a `node_id` with `activation_height >= effective_height`,
+   applying rule 1.
+
+**Declared limit, stated with its bound.** This closes the gap only for
+revocations known when the checkpoint was issued. A revocation finalized
+afterwards is invisible to a client running on that checkpoint, so its exposure
+window is at most `max_weak_subjectivity_age_ms` and it then fails closed. That
+window is exactly the emergency window, and the two parameters pull against each
+other: `min_revocation_effective_delay_blocks` is chosen **long** to make the
+stall below rare, which lengthens the interval during which a revocation is
+finalized but not yet effective. Governance MUST therefore choose
+`max_weak_subjectivity_age_ms` no greater than the expected wall-clock duration
+of `min_revocation_effective_delay_blocks`, so that a checkpoint a client still
+accepts is never older than the window granted to commit a compliant successor
+set. Choosing them independently silently widens the hole.
+
+A network MUST publish a fresh checkpoint on any validator revocation rather
+than waiting for its ordinary release cadence.
 
 Declared consequence, stated rather than discovered later: if the remaining
 validators fail to commit a compliant successor set within the delay window, the
@@ -630,11 +728,14 @@ subjectivity checkpoint, the trusted genesis configuration, the
 validator sets/headers connecting it to a finalized header, that header's
 quorum certificate, and one `AccountProof`:
 
-1. **Validate the external checkpoint.** Load a signed checkpoint containing
-   chain ID, finalized height/block ID, validator-set hash, and issued time.
-   Require its age to be at most `max_weak_subjectivity_age_ms`; genesis and the
-   following steps alone are not sufficient after that window. Missing, stale,
-   or chain-mismatched checkpoints fail closed.
+1. **Validate the external checkpoint.** Load a `WeakSubjectivityCheckpoint`
+   exactly as specified in [README.md](README.md#weak-subjectivity-checkpoint):
+   verify its signature under a trust key the client already holds, require its
+   `chain_id` to equal the configured chain ID, and require
+   `now - issued_at_ms` to be at most the `max_weak_subjectivity_age_ms` carried
+   **in the checkpoint itself**. Genesis and the following steps alone are not
+   sufficient after that window. Missing, stale, chain-mismatched, or
+   unknown-key checkpoints fail closed. Retain `revoked_validators` for step 4.
 2. **Anchor the chain.** Load the configured network ID, derived chain ID,
    genesis block ID, and genesis validator set; recompute the set hash.
 3. **Enforce non-regression.** Persist the highest trusted height and block ID.
@@ -645,6 +746,13 @@ quorum certificate, and one `AccountProof`:
    certificate over the exact vote bytes using the currently trusted set and
    the strict quorum predicate. Fetch and hash a changed next
    set before using it. Never skip an untrusted set transition.
+   **Apply the checkpoint's revocations**: for every `(node_id,
+   effective_height)` in `revoked_validators`, reject any set whose
+   `activation_height >= effective_height` that contains that `node_id`, and
+   reject any header at height `>= effective_height` whose active set contains
+   it — including the set inherited from the checkpoint. Without this the client
+   would follow a chain signed by keys the network has already revoked; see
+   [revocation forces a validator set transition](#revocation-forces-a-validator-set-transition).
 5. **Corroborate freshness.** Query independently operated enrolled peers,
    reject tips older than `max_current_balance_age_ms`, and require the selected
    finalized height to be consistent with the recent checkpoint. Peer agreement

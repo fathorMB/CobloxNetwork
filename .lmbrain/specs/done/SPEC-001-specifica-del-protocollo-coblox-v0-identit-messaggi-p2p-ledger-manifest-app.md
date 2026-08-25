@@ -2,7 +2,7 @@
 id: SPEC-001
 # Note: Quote the title if it contains a colon
 title: "Specifica del protocollo Coblox v0 (identità, messaggi P2P, ledger, manifest app)"
-status: review
+status: done
 kind: feature
 priority: high
 area: core
@@ -47,6 +47,21 @@ activity:
     action: "record effort observation"
   - date: 2026-08-25
     action: "transitioned working -> review"
+  - date: 2026-08-25
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-25
+    action: "transitioned review -> done"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "dec1f4d22dd5313a77c6f2efcaefec25fefad57e61437e3337aa11d37db9891e"
+    evidence_ref: "Il Lead ha richiesto e ottenuto tre review di sicurezza da AGENT-007 su identita, enrollment e verifica del light client. REVIEW-002 (changes-requested, 18 finding di cui 8 gravi), REVIEW-006 (changes-requested dopo i Lotti A e B, 15 finding chiusi su 18 ma 4 gravi residui fra cui il pavimento Argon2id azzerabile che invalidava il punto 3 di ADR-007), e infine REVIEW-007 (accepted): AGENT-007 attesta che GATE-SECREVIEW e superato. Le due contestazioni di AGENT-001 sono state confermate corrette dalla reviewer e in due casi migliori della sua stessa condizione di chiusura: il pavimento memory-hard imposto come area piu memoria minima invece di iterations>=3, che avrebbe rifiutato il profilo RFC 9106 piu forte, e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso. Restano due finding low non bloccanti, promossi a DEBT-008 per M-02. Un terzo giro di remediation e stato dichiarato esplicitamente non giustificato dalla reviewer."
+    id: "SPEC-001-ATTEST-001"
+    requirement_digest: "f70c43edf348535a5f1ae4d98441e9f325f5e75a54d11e49e79f700ef4a3fe91"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-25T02:53:08.741879800+02:00"
 ---
 # Specifica del protocollo Coblox v0
 
@@ -101,7 +116,7 @@ Documenti Markdown in `docs/protocol/`, in inglese (saranno la referenza pubblic
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
 - [x] GATE-COHERENCE | kind=manual | owner=agent | phase=before-submit | evidence=artifact | Verifica incrociata: ogni tipo di messaggio citato in wire.md ha il formato definito, ogni transazione in ledger.md copre un flusso di ADR-005, nessun riferimento pendente tra i documenti.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=observation | Il Lead ha richiesto e ottenuto una review di sicurezza di AGENT-007 sulla specifica (identità, enrollment, verifica light client) prima della chiusura.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=observation | Il Lead ha richiesto e ottenuto una review di sicurezza di AGENT-007 sulla specifica (identità, enrollment, verifica light client) prima della chiusura.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
@@ -154,7 +169,8 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
   exact one-time proof-of-work input/target verification, cost model, replay
   resistance, revocation, and the limits of proof of work as a Sybil defense.
 - Specified the libp2p transport/discovery/NAT stack and the complete 12-message
-  Coblox application catalog with framing, signed envelopes, schemas, replay
+  Coblox application catalog (14 after the two enrollment-admission messages
+  added by the [REVIEW-006] remediation) with framing, signed envelopes, schemas, replay
   handling, error codes, gossip validation, and backpressure.
 - Specified ledger transactions, blocks, Ed25519 quorum certificates,
   validator-set continuity, mint/burn invariants covering all ADR-005 flows, and
@@ -234,6 +250,68 @@ SPEC-001 **non può passare a `done`** finché il Lotto A non è rimediato e `GA
   Android and the second (64 MiB, `t=3`, `p=4`) is adopted as the starting
   profile, with the RFC's own bounds (`m >= 8p`, 128-bit salt, 256-bit tag)
   written into the governed document as validity constraints.
+
+#### Remediation di [REVIEW-006] (2026-08-25) — AGENT-001
+
+Chiusi i 4 finding high, i 2 medium e i 2 low della ri-verifica di sicurezza.
+
+- **RF-101 — il pavimento memory-hard non è più revocabile.** I bound di RFC 9106
+  non sono più presentati come vincoli di sicurezza. Il costo minimo è ora una
+  **regola di validità sull'accettazione** del documento
+  `enrollment_parameters`, con lo stesso schema del tetto `kn < kd`:
+  `memory_kib >= 65536`, `iterations >= 1`, e `memory_kib * iterations >= 196608`
+  in `u128` controllato, più `lanes` in 1–16 e `tag_length_bytes == 32`. Tabella
+  di fixture al confine con cinque righe. `memory_kib` e `iterations` sono
+  dichiarati parametri **di sicurezza**, il pavimento è legato al dispositivo di
+  riferimento dichiarato, e la governance può alzarlo ma non abbassarlo.
+- **RF-102 — la revoca è visibile al light client.** La frase «A light client
+  needs no new field to see this» è rimossa e sostituita dalla spiegazione del
+  perché era falsa e dall'attacco che consentiva. Il checkpoint di soggettività
+  debole porta ora `revoked_validators` e `revocation_root`, e il passo 4
+  dell'algoritmo light-client applica le regole 1 e 2 della transizione forzata
+  con quei dati. Dichiarata la tensione fra
+  `min_revocation_effective_delay_blocks` e `max_weak_subjectivity_age_ms`, con
+  il vincolo normativo che il secondo non superi la durata attesa del primo.
+  Nessun campo aggiunto a `BlockHeader`.
+- **RF-103 — il checkpoint è specificato.** Schema normativo
+  `WeakSubjectivityCheckpoint` in un unico punto, dominio di firma dedicato
+  `coblox-weak-subjectivity-signature-v0`, voce nel registro delle preimmagini
+  con `chain_id_32`, fixture `WSC-0` nella tabella di conformità, primitive
+  `revocation_leaf`/`node`/`empty` con fixture `REVL-0` e radice vuota. Definita
+  la network-release trust key: provenienza, pluralità, rotazione a due release
+  sovrapposte, recupero fuori banda e limite dichiarato. Risolta la circolarità
+  di `max_weak_subjectivity_age_ms`, che il passo 1 legge dal checkpoint firmato.
+- **RF-104 — l'ammissione non è più negabile a costo di un core.** Inserito uno
+  **scudo di ammissione** fra il passo 7 e la valutazione memory-hard, che
+  diventa il passo 9. Due parti obbligatorie: un `admission_nonce` effimero
+  legato al Peer ID autenticato e all'indirizzo osservato, monouso e non
+  trasferibile fra validatori; e un puzzle SHA-256 a verifica costante,
+  `admission_tag`, con voce nel registro e fixture `ADM-0`. Formato fissato ora
+  sul filo (`enrollment_admission_request`/`_challenge`, wrapper
+  `EnrollmentSubmission`, codice `invalid_admission`) perché dopo sarebbe
+  incompatibile. Dichiarato che la disponibilità dell'enrollment non è una
+  garanzia di protocollo, con lo stesso standard di onestà del §"Declared limits".
+- **RF-105 — il grinding è quantificato.** Riscritto il limite dichiarato: cosa
+  il commit-reveal chiude davvero (il proposer non colluso non può macinare),
+  cosa resta aperto con il suo ordine di grandezza (10³–10⁶ `timestamp_ms` legali
+  a un SHA-256 ciascuno, sotto collusione emittente-proposer), e le due riduzioni
+  non prese in v0. La copertura a due emittenti è dichiarata in `wire.md` come
+  **la mitigazione del grinding**, non come ridondanza, con il rinvio incrociato.
+- **RF-106 — `eligible_set_root` è fissato ora.** Campo richiesto in `MintBody`
+  per `existence_income`, con primitive `eligible_leaf`/`node`/`empty` sulla
+  falsariga dell'albero degli abbonamenti. I validatori full, che già ricalcolano
+  `E` dalla stessa evidenza finalizzata, ricalcolano anche la radice: il conteggio
+  passa da asserzione a fatto falsificabile. Il limite residuo per il light client
+  resta dichiarato. Esempio canonico del mint di esistenza rigenerato.
+- **RF-107** — `wire.md` nomina lo stream di enrollment per primo nei limiti di
+  concorrenza, con il rinvio esplicito ai bound di `identity.md`.
+- **RF-108** — `HostAcceptancePolicy` è dichiarata **oggetto locale**, non di
+  rete: assegnazione ottimistica, rifiuto come canale di scoperta previsto, e il
+  costo di liveness dichiarato.
+
+Contestazioni motivate a [REVIEW-006], dettagliate in *Deviations* più sotto:
+la formulazione del pavimento RF-101 come area anziché come `iterations >= 3`,
+e la parametrizzazione dello scudo RF-104.
 
 ### Files changed
 
@@ -332,6 +410,103 @@ $ lmbrain_validate
 PASS unique_ids=true; lifecycle/contract errors=0; 11 informational unknown-spec-tag diagnostics only (SPEC-001/002/003/004 vocabulary, unrelated to this change)
 ```
 
+REVIEW-006 remediation run (`verify006.py`), output reale e integrale:
+
+```text
+$ python verify006.py
+PASS node_id derives from fixture public key :: cblx176fmuouuc5v2xyqqxgef5uwrdqt53yqazdlxwcfl6a63bxarnuyq
+PASS enrollment_request_hash ER-0 unchanged :: sha256:cb1245f681d732aba57064face8872cd2104a185916ff1f0ac2d2e0651e7fb7f
+PASS parameter_set_hash PD-0 unchanged :: sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63
+PASS object_id fixture unchanged :: sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c
+PASS input_hash fixture unchanged :: sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9
+PASS admission_tag ADM-0 reproduces :: sha256:457915b8cd8816c5fe76651bdda0578983f8e393c7e4fe0b24376ca0bca22628
+PASS weak_subjectivity_checkpoint_hash WSC-0 reproduces :: sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e
+PASS empty revocation_root H(0x33) published :: sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce
+PASS REVL-0 revocation_leaf published :: sha256:7fb1f4024627c413cbf70b49a390b6d31778e667e86042864c4bed107cd52497
+PASS all canonical JSON examples are JCS-identical :: 19 checked, 0 bad []
+PASS internal links and anchors resolve :: 40 checked, 0 broken []
+PASS quorum predicate intact
+PASS quorum boundary V=101 intact
+PASS cofactorless ban intact
+PASS ZIP-215 cofactored equation intact
+PASS speccheck outcome table intact
+PASS creator-share cap validity rule intact
+PASS difficulty 2-6 intact
+PASS argon2id primitive intact
+PASS declared limits of mechanism intact
+PASS two-issuer coverage intact
+PASS capped existence fund intact
+PASS revocation set-validity rules intact
+PASS RF-101 cost-area floor is a validity rule
+PASS RF-101 memory-hardness floor
+PASS RF-101 boundary fixtures 65535/65536
+PASS RF-101 RFC first profile stays valid
+PASS RF-101 security-not-performance parameter
+PASS RF-101 old RFC-limits-as-floor text removed
+PASS RF-102 false light-client claim removed
+PASS RF-102 checkpoint carries revocations
+PASS RF-102 parameter tension declared
+PASS RF-102 light-client step 4 applies revocations
+PASS RF-103 checkpoint schema normative
+PASS RF-103 dedicated signature domain
+PASS RF-103 trust key provenance and rotation
+PASS RF-103 circularity resolved
+PASS RF-104 admission shield section
+PASS RF-104 memory-hard step is now step 9
+PASS RF-104 adaptive difficulty
+PASS RF-104 availability declared limit
+PASS RF-104 wire format fixed now
+PASS RF-104 admission messages in enum
+PASS RF-104 ADM-1 conformance fixture
+PASS RF-105 grinding quantified
+PASS RF-105 coverage named as mitigation
+PASS RF-106 eligible_set_root reserved
+PASS RF-106 eligible tree preimages
+PASS RF-107 enrollment named in wire limits
+PASS RF-108 host policy publication declared
+PASS no empty sections :: []
+
+RESULT: ALL PASS
+```
+
+Contabilità degli esempi canonici, per escludere una perdita silenziosa:
+
+```text
+$ git diff --stat -- docs/protocol
+ docs/protocol/README.md       | 218 ++++++++++++++++++++++++++++++++++++++----
+ docs/protocol/app-manifest.md |  16 ++++
+ docs/protocol/identity.md     | 120 ++++++++++++++++++++---
+ docs/protocol/ledger.md       | 154 ++++++++++++++++++++++++-----
+ docs/protocol/wire.md         |  88 ++++++++++++++---
+ 5 files changed, 531 insertions(+), 65 deletions(-)
+$ git diff -U0 -- docs/protocol | grep -c '^-{"'
+1
+$ git diff -U0 -- docs/protocol | grep -c '^+{"'
+1
+$ grep -c '^```json' docs/protocol/*.md
+docs/protocol/README.md:0
+docs/protocol/app-manifest.md:1
+docs/protocol/identity.md:2
+docs/protocol/ledger.md:11
+docs/protocol/wire.md:5
+```
+
+Un solo esempio rimosso e uno aggiunto: il mint di esistenza, rigenerato per
+`eligible_set_root`. 19 fence e 19 esempi verificati, nessuna perdita.
+
+```text
+$ lmbrain_validate
+PASS unique_ids=true; lifecycle/contract errors=0; 11 informational unknown-spec-tag diagnostics only (identity/ledger/p2p/android/tauri/ci/rust/mockups/design-system/threat-model/sybil), invariate rispetto al giro precedente
+```
+
+Fonte primaria riconsultata per RF-101, [RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html):
+i quattro intervalli di parametri sono il dominio della funzione (`p` "from 1 to
+2^(24)-1", `m` "from 8\*p to 2^(32)-1", `t` "from 1 to 2^(32)-1", `T` "from 4 to
+2^(32)-1"); le raccomandazioni sono due configurazioni intere, la prima "a
+uniformly safe option" con `t=1, p=4, m=2^(21)` (2 GiB) e la seconda con
+`t=3, p=4, m=2^(16)` (64 MiB). La verifica A di AGENT-007 è confermata parola per
+parola sul testo primario.
+
 Recomputed hash-registry values after the Lotto B schema changes, all confirmed
 against the README table by the run above:
 
@@ -379,6 +554,68 @@ rather than a contradiction, flagged for the Lead:
    through the continuity and key-binding checks it already performs. This costs
    nothing on the wire, at the price of a declared safety-over-liveness stall if
    no compliant successor set is committed within the delay window.
+
+Due contestazioni motivate a [REVIEW-006], entrambe adottate nel testo. Le
+analisi di AGENT-007 restano corrette nella diagnosi; il disaccordo è sulla
+contromisura.
+
+1. **RF-101 — il pavimento non può essere `iterations >= 3`.** La chiusura
+   proposta è «un parameter set con `memory_kib < 65536`, oppure
+   `iterations < 3`, oppure `lanes` fuori 1–16, è invalido all'accettazione».
+   Presa alla lettera quella regola **rifiuta la prima configurazione
+   raccomandata da RFC 9106** — `t=1, p=4, m=2^21`, 2 GiB, che la RFC chiama "a
+   uniformly safe option" — cioè la più costosa delle due, e ammette solo la
+   seconda. Un pavimento che esclude il profilo più forte è un difetto, non un
+   pavimento. Ho quindi imposto il costo come **area**:
+   `memory_kib * iterations >= 196608` (= 65536 × 3) in `u128` controllato,
+   **più** `memory_kib >= 65536` come vincolo separato. I due vincoli servono
+   scopi diversi e nessuno dei due basta da solo: l'area fissa la quantità di
+   lavoro, il minimo di memoria impedisce di barattarla in passate su poca
+   memoria — 8 KiB × 24.576 passate ha la stessa area sulla carta ed è
+   compute-bound e perfettamente parallelizzabile su GPU, cioè esattamente la
+   proprietà per cui [ADR-007] ha scartato SHA-256. Sotto questa forma entrambe
+   le raccomandazioni della RFC sono valide e tutto ciò che è più debole di
+   entrambe è invalido. Il valore numerico del pavimento resta quello
+   raccomandato dal Lead e da AGENT-007 (profilo a 64 MiB); ciò che ho cambiato è
+   la **forma** del vincolo, non la taratura.
+2. **RF-104 — lo scudo è della classe giusta, ma "millisecondi, una volta" non
+   regge, e da solo il puzzle non basta.** Accetto la struttura: puzzle
+   interattivo, legato a un nonce effimero del validatore, non precomputabile né
+   riusabile, e **SHA-256 di proposito** — l'ironia è corretta e l'ho scritta nel
+   documento con la sua ragione, perché una funzione memory-hard costa al
+   verificatore quanto al produttore ed è per questo inutile come scudo.
+   Contesto due punti. **(a) La taratura.** Perché il puzzle assorba un
+   attaccante a ~10¹⁰ H/s contro una capacità del validatore di poche decine di
+   valutazioni al secondo servono ~2^28 tentativi; sul dispositivo di riferimento
+   dichiarato sono decine di secondi, cioè **più della proof of work che lo scudo
+   dovrebbe proteggere**, e pagati una volta **per validatore** raggiunto. Un
+   puzzle fisso a quella difficoltà sostituisce l'attacco, non lo ferma, e
+   reintroduce nello scudo esattamente il divario CPU/GPU che [ADR-007] esiste
+   per evitare. Ho quindi reso `admission_difficulty_bits` **adattivo alla
+   saturazione osservata**: zero sotto la soglia dichiarata — quindi onboarding
+   ordinario a costo nullo oltre il round trip — crescente solo sotto attacco, e
+   con un massimo normativo ancorato al dispositivo di riferimento, che non può
+   superare il tempo che lo stesso dispositivo spende nella proof of work.
+   **(b) Il puzzle da solo non sposta l'asimmetria giusta.** Poiché il
+   certificato richiede un quorum, il richiedente onesto deve soddisfare lo scudo
+   presso ~2/3 dei validatori mentre l'attaccante ne deve saturare ~1/3: il
+   moltiplicatore di quorum penalizza l'onesto più dell'attaccante. Ho perciò
+   affiancato al puzzle la **validazione della sorgente** — nonce legato al Peer
+   ID autenticato e all'indirizzo osservato, monouso e a vita breve — che costa
+   all'onesto un round trip e all'attaccante un indirizzo realmente
+   raggiungibile per ogni slot concorrente, cioè la parte dell'attacco che non
+   scala con la CPU. Conseguenza che ho dichiarato invece di nascondere: sotto
+   attacco sostenuto l'enrollment **degrada** e i dispositivi lenti sono i primi
+   a soffrirne. Lo scudo converte una chiusura permanente e gratuita in una
+   degradazione che l'attaccante paga e non può ammortizzare fra validatori; non
+   rende l'enrollment sempre disponibile, e il documento ora lo dice.
+
+Una nota di merito, non una contestazione: sul tetto `k` seguo AGENT-007 e **non**
+ho trattato il residuo di reputazione come finding, perché è finanziato dal
+reddito di esistenza ed è quindi già limitato dallo stesso `α` sorvegliato da
+[ADR-007]. Nessuna modifica ad ADR, roadmap o PROJECT; nessun commit; nessuna
+modifica a `.lmbrain/design/` né al workspace Rust; l'algoritmo di elezione dei
+validatori resta intatto e di competenza di M-02 sotto [DEBT-005].
 
 ### Handoff status
 - [x] Ready for Project Lead review
