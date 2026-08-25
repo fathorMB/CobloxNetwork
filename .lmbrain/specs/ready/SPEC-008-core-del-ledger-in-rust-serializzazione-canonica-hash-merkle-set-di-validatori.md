@@ -2,7 +2,7 @@
 id: SPEC-008
 # Note: Quote the title if it contains a colon
 title: "Core del ledger in Rust: serializzazione canonica, hash, Merkle, set di validatori"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: core
@@ -32,6 +32,8 @@ activity:
     action: "set effort"
   - date: 2026-08-25
     action: "set tags"
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
 # Core del ledger in Rust: serializzazione canonica, hash, Merkle, set di validatori
 

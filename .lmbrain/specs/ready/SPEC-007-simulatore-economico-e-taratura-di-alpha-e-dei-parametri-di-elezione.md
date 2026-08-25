@@ -2,7 +2,7 @@
 id: SPEC-007
 # Note: Quote the title if it contains a colon
 title: "Simulatore economico e taratura di alpha e dei parametri di elezione"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: token-economy
@@ -32,6 +32,8 @@ activity:
     action: "set effort"
   - date: 2026-08-25
     action: "set tags"
+  - date: 2026-08-25
+    action: "transitioned backlog -> ready"
 ---
 # Simulatore economico e taratura di alpha e dei parametri di elezione
 
