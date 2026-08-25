@@ -39,7 +39,12 @@ Nessuna. Non ci sono spec in `ready`: quelle di M-02 vanno ancora redatte.
 
 Nessuna. Le prime due spec di M-02 sono chiuse.
 
-**Il prossimo lavoro va redatto:** simulatore economico con `α` ([DEBT-007]), da cui dipendono i valori di ogni parametro che [SPEC-006] ha lasciato simbolico e il valore `X` di [ADR-007]; poi devnet BFT, light client con prove Merkle e mint & burn.
+**Due spec redatte e in `backlog`, in attesa della tua approvazione.** Sono deliberatamente parallele: la prima produce *numeri*, la seconda produce *codice che li prende come configurazione*. A differenza della volta scorsa non c'è rischio di pianificare sulla sabbia, perché le regole sono scritte e stabili.
+
+- [SPEC-007] **Simulatore economico e taratura di `α`** → AGENT-002. `sol`/`extended`. Chiude [DEBT-007]. Fissa la forma del fondo del reddito di esistenza, `α` con il suo intervallo di sorveglianza, il valore `X` di [ADR-007] e i diciassette parametri che [SPEC-006] ha lasciato simbolici. Il suo prodotto più prezioso non è il numero ma **la curva che lega difendibilità e significato del reddito**: `α` bassa rende la rete difendibile e svuota la promessa di prodotto, ed è il compromesso che [ADR-007] ha rimandato qui invece di scioglierlo.
+- [SPEC-008] **Core del ledger in Rust** → AGENT-001. `sol`/`extended`. È la **prima implementazione reale del progetto**: oggi `coblox-core` ha sessanta righe. Il criterio di accettazione è insolitamente netto — riprodurre ogni valore del registro di conformità, che il Lead ha ricalcolato in modo indipendente quattro volte durante [SPEC-006]. **Sono una suite di test scritta prima del codice.**
+
+Restano fuori light client con prove Merkle e mint & burn: dipendono dalla forma delle API che [SPEC-008] fisserà, e scriverli ora sarebbe pianificare sulla sabbia.
 
 ## Done
 
