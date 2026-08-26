@@ -34,7 +34,7 @@ activity:
 
 ## Outcome
 
-**Accettata senza finding a carico dell'implementazione.** `GATE-SECREVIEW` resta da attestare, ed è di AGENT-007 — che è anche la persona di cui questa consegna **contraddice l'esito raccomandato**, il che rende la sua review l'unica sede giusta per decidere.
+**Accettata senza finding a carico dell'implementazione.** `GATE-SECREVIEW` resta da attestare, ed è di AGENT-007 — che è anche la persona di cui questa consegna **contraddice l'esito raccomandato**, il che rende la sua review la sede giusta per decidere. **Correzione del 2026-08-26:** questa frase diceva «l'unica sede giusta», e non e' vero — il Lead poteva decidere da se' o portarlo all'operatore. E' la sede **migliore**, perche' e' l'unica persona che possa dire se alla contraddizione sfugga qualcosa che la sua valutazione vedeva; ma «unica» era enfasi scritta come fatto, ed e' stata trovata da `lead_claims_check.py`.
 
 ## La contraddizione, che è il contenuto di questa consegna
 
@@ -80,7 +80,7 @@ Nessuno a carico dell'implementazione.
 
 **La condizione su `identity.md` era troppo stretta.** Autorizzava a toccarlo «solo se la definizione scelta contraddice ciò che lì è scritto». **Non lo contraddice — e proprio per questo il problema esisteva**: è una seconda lettura *non contraddittoria* che convive, ed è così che [DEBT-022] è nato. Un criterio binario contraddizione-o-niente non copre il caso che ha prodotto il difetto.
 
-**Spec e debito si contraddicono sui numeri di riga**, e non solo con l'albero: la spec cita 372/407/458/968, il debito 312/347/398/871, l'albero oggi ha 507/542/593/1145. Chiunque li rincorra trova **tre risposte**. Il testo della clausola è l'unico riferimento che regge.
+**Spec e debito si contraddicono sui numeri di riga**, e non solo con l'albero: la spec cita 372/407/458/968, il debito 312/347/398/871, l'albero oggi ha 507/542/593/1145. Chiunque li rincorra trova **tre risposte**. Il testo della clausola regge dove i numeri di riga non reggono, e questa e' la forma esatta: non e' il solo riferimento stabile — anche gli ancoraggi di sezione lo sono — ma e' quello che sopravvive a una riscrittura che sposta le righe senza cambiare la regola.
 
 **Il piano prevedeva un ricalcolo di hash che non serviva.** Nessun valore pubblicato cambia. L'implementatrice ha eseguito la passata lo stesso e scritto la frase che dice che nulla è cambiato e perché, come [SKILL-002] impone — la clausola che ho aggiunto a quella skill stamattina su segnalazione sua.
 

@@ -1,7 +1,7 @@
 ---
 id: HANDOFF-002
 title: "Handoff di sessione — notte del 26 agosto: tre spec chiuse, cinque debiti, e una review che lodava senza attaccare"
-status: ready
+status: superseded
 from_role: AGENT-LEAD
 to_role: AGENT-LEAD
 created: 2026-08-26
@@ -14,6 +14,8 @@ tags: [session-handoff]
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned ready -> superseded"
 ---
 # Project Lead session handoff
 

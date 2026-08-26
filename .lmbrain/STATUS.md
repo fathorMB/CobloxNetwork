@@ -9,73 +9,33 @@ updated: 2026-08-25
 
 ## Current focus
 
-**Sessione autonoma della notte fra il 25 e il 26 agosto 2026.** Mandato dell'operatore: portare avanti l'analisi sui debiti, lavorare le spec in `backlog` una alla volta con i giri di review sullo stesso sub-agent, e produrre l'handoff. L'operatore non era disponibile per approvazioni.
+**Sessione del 26 agosto 2026: la coda delle spec di M-02 e' esaurita.** Ventuno spec redatte, ventuno `done`; `backlog`, `ready`, `working` e `review` sono vuote. Ventitre' commit, da `dfe44fe` a `2d3c6d7`.
 
-**Esito: [SPEC-015], [SPEC-016] e [SPEC-018] chiuse; cinque debiti risolti; tre spec nuove redatte; quattro debiti nuovi aperti.**
+**Sei spec chiuse e nove debiti risolti** in questa sessione, piu' il recupero dell'implementazione di [SPEC-014] che era accettata e non committata. **181 test**, gate di [ADR-012] `PASS` con **158 probe C10** e la prova in negativo su ciascuna individualmente.
 
-Tre cose vanno lette prima delle altre, perche' riguardano il **modo** in cui il progetto trova i propri difetti e non il loro contenuto.
+**Tre cose vanno lette prima delle altre**, e riguardano il modo in cui il progetto trova i propri difetti.
 
-**La prima.** [REVIEW-025], del Lead, ha lodato l'asimmetria fuori banda di [SPEC-016] come «la parte migliore del lavoro». [REVIEW-027], di AGENT-007, vi ha trovato un finding **high**: l'argomento guardava un estremo solo, e la frase falsa era deducibile dalla stessa sezione di `README.md` che l'implementatrice stava citando mentre la scriveva. **Una review che loda senza attaccare non ha verificato.** E' la quinta volta che una misura risulta puntata sulla grandezza sbagliata, e la seconda dentro un lavoro gia' accettato dal Lead.
+**La prima.** Tre volte una dimostrazione valida e' stata letta come conclusiva **oltre il perimetro su cui era fatta**: AGENT-007 su [DEBT-022] ha motivato sul margine dove la proprieta' era disponibile; AGENT-002 ha dimostrato una proprieta' su un perimetro piu' stretto del vero e ha letto la dimostrazione come conclusiva; AGENT-007 su [DEBT-017] ha stabilito il fail-closed guardando **una delle due meta'** della regola, e l'errore ha attraversato **tre artefatti** prima che qualcuno lo guardasse. La lezione: **una dimostrazione va consegnata insieme al perimetro su cui vale**, altrimenti chi la cita ne eredita la conclusione e non il confine.
 
-**La seconda.** `GATE-MEASURE-BINDS` esercitava tre catene, **tutte a latenza zero**. Una gate che prova solo il regime nominale non ha mai visto lo scenario che la rompe. Vale come criterio generale per le gate future.
+**La seconda.** Il Lead ha ora una guardia su di se', `sim/tools/lead_claims_check.py`, e scrivendola ha trovato **due affermazioni false scritte dal Lead**. Vincola in avanti; l'arretrato di 36 superlativi non enumerati e' in [DEBT-027].
 
-**La terza, ed e' l'unica buona notizia delle tre.** La guardia `C11-CLAIMDOC`, costruita durante la notte, ha catturato **entro pochi minuti dall'esistere** una deriva reale prodotta da un altro agente sullo stesso albero. Il Lead non si e' ricordato di aggiornare il conteggio di `SECURITY.md`: gliel'ha chiesto la gate.
+**La terza.** Quattro volte una gate ha misurato **l'insieme dichiarato invece di quello osservato**, e ogni volta il membro mancante era **l'ultimo arrivato**: un insieme dichiarato non ha modo di accorgersi di un nuovo membro.
 
-**Sessione autonoma del Lead conclusa, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead ha operato senza attendere conferme.
-
-In quella sessione M-01 arrivò a tre spec su quattro `done` ([SPEC-001], [SPEC-002], [SPEC-004]), con la quarta ([SPEC-003]) accettata tecnicamente e ferma sul gate dell'operatore. Sette review prodotte, sette dispatch, [ADR-007] deciso su delega con la metrica di [[PROJECT]] riformulata, quattro debiti nuovi registrati, tre commit spinti su `main`.
-
-Il Lead segnala all'operatore due cose in primo piano: la decisione di [ADR-007] tocca una promessa di prodotto ed è superabile se non concorda; e un proprio errore di processo è documentato in `.lmbrain/knowledge/commit-discipline.md`.
-
-**Ripresa del 2026-08-25, sessione successiva: la CI è verde e il repository è pubblico.** L'operatore ha sbloccato la fatturazione GitHub e reso pubblico il repository. La pipeline ha eseguito per la prima volta e ora passa su tutti e cinque i job; [DEBT-001] è chiuso. Il risultato che conta oltre il colore: **le tre rotture emerse non erano problemi di toolchain cross-platform**, cioè il rischio n.1 di [ADR-003], ma difetti di confezionamento del repository — due bit di esecuzione persi perché i file erano stati committati da Windows, e un ordine di step sbagliato nel workflow. Rust, NDK, cargo-ndk, UniFFI e Tauri hanno funzionato al primo tentativo utile su Windows e su Linux.
-
-Il passaggio a pubblico ha portato con sé il proprio lavoro di sicurezza; vedi la sezione *Postura di sicurezza del repository pubblico*. È chiuso: pin a SHA con refresh via Dependabot, canale di disclosure privato, `LICENSE` Apache-2.0, harness esclusi da regola, e [DEBT-009] risolto.
-
-**M-01 è completa.** [SPEC-003] è passata a `done` quando l'operatore ha attestato `GATE-OPERATOR-LOOK`: quattro spec su quattro chiuse. Il prossimo lavoro è M-02, che non ha ancora spec redatte e la cui priorità è dettata dai debiti — [DEBT-005], critico, veniva prima di tutto, ed è chiuso da [SPEC-006].
-
-## Passata di chiusura delle decisioni di prodotto — 2026-08-25
-
-L'operatore ha chiesto di risolvere in una sola passata tutti i punti aperti che dipendevano da lui. **Cinque decisioni**, le prime quattro censite dal Lead e la quinta emersa preparando la terza.
-
-| # | Decisione | Esito | Registrata in |
-| --- | --- | --- | --- |
-| 1 | Intervallo di blocco | **5 s**, costante di genesi dichiarata e non parametro governato | [ADR-013] |
-| 2 | Popolazione attesa al lancio | **~200 nodi** → `F` di genesi = **300 000 000 µt** contro un tetto di 15 882 352 941 | annotazione su [ADR-011] |
-| 3 | Privacy degli abbonati | **Accettare e dichiarare**; prova aggregata come ricerca, mai come promessa | [ADR-014], chiude [DEBT-006] |
-| 4 | Identità di trasporto | **Separare le chiavi in v0**, subordinate e ruotabili | [ADR-015] |
-| 5 | [DEBT-010] | **Differito a M-07**, con la dimostrazione come criterio di una spec di M-02 | evento sul debito |
-
-**Due cose che il pulse dava per aperte e non lo erano**, corrette in questa passata: il valore `X` di [ADR-007] è fissato a 20% da [SPEC-007], e la forma del fondo è decisa. Erano affermazioni rimaste indietro rispetto ai fatti, cioè la famiglia 2 applicata a questo stesso documento.
-
-**Un errore del Lead corretto prima che entrasse in un artefatto.** L'opzione offerta all'operatore sulla decisione 4 diceva che la separazione delle chiavi *«chiude TM-28 alla radice»*. È falso: il legame `node_id → IP` non passa dalla chiave di trasporto ma dal certificato che `identity.md` impone di presentare prima di pubblicare gossip, e da `sender_node_id` in chiaro nell'envelope. L'avversario di TM-28 tiene sessioni Coblox, quindi il certificato lo riceve comunque. La decisione non cambia — la separazione resta necessaria e la sua finestra si chiude davvero all'enrollment — ma [ADR-015] è scritta per ciò che fa davvero: sposta il costo dell'attacco da **lettura gratuita e retroattiva del ledger** a **partecipazione attiva e contemporanea**, e dichiara il residuo invece di tacerlo.
-
-**Conseguenza sul piano di M-02.** Due delle cinque decisioni cambiano artefatti pubblicati — il fondo di genesi cambia il `policy_hash`, la separazione delle chiavi cambia lo schema del certificato — quindi la gate di [ADR-012] si applica, e quella gate **oggi non è eseguibile** perché l'inventario su cui dovrebbe girare non esiste. L'inventario degli artefatti pubblicati passa da lavoro di smaltimento a **prerequisito**.
-
-## Handoff attivo
-
-Nessuno. [HANDOFF-001] è stato **consumato e archiviato** il 2026-08-25: tutte le sue azioni raccomandate sono state eseguite o superate dagli eventi. Le sue affermazioni sono state verificate prima di agire, come chiedeva, e due sono risultate da correggere — [DEBT-001] non era più bloccato dalla fatturazione, e la questione della licenza non era una decisione da prendere ma una contraddizione da sciogliere.
-
-## Current milestone
-
-**M-02 — Ledger vivo: federazione BFT su devnet.** M-01 è chiusa dal 2026-08-25, tutte e quattro le spec `done`.
-
-**Otto spec `done` su nove.** Resta [SPEC-013], la separazione della chiave di trasporto, in `ready`. Poi devnet BFT, light client con prove Merkle e mint & burn.
-
-Il criterio che ha ordinato tutto il lavoro finora, e che vale ancora per l'ultima: **nessuna devnet deve accumulare storia conservabile prima che le regole di consenso siano scritte, applicate e verificate.** È la ragione per cui [DEBT-005] veniva prima di tutto, per cui [DEBT-012] non poteva essere rimandato, e per cui [SPEC-013] deve atterrare prima del primo certificato di enrollment.
+**Il rischio dominante e' la composizione.** Due volte un difetto non stava in nessuna delle due meta' ma nel fatto di comporle. Nessuna gate cerca questa forma, perche' le grandezze non cambiano: cambia cio' che vi poggia sopra.
 
 ## Ready for handoff
 
-**Tre spec in coda, nessuna dispacciata.** L'ordine e' **dipendenza e non estetica**, stabilito da AGENT-007.
+**Nessuna spec redatta.** Il prossimo blocco va deciso, e i candidati sono di due nature che non si sostituiscono.
 
-- **[SPEC-017] — Il legame di catena dove oggi e ambiguo o assente.** AGENT-001, `sol`/`standard`. Chiude [DEBT-020] e [DEBT-021]. **Stato anomalo da sapere: e in `working` senza che nessuno ci lavori.** Era stata dispacciata e l'agente ha fatto in tempo solo a chiamare `spec_start` prima che il Lead lo fermasse per rispettare il limite di una spec per volta. Chi la riprende deve **saltare `spec_start`**. La gate portante e `GATE-TWO-DERIVATIONS`: il `chain_id` di genesi derivato due volte per due strade che non condividono codice, e la seconda **dal documento**, perche rileggere il codice della prima e riscriverlo in un altro linguaggio non e una seconda strada.
-- **[SPEC-019] — Cosa significa non revocata per autorizzare una spesa.** AGENT-002, `sol`/`extended`, in `backlog`. Chiude [DEBT-022]. **Dipende da [SPEC-018]**, gia chiusa. La sostanza e l'ordine dei passi: `GATE-DEFINITION-FIRST` impone che `unrevoked` sia **definito prima** dell'allineamento della riga, perche l'allineamento da solo sposta la riga *dentro* l'ambiguita invece di toglierla.
-- **[SPEC-020] — L'orologio su cui si misura la scadenza di un'attestazione.** AGENT-001, `sol`/`extended`, in `backlog`. Chiude [DEBT-017]. **Dipende da [SPEC-016]**, gia chiusa, e `GATE-ONE-CLOCK` impone che usi lo **stesso oggetto** che quella spec ha costruito. Governata da una domanda sola: `GATE-DRIFT-ANSWERED-FIRST`.
+**I tre debiti `high`**, tutti M-02 e chiudibili prima della devnet: **[DEBT-033]** (`effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione esiste gia' ed e' inerte), **[DEBT-034]** (un verdetto locale del ricevente entra in catena attraverso una firma di quorum), **[DEBT-028]** (`election_epoch` dipende da un parametro governato senza che il documento dica quale versione valga). I primi due si compongono: la finestra che sfruttano e' la stessa.
 
-**Una decisione di prodotto attende l'operatore**, ed e la sola: i **valori della banda di cadenza** — `min_ms_per_block`, `max_ms_per_block`, `min_measured_blocks`, `max_external_clock_slack_ms`. Sono una scelta come `alpha`, e AGENT-002 ha fatto la cosa giusta a non prenderla. Sono istruiti nella lista DRAFT di `docs/protocol/README.md` con cosa comporta ciascun ordine di grandezza **sui due lati**, che non si scambiano fra loro: il lato lento e l'incumbency, il lato veloce e l'emissione.
+**L'esito residuo di M-02 che nessuno di questi tocca**: devnet BFT, light client con prove Merkle, mint & burn. E' il lavoro che la milestone nomina e non e' mai stato cominciato.
+
+**Due decisioni di taratura aspettano l'operatore**, nessuna bloccante: `max_clock_drift_ms` non e' fissato da alcun documento di genesi, e `D_max`/`S_max` restano non fissati.
 
 ## In progress
 
-Nessuna. **Diciotto spec redatte, sedici `done`, due in coda oltre a [SPEC-017].**
+Nessuna. **Ventuno spec redatte, ventuno `done`.**
 
 ## Done
 
