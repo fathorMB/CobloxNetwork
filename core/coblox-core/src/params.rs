@@ -101,6 +101,23 @@ impl ElectionBounds {
 /// **measurement**, never to a field. **No validity rule of the chain compares
 /// anything to this object**, and that is deliberate: a rule internal to the
 /// chain could only compare a chain-written clock to a chain-written clock.
+///
+/// **The genesis band of Coblox v0** is an operator decision ([ADR-016]),
+/// written in `README.md#the-genesis-band`: `block_interval_ms = 5_000`,
+/// `min_ms_per_block = 2_500`, `max_ms_per_block = 20_000`,
+/// `min_measured_blocks = 720`, `max_external_clock_slack_ms = 600_000`. Those
+/// values reach this type as configuration and are not compiled in here, for
+/// the reason stated at the head of this module.
+///
+/// **What they cost is the half a reader is likelier to miss.** The slow side
+/// is `4 ×` the declared interval, so an active validator set can stretch its
+/// own epochs to **four times** their declared real-time length before any
+/// measurement says so; the anti-capture guarantees stay true in epochs, and
+/// this factor is how far their translation into days can be moved. The fast
+/// side is `interval / 2`, so the measurement objects at a **doubling of the
+/// real issuance rate** and not before, and that is the side a light client
+/// fails closed on. Neither side limits the cadence — no rule of this protocol
+/// does — they make it measurable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CadenceBand {
     /// Network identifier of the distribution that carried this band.

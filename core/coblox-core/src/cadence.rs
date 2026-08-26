@@ -478,8 +478,8 @@ mod tests {
     use super::*;
     use crate::hash::ChainId;
 
-    /// Test inputs, not launch values. The genesis band is an operator decision
-    /// listed in `README.md#draft-governance-selected-launch-parameters`; these
+    /// Test inputs, not launch values. The genesis band is an operator
+    /// decision, written in `README.md#the-genesis-band` ([ADR-016]); these
     /// numbers exist to exercise the arithmetic and are chosen wide enough that
     /// no reader mistakes them for a recommendation.
     fn band() -> CadenceBand {

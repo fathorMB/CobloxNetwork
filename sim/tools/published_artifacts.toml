@@ -1458,6 +1458,84 @@ pattern = '"min_measured_blocks":u64-string'
 count = 1
 why = "The cadence band is a genesis trust anchor alongside ElectionBounds and RewardBounds, and its noise floor is part of the object: a network that ships no CadenceBand is not conformant."
 
+# --- the genesis cadence band, its five values and what they cost -----------
+#
+# [SPEC-021] wrote the values [ADR-016] decided. A value written without its
+# cost is the defect that spec exists to prevent: a reader who finds a band and
+# not its cost concludes the cadence is limited, when it is only measurable.
+# Each value is pinned separately from the sentence stating its cost, because
+# the two can be deleted independently and the loss is different.
+
+[[probe]]
+id = "genesis-band-declared-interval-row"
+site = "README.md"
+pattern = '\| `block_interval_ms` \| `5000` \|'
+count = 1
+why = "The band's own copy of the genesis constant. Without it the table's other four rows are multiples of nothing."
+
+[[probe]]
+id = "genesis-band-fast-side-row"
+site = "README.md"
+pattern = '\| `min_ms_per_block` \| `2500` \| `block_interval_ms / 2` \|'
+count = 1
+why = "The fast side [ADR-016] decided, with the multiple it is. This is the side a light client fails closed on, so a wrong or missing value here is an availability decision nobody took."
+
+[[probe]]
+id = "genesis-band-slow-side-row"
+site = "README.md"
+pattern = '\| `max_ms_per_block` \| `20000` \| `4 \* block_interval_ms` \|'
+count = 1
+why = "The slow side, and the multiple is part of the value: 20 000 ms means nothing to a reader who cannot see that it is four intervals."
+
+[[probe]]
+id = "genesis-band-noise-floor-row"
+site = "README.md"
+pattern = '\| `min_measured_blocks` \| `720` \|'
+count = 1
+why = "The floor under the numerator. A band that lost it would pronounce on a handful of blocks, which is the degenerate anchor CadenceBand::validate refuses."
+
+[[probe]]
+id = "genesis-band-slack-row"
+site = "README.md"
+pattern = '\| `max_external_clock_slack_ms` \| `600000` \|'
+count = 1
+why = "The floor under the denominator, [REVIEW-027] RF-001. It is also the value whose relational rule against the measured window can be broken by editing either operand."
+
+[[probe]]
+id = "genesis-band-slow-side-costs-four"
+site = "README.md"
+pattern = '\*\*The slow side, `4 \* block_interval_ms`, costs four\.\*\*'
+count = 1
+why = "The cost of the slow side as a number. 'A set can stretch its epochs' is true and says nothing; four says how much, and it is the figure a reader compares against their own expectation of an epoch in days."
+
+[[probe]]
+id = "genesis-band-slow-side-stretches-epochs-fourfold"
+site = "README.md"
+pattern = 'can stretch its own epochs to \*\*four times\*\* their declared real-time length'
+count = 1
+why = "The consequence the number carries, stated where the number is. Pinned apart from the heading sentence because a rewrite that keeps the multiple and drops the consequence leaves the arithmetic and removes the warning."
+
+[[probe]]
+id = "genesis-band-fast-side-objects-at-a-doubling"
+site = "README.md"
+pattern = '\*\*The fast side, `block_interval_ms / 2`, objects at a doubling\.\*\*'
+count = 1
+why = "The cost of the fast side as a rate. The two sides do not trade against the same thing, and a document that states one cost and not the other invites the symmetric reading [ADR-016] rejected."
+
+[[probe]]
+id = "genesis-band-is-not-a-limit-on-the-cadence"
+site = "README.md"
+pattern = '\*\*These five numbers do not limit the cadence'
+count = 1
+why = "The renunciation of [ADR-013] restated where the values are, because that is where it is likeliest to be forgotten. The probe pinning 'No rule of this protocol prevents that, and none can' is 1 200 lines away, and a reader arriving at the band from the trust-anchor section never passes it."
+
+[[probe]]
+id = "genesis-band-slack-is-a-choice-not-a-measurement"
+site = "README.md"
+pattern = 'this deployment expects, and not a measurement of one\.\*\*'
+count = 1
+why = "[ADR-016] declares 600 000 ms a judgement about expected release latency rather than a measured fact, and says it must be re-examined once a release process exists. Written without that qualification the number becomes a datum nobody remembers choosing."
+
 [[probe]]
 id = "cadence-timestamp-is-not-an-input-readme"
 site = "README.md"

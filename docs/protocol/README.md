@@ -1375,12 +1375,88 @@ the `issued_at_ms` of a checkpoint, signed by the release key, and the wall
 clock of the party doing the measuring. Using the header's own timestamp would
 be measuring the validators with the validators' own clock.
 
-Values are a genesis decision of the network operator, are deliberately not
-fixed in this document, and are listed with the rest in
-[DRAFT: governance-selected launch parameters](#draft-governance-selected-launch-parameters).
-What is fixed is that the band exists, that it lies outside on-chain
-governance, that the declared interval lies inside it, and that a network which
-ships no `CadenceBand` is not a conformant Coblox network.
+What is fixed by this document is that the band exists, that it lies outside
+on-chain governance, that the declared interval lies inside it, and that a
+network which ships no `CadenceBand` is not a conformant Coblox network. The
+values themselves are a genesis decision of the network operator, taken on the
+reasoning recorded in [ADR-016] and written here because a trust anchor whose
+values live somewhere else is not one.
+
+#### The genesis band
+
+| Field | Value | Read against the declared interval |
+| --- | --- | --- |
+| `block_interval_ms` | `5000` | the [genesis constant](#genesis-constants) itself |
+| `min_ms_per_block` | `2500` | `block_interval_ms / 2` |
+| `max_ms_per_block` | `20000` | `4 * block_interval_ms` |
+| `min_measured_blocks` | `720` | one hour of chain at the declared interval |
+| `max_external_clock_slack_ms` | `600000` | ten minutes, and `600000 < 720 * 5000 = 3600000` |
+
+These satisfy the rules stated above: every field is positive,
+`2500 <= 5000 <= 20000`, and the tolerance is smaller than the smallest
+measurable window.
+
+**These five numbers do not limit the cadence, and reading them as a limit is
+the misreading this section exists to prevent.** The chain's real production
+rate is chosen by whoever produces the blocks;
+[genesis constants](#genesis-constants) says why no rule of this protocol
+reaches it, and this band does not become such a rule. What the band fixes is
+the threshold past which the rate stops being unremarkable to the two parties
+that hold an external clock. Each side therefore has a cost; the two sides do
+not trade off against the same thing, so the costs are stated separately; and
+each is a quantity rather than a quality, because a quality is what a reader
+supplies for themselves when a document declines to.
+
+**The slow side, `4 * block_interval_ms`, costs four.** An active validator set
+can stretch its own epochs to **four times** their declared real-time length
+before any measurement says so. The anti-capture guarantees of
+[validator election and rotation](ledger.md#validator-election-and-rotation)
+are true in **epochs**; their translation into days belongs to whoever produces
+the epochs, and `4 ×` is the factor this band concedes them — nine epochs of a
+maximum term are nine epochs either way, and up to four times as long in real
+time. The side is where it is because narrower is worse rather than safer: a
+band of `2 × block_interval_ms` calls a network out of band during an ordinary
+partition, and the release process fails closed in **both** directions, so that
+verdict would stop checkpoints from being issued during an event that is not an
+attack — withdrawing the only external clock a light client has, for a reason
+that is not a manoeuvre. A band of `20 ×` would let a set double its terms in
+real time before anything said so, which is a guard that exists and says
+nothing.
+
+**The fast side, `block_interval_ms / 2`, objects at a doubling.** It admits a
+real issuance rate up to **twice** the intended one and refuses beyond it, and
+it is issuance rather than pace because `reward_epoch` is paced by height
+([ledger.md](ledger.md#reward_epoch-is-derived-from-height)). This is the side a
+light client **fails closed** on, and it is narrower than the
+`block_interval_ms / 4` this document uses elsewhere to illustrate a wide fast
+side, which would permit four times the intended real issuance rate before the
+measurement objected. It is the side worth being severe on because it is the
+only one where an attacker's gain is direct, and because nothing honest makes
+blocks appear.
+
+**`min_measured_blocks = 720` is the noise floor, and its cost is latency.** A
+band measured over an hour sees an hour late, and inside the first 720 blocks
+past a checkpoint the measurement is **not made** and is reported as not made.
+
+**`max_external_clock_slack_ms = 600000` is a choice about the release latency
+this deployment expects, and not a measurement of one.** It is the field sized
+against the worst-case checkpoint release latency plus the worst-case clock
+error tolerated at either end. A slack of
+`L * min_ms_per_block / block_interval_ms` is exactly enough to absorb a release
+latency of `L` on a chain running at the declared interval, and a slack of `L`
+absorbs it with room; ten minutes is chosen against an expected worst case and
+MUST be re-examined once a real release process exists to measure. Sizing it
+**below** the release process's real latency is a declared choice to fail closed
+on that process's own delay, and sizing it at or above
+`min_measured_blocks * block_interval_ms` is refused, because the tolerance
+would then exceed the window it qualifies — a deployment that needs more slack
+raises `min_measured_blocks` instead. Its cost is the only cost a tolerance has:
+a genuinely fast chain goes unreported until the measured window grows past it.
+
+**Narrower is a release; wider is not available.** A new signed distribution can
+narrow any of these values without touching genesis, so a band chosen wide
+before a network exists is a postponement and not a concession. No on-chain
+document can widen it, for the reason given at the head of this section.
 
 **Declared limit.** The band's trustworthiness is the release channel's, exactly
 as for `ElectionBounds` and the trust key. And the measurement is a measurement:
@@ -1551,35 +1627,6 @@ not economic facts and remain open:
   [election bounds](#election-bounds) of the genesis trust anchor, is rejected on
   acceptance. The simulator therefore chooses inside a feasible region that the
   chain's own governance cannot widen.
-
-- the [cadence band](#cadence-band): `min_ms_per_block`, `max_ms_per_block` and
-  `min_measured_blocks`. The **algorithm** is not open — the measurement, its two
-  external endpoints, and the asymmetry between the client and the release
-  process are fixed above. What is open is the tolerance, and it is a genesis
-  decision of the operator for the same reason `α` and the launch population
-  are. The two sides do not trade off against the same thing. The slow side is
-  the incumbency question: a band of `2 × block_interval_ms` calls a network
-  out of band during an ordinary partition, and one of `20 ×` lets a set double
-  its terms in real time before anything says so. The fast side is the issuance
-  question, and it became one only when `reward_epoch` was paced by height
-  ([ledger.md](ledger.md#reward_epoch-is-derived-from-height)): a band of
-  `block_interval_ms / 4` permits four times the intended real issuance rate
-  before the measurement objects. `min_measured_blocks` is the noise floor, and
-  its cost is latency — a band measured over a day sees a day late.
-
-  `max_external_clock_slack_ms` is the fourth and is sized against a measurable
-  fact rather than a judgement: the deployment's worst-case checkpoint release
-  latency, plus the worst-case clock error it is willing to tolerate at either
-  end. A slack of `L * min_ms_per_block / block_interval_ms` is exactly enough
-  to absorb a release latency of `L` on a chain running at the declared
-  interval, and a slack of `L` absorbs it with room. Sizing it **below** the
-  release process's real latency is a declared choice to fail closed on that
-  process's own delay, and sizing it at or above
-  `min_measured_blocks * block_interval_ms` is refused, because the tolerance
-  would then exceed the window it qualifies — a deployment that needs more slack
-  raises `min_measured_blocks` instead. Its cost is the only cost a tolerance
-  has: a genuinely fast chain goes unreported until the measured window grows
-  past it.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select

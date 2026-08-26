@@ -26,11 +26,12 @@ use coblox_core::params::CadenceBand;
 
 /// Test inputs, not launch values.
 ///
-/// The genesis band is an operator decision listed in
-/// `README.md#draft-governance-selected-launch-parameters`. These numbers exist
-/// to exercise the arithmetic. The declared interval is the one value that is
-/// real — 5 000 ms, `README.md#genesis-constants` — because the relational rule
-/// of the band is stated against it.
+/// The genesis band is an operator decision, written in
+/// `README.md#the-genesis-band` ([ADR-016]) and exercised by
+/// [`genesis_band`] below. These numbers exist to exercise the arithmetic. The
+/// declared interval is the one value that is real — 5 000 ms,
+/// `README.md#genesis-constants` — because the relational rule of the band is
+/// stated against it.
 fn band() -> CadenceBand {
     CadenceBand {
         network_id: "coblox-testnet-cadence".to_owned(),
@@ -391,6 +392,100 @@ fn a_band_that_would_disable_its_own_measurement_is_rejected() {
         ..band()
     };
     assert!(excludes_the_declared_interval.validate(&chain()).is_err());
+}
+
+// --- the genesis band -------------------------------------------------------
+
+/// The band Coblox v0 actually ships, `README.md#the-genesis-band` and
+/// [ADR-016].
+///
+/// Unlike [`band`], these are **not** test inputs: they are the operator's
+/// genesis decision, and this file carries them so that the three relational
+/// rules are checked against the values a network will run with rather than
+/// against convenient ones.
+fn genesis_band() -> CadenceBand {
+    CadenceBand {
+        network_id: "coblox-genesis-band".to_owned(),
+        chain_id: ChainId::from_digest(Digest32::repeated(0x11)),
+        block_interval_ms: 5_000,
+        min_ms_per_block: 2_500,
+        max_ms_per_block: 20_000,
+        min_measured_blocks: 720,
+        max_external_clock_slack_ms: 600_000,
+    }
+}
+
+/// The three relational rules, checked on the shipped values and not restated.
+#[test]
+fn the_genesis_band_satisfies_the_rules_the_document_states() {
+    let g = genesis_band();
+    g.validate(&chain()).unwrap();
+
+    // Every field positive.
+    for field in [
+        g.block_interval_ms,
+        g.min_ms_per_block,
+        g.max_ms_per_block,
+        g.min_measured_blocks,
+        g.max_external_clock_slack_ms,
+    ] {
+        assert!(field > 0);
+    }
+    // The declared interval lies inside the band, and the two sides are the
+    // multiples ADR-016 decided: interval / 2 and 4 * interval.
+    assert!(g.min_ms_per_block <= g.block_interval_ms);
+    assert!(g.block_interval_ms <= g.max_ms_per_block);
+    assert_eq!(g.min_ms_per_block, g.block_interval_ms / 2);
+    assert_eq!(g.max_ms_per_block, 4 * g.block_interval_ms);
+    // The tolerance is smaller than the smallest measurable window.
+    assert!(g.max_external_clock_slack_ms < g.min_measured_blocks * g.block_interval_ms);
+}
+
+/// The boundary of `slack < min_measured_blocks * block_interval_ms`, from both
+/// sides and on the genesis window.
+///
+/// A relational rule exercised from one side only does not distinguish `<` from
+/// `<=`, and this is the rule whose two operands are the two floors of the
+/// measurement. The window here is 720 * 5 000 = 3 600 000 ms, a different
+/// window from the 500 000 ms of
+/// [`a_band_whose_slack_swallows_its_own_window_is_rejected`]: that test holds
+/// `min_measured_blocks` and `block_interval_ms` fixed while it varies the
+/// slack, so on its own it never shows that the refusal moves when the window
+/// moves. This one moves it.
+#[test]
+fn the_genesis_window_admits_a_slack_one_millisecond_under_it_and_refuses_the_first_beyond() {
+    let window = 720_u64 * 5_000;
+    assert_eq!(window, 3_600_000);
+
+    // The largest slack the rule admits.
+    let largest_admitted = CadenceBand {
+        max_external_clock_slack_ms: window - 1,
+        ..genesis_band()
+    };
+    largest_admitted.validate(&chain()).unwrap();
+
+    // The first value beyond it. `<` and not `<=`: a tolerance equal to the
+    // whole window is not a tolerance.
+    let first_refused = CadenceBand {
+        max_external_clock_slack_ms: window,
+        ..genesis_band()
+    };
+    assert!(
+        matches!(
+            first_refused.validate(&chain()),
+            Err(Error::Parameter(ParameterError::Bounds { .. }))
+        ),
+        "a slack equal to the measured window was accepted"
+    );
+
+    // And the boundary follows the window rather than being a constant: halve
+    // `min_measured_blocks` and the value that was admitted above is refused.
+    let half_window = CadenceBand {
+        min_measured_blocks: 360,
+        max_external_clock_slack_ms: window - 1,
+        ..genesis_band()
+    };
+    assert!(half_window.validate(&chain()).is_err());
 }
 
 #[test]

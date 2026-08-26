@@ -50,26 +50,53 @@
 //! the worst defect to diagnose.
 //!
 //! **Parameters are validated configuration, never compiled constants.** No
-//! launch value appears in this crate. Values arrive as
-//! [`params::ConsensusParameters`], [`params::ElectionBounds`],
-//! [`params::RewardPolicy`], [`params::RewardBounds`] and
-//! [`params::EnrollmentParameters`], and the election derivation and the
-//! creator-share cap accept only [`params::ValidatedConsensusParameters`] and
-//! [`params::ValidatedRewardPolicy`], which have no constructors other
-//! than validation against the constraint block and genesis bounds.
-//! Validation failure is a recoverable error, because in production these
-//! values arrive inside a document a validator quorum signed and rejecting
-//! one is ordinary operation.
+//! launch value appears in this crate. The objects that carry launch values
+//! into it fall into **three** classes and not one, and the classes are named
+//! separately because what a rejection *means* is different in each. A list
+//! that merged them would describe at least one of its members backwards.
 //!
-//! **A trust anchor is checked before it is trusted.** Bounds objects are
+//! **Governed documents** — [`params::ConsensusParameters`],
+//! [`params::RewardPolicy`] and [`params::EnrollmentParameters`] — arrive
+//! inside a document a validator quorum signed. The election derivation and the
+//! creator-share cap accept only [`params::ValidatedConsensusParameters`] and
+//! [`params::ValidatedRewardPolicy`], which have no constructors other than
+//! validation against the constraint block and the genesis bounds. Validation
+//! failure is a recoverable error rather than a panic, because rejecting such a
+//! document is ordinary protocol operation.
+//!
+//! **Genesis bounds** — [`params::ElectionBounds`] and
+//! [`params::RewardBounds`] — ship inside the signed network distribution and
+//! in no other channel. They bound what a governed document may carry, so a
+//! document outside them is rejected on acceptance, and nothing on-chain
+//! constrains the bounds themselves.
+//!
+//! **[`params::CadenceBand`] is in neither class, and saying so is the point of
+//! listing three.** It ships in the signed distribution like a genesis bound,
+//! but it bounds **nothing any document carries**: it is the tolerance applied
+//! to a measurement whose two endpoints are outside the chain, and no validity
+//! rule of this protocol compares anything to it. So the sentence that closes
+//! the first class — that in production these values arrive inside a document a
+//! validator quorum signed — is **false for this one, and deliberately**. Its
+//! values reach a deployment through the release channel alone, never through a
+//! quorum-signed document and never learned from a peer or a header, because a
+//! band a sitting quorum could widen would be a tolerance underneath the only
+//! measurement the protocol has of that quorum's own behaviour
+//! (`README.md#cadence-band`, [ADR-013], [ADR-016]). A new signed release may
+//! narrow it; nothing on-chain may widen it.
+//!
+//! **A trust anchor is checked before it is trusted.** Anchors are
 //! configuration, so nothing on-chain constrains them, and a degenerate one
-//! would disable the rule it is supposed to carry rather than fail. Both
-//! composed entry points therefore validate the anchor as their first act:
+//! would disable the rule it is supposed to carry rather than fail. Every
+//! composed entry point therefore validates its anchor as its first act:
 //! [`light_client::authenticate_consensus_parameters`] for
-//! [`params::ElectionBounds`] and [`light_client::authenticate_reward_policy`]
-//! for [`params::RewardBounds`]. The rate-of-change rule additionally refuses a
-//! degenerate ratio in [`params::RewardPolicy::validate`] itself, so the rule
-//! cannot become vacuous on any path.
+//! [`params::ElectionBounds`], [`light_client::authenticate_reward_policy`] for
+//! [`params::RewardBounds`], and both cadence measurements —
+//! [`cadence::measure_cadence_from_checkpoint`] and
+//! [`cadence::measure_cadence_between_checkpoints`] — for
+//! [`params::CadenceBand`], which is why a caller cannot reach the arithmetic
+//! with a band that admits every rate. The rate-of-change rule additionally
+//! refuses a degenerate ratio in [`params::RewardPolicy::validate`] itself, so
+//! the rule cannot become vacuous on any path.
 //!
 //! # Consensus-critical Ed25519 verification
 //!
