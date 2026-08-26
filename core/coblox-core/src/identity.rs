@@ -5,6 +5,7 @@
 //! (ADR-015, `docs/protocol/identity.md`).
 
 use crate::SignatureVerifier;
+use crate::cadence::AttestationClock;
 use crate::encoding::{base64url_decode_fixed, base64url_encode};
 use crate::error::{AttestationError, Result};
 use crate::hash::{ChainId, Domain, NodeId};
@@ -142,6 +143,25 @@ impl TransportKeyAttestation {
     /// to omit and no test would notice: the attested transport key MUST NOT be
     /// the enrolled identity key, and the window MUST be no longer than
     /// `bounds.max_validity_ms`.
+    ///
+    /// **`clock` is an [`AttestationClock`] and not a `u64`, and it carries two
+    /// numbers because rule 5 has two halves that must not read the same one.**
+    /// The exposure of this object is
+    /// `max_validity_ms + max_future_skew_ms + (however far the receiver's clock
+    /// is behind)`, and only the first two terms are bounded by a parameter. The
+    /// third is **reduced** — not closed — by a floor under the expiry
+    /// comparison, taken from the one clock no validator writes.
+    ///
+    /// The floor is spent on the expiry half only. Raising the clock rejects
+    /// more attestations as expired, but it would *admit* more postdated ones
+    /// through `created_at_ms > now_ms + max_future_skew_ms`, so that half reads
+    /// [`AttestationClock::local_clock_ms`] instead. A floor is fail-closed on
+    /// one half of this rule and fail-open on the other; spending it only where
+    /// it rejects is what makes the whole rule fail closed.
+    ///
+    /// A receiver that holds no checkpoint passes
+    /// [`AttestationClock::local_only`], for which the two numbers are equal,
+    /// and behaves exactly as it did before [SPEC-020].
     #[allow(clippy::too_many_arguments)]
     pub fn verify(
         &self,
@@ -149,10 +169,12 @@ impl TransportKeyAttestation {
         expected_network_id: &str,
         enrolled_identity_public_key: &[u8; 32],
         authenticated_transport_key: &[u8; 32],
-        now_ms: u64,
+        clock: AttestationClock,
         bounds: &AttestationBounds,
         verifier: &impl SignatureVerifier,
     ) -> Result<()> {
+        let now_ms = clock.now_ms();
+        let local_clock_ms = clock.local_clock_ms();
         if self.schema_version != "0.1" {
             return Err(AttestationError::UnsupportedVersion(self.schema_version.clone()).into());
         }
@@ -208,7 +230,21 @@ impl TransportKeyAttestation {
         // from which it could correct its clock. Past `expires_at_ms` there is
         // no slack, because slack there extends the exposure window that
         // `max_validity_ms` exists to bound.
-        let latest_acceptable_creation = now_ms.saturating_add(bounds.max_future_skew_ms);
+        //
+        // **The two halves read two different clocks, and that is the rule.**
+        // The floored reading rejects more attestations as expired and can never
+        // revive an expired one, so the expiry half spends it. The admission
+        // half runs the other way: raising the clock would *admit* an
+        // attestation postdated further than the signed tolerance, and with an
+        // anchor ahead of real time by `Δ` the real window becomes
+        // `max_validity_ms + Δ` with `Δ` chosen by whoever signs the checkpoint.
+        // So the admission half reads the receiver's own clock, unfloored. A
+        // floor is fail-closed on one half of this rule and fail-open on the
+        // other; both halves are fail-closed only once they are split.
+        //
+        // For a receiver holding no checkpoint the two readings are the same
+        // number and this is the comparison that existed before [SPEC-020].
+        let latest_acceptable_creation = local_clock_ms.saturating_add(bounds.max_future_skew_ms);
         if now_ms > self.expires_at_ms || self.created_at_ms > latest_acceptable_creation {
             return Err(AttestationError::Expired {
                 now_ms,

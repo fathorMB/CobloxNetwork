@@ -1962,16 +1962,67 @@ totale, ma **revocabile**; oggi è una chiave a basso valore e **non esiste alcu
 invalidazione anticipata di un'attestazione in circolazione**: nessun contatore di
 epoca, nessun numero di serie, nessuna lista.
 
-**Contromisura.** (a) *Finestra breve e limitata come regola*: il tetto
-`max_transport_attestation_validity_ms` è un parametro di rete firmato dopo
-[REVIEW-021], quindi l'esposizione è limitata dal protocollo e non dalla prudenza
-dell'operatore. È l'unico limite che esista. **Con una riserva, e va detta qui
-perché altrimenti questa frase promette più di quanto la regola tenga:** il tetto
-vincola la *durata dichiarata* dall'attestazione, mentre la finestra in cui un
-verificatore la accetta è quella durata **più** la tolleranza di orologio — e la
-somma non è vincolata da nulla. Vedi [DEBT-017]. Finché quel debito è aperto,
-l'esposizione è limitata dal protocollo *sul valore che il documento nomina*, non
-sulla grandezza da cui la proprietà dipende. Costo: rotazioni più frequenti, cioè
+**Contromisura.** (a) *Finestra breve e limitata come regola, e un pavimento
+sotto l'orologio su cui la si misura*. Riscritta il 2026-08-26 sotto [SPEC-020],
+che ha chiuso [DEBT-017]. La versione precedente diceva che la somma
+`durata + tolleranza` «non è vincolata da nulla» e rinviava al debito: era vera
+sul termine **minore** e taceva il maggiore, che è il difetto che quel debito
+ha finito per accertare su sé stesso.
+
+L'esposizione di un'attestazione ha **tre** addendi e non due:
+`max_transport_attestation_validity_ms` (rifiuto 4), più
+`max_transport_attestation_future_skew_ms` (rifiuto 5), più **quanto l'orologio
+del ricevente è indietro rispetto al tempo reale**. I primi due sono limitati da
+parametri firmati e la loro **somma** è ora dichiarata accanto a essi in
+`identity.md` §"Bounded validity in time" punto 3, invece di essere lasciata al
+lettore. Il terzo era illimitato ed era il termine dominante.
+
+`identity.md` punto 5 lo riduce ora con un **pavimento** su `now_ms`:
+`max(orologio locale, issued_at_ms del checkpoint di soggettività debole
+verificato)`.
+
+**Un pavimento non è fail-closed, ed è la correzione che questa passata porta a
+un accertamento precedente.** La regola 5 ha due metà — `now_ms > expires_at_ms`
+e `created_at_ms > now_ms + S_max` — e alzare `now_ms` **rifiuta** di più sulla
+prima ma **ammette** di più sulla seconda: con un'ancora avanti di `Δ` un
+ricevente con l'orologio **esatto** accetterebbe un'attestazione postdatata oltre
+la tolleranza firmata, e la finestra reale diventerebbe `D_max + Δ` con `Δ`
+scelto da chi firma il checkpoint. Il pavimento è quindi speso **solo dove
+rifiuta**: la metà della scadenza legge il valore pavimentato, la metà
+dell'ammissione legge l'orologio locale nudo. È così che l'intera regola torna a
+fallire in chiuso, ed è così che la capacità marginale del processo di rilascio
+resta di **diniego** — che già possiede, potendo semplicemente non emettere un
+checkpoint — invece di diventare di **ammissione** sul trasporto.
+
+Con la separazione in atto il pavimento può solo far scadere un'attestazione che
+l'orologio locale avrebbe accettato, e non può mai resuscitarne una scaduta né
+ammetterne una postdatata. La sorgente è **la stessa** che [SPEC-016] usa per
+misurare la cadenza, e non `timestamp_ms`: quest'ultimo è scritto dai
+validatori, e poiché un peer senza attestazione valida non viene ignorato ma
+**disconnesso**, un set attivo che lo gonfiasse partizionerebbe il trasporto di
+ogni nodo onesto senza firmare nulla di invalido — *fail-closed* qualifica la
+sicurezza, non la disponibilità. Sulla sorgente scelta la leva del set è
+**zero**, perché la chiave di rilascio non appartiene ad alcun validatore.
+
+**Il residuo, che resta e va detto, e non è quello che sembra.** Un ricevente
+**senza** checkpoint applica zero pavimento e si comporta esattamente come prima
+— è il nodo della ragione 1, quello che non può ancora raggiungere il ledger, e
+per lui il terzo addendo resta **illimitato**. Con un checkpoint il terzo addendo
+è `min(b, A)`, con `b` il ritardo dell'orologio e `A` l'età vera del checkpoint.
+**Non** è limitato da `max_weak_subjectivity_age_ms`: quel tetto appartiene al
+passo 1 dell'algoritmo light-client, e il pavimento **non è subordinato al
+verdetto del passo 1**, deliberatamente. Il passo 1 valuta la freschezza
+sull'orologio locale nudo e fallisce quando `issued_at_ms` lo supera — che è
+esattamente e soltanto il caso in cui il pavimento fa qualcosa. Subordinarvelo lo
+renderebbe **inerte**. La separazione regge perché la freschezza è precondizione
+per **ancorare lo stato di catena**, non per **minorare il tempo reale**: un
+checkpoint vecchio è un pavimento più debole, mai un pavimento non sicuro. Ne
+segue che **nulla limita `A`**, e il termine resta **illimitato da ogni regola
+del protocollo**. Ciò che cambia è la grandezza da cui dipende: prima era
+l'errore dell'orologio, che il ricevente non osserva e l'operatore non corregge
+senza un riferimento esterno; ora è al più l'età di un artefatto che l'operatore
+ottiene fuori banda e rinfresca a piacere, indipendentemente dal proprio
+orologio. Un residuo piccolo è ora **ottenibile**, non garantito. Costo: rotazioni più frequenti, cioè
 verifiche di firma in più a ogni ristabilimento di sessione. (b) *Revoca
 dell'identità*: funziona, ma distrugge identità, saldo e reputazione per una chiave
 subordinata, ed è il rimedio sproporzionato che [ADR-015] esisteva per evitare. (c)

@@ -1,7 +1,7 @@
 ---
 id: DEBT-017
 title: "L'esposizione dell'attestazione e' misurata su un orologio che nessuno attesta"
-status: open
+status: resolved
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-021"]
 related_decisions: ["ADR-015"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-020","REVIEW-034","REVIEW-035"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-26
 tags: ["security","privacy","consensus"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-26
+    action: "resolved: Chiuso, e la chiusura non e' quella che questo debito descriveva. Vale la pena registrare cosa di questo artefatto e' risultato falso, perche' e' tanto quanto cio' che e' risultato utile.\n\nIl titolo originale nominava il termine minore ed era stato gia' riformulato. La sorgente del minorante era sbagliata: la valutazione diceva timestamp_ms dell'ultimo blocco finalizzato, e sarebbe stato un secondo orologio, proprio quello che cadence.rs rifiuta. AGENT-001 ha usato checkpoint.issued_at_ms perche' GATE-ONE-CLOCK lo imponeva, e la sostituzione azzera la leva di partizione invece di misurarla.\n\nIl \"chiude\" era falso e l'implementatore se ne e' accorto da se', verificando la misura invece che scrivendola: il passo 1 misura l'eta' del checkpoint sullo stesso orologio rotto, quindi nel caso peggiore il pavimento coincide con l'orologio locale.\n\nE il fail-closed era falso, ed e' l'errore che conta perche' e' quello che ha viaggiato piu' lontano. AGENT-007 lo ha stabilito guardando la sola meta' della scadenza della regola 5. La regola ha due meta', e sull'altra alzare now_ms AMMETTE: un minorante e' fail-closed su una meta' e fail-open sull'altra. La correzione e' ora scritta in quattro luoghi come ragione della regola e non come nota, ed e' passata per tre artefatti prima che qualcuno la guardasse - questa valutazione, la review del Lead che la citava, e identity.md che l'aveva ereditata.\n\nTerzo caso in una sessione di una dimostrazione valida letta come conclusiva oltre il perimetro su cui era fatta, dopo l'errore della stessa AGENT-007 su DEBT-022 e quello di AGENT-002 su R2. La lezione non e' che qualcuno abbia sbagliato: e' che una dimostrazione va consegnata insieme al perimetro su cui vale, altrimenti chi la cita ne eredita la conclusione e non il confine.\n\nCio' che questo debito ha avuto ragione di dire, e che resta: che il titolo nominava la grandezza sbagliata, che S_max non e' disponibile all'avversario di TM-37, che il termine dominante e' l'orologio del ricevente, e che i quattro rimedi apparenti non rimediano. Nessuno dei quattro e' stato adottato."
 debt_events:
   - schema_version: "1"
     id: "DEBT-017-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Aperto dal Lead alla chiusura di SPEC-013, su segnalazione dell'implementatore che si e fermato e ha riportato invece di decidere, come il mandato gli imponeva. Registrato come debito e non come remediation perche introdurre un vincolo relazionale e una regola di validita nuova, quindi ricade sotto ADR-012 e apre la propria passata, e perche estendere una terza volta una spec gia passata per una remediation e il modo in cui una spec non chiude mai. Owner AGENT-007 e non il Lead ne l'implementatore: e un'osservazione che chi l'ha fatta non deve valutare da se, ed e la regola che questo progetto ha applicato a DEBT-013 e DEBT-014."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-017-EVENT-002"
+    timestamp: "2026-08-26T15:02:32.459324100+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Chiuso, e la chiusura non e' quella che questo debito descriveva. Vale la pena registrare cosa di questo artefatto e' risultato falso, perche' e' tanto quanto cio' che e' risultato utile.\n\nIl titolo originale nominava il termine minore ed era stato gia' riformulato. La sorgente del minorante era sbagliata: la valutazione diceva timestamp_ms dell'ultimo blocco finalizzato, e sarebbe stato un secondo orologio, proprio quello che cadence.rs rifiuta. AGENT-001 ha usato checkpoint.issued_at_ms perche' GATE-ONE-CLOCK lo imponeva, e la sostituzione azzera la leva di partizione invece di misurarla.\n\nIl \"chiude\" era falso e l'implementatore se ne e' accorto da se', verificando la misura invece che scrivendola: il passo 1 misura l'eta' del checkpoint sullo stesso orologio rotto, quindi nel caso peggiore il pavimento coincide con l'orologio locale.\n\nE il fail-closed era falso, ed e' l'errore che conta perche' e' quello che ha viaggiato piu' lontano. AGENT-007 lo ha stabilito guardando la sola meta' della scadenza della regola 5. La regola ha due meta', e sull'altra alzare now_ms AMMETTE: un minorante e' fail-closed su una meta' e fail-open sull'altra. La correzione e' ora scritta in quattro luoghi come ragione della regola e non come nota, ed e' passata per tre artefatti prima che qualcuno la guardasse - questa valutazione, la review del Lead che la citava, e identity.md che l'aveva ereditata.\n\nTerzo caso in una sessione di una dimostrazione valida letta come conclusiva oltre il perimetro su cui era fatta, dopo l'errore della stessa AGENT-007 su DEBT-022 e quello di AGENT-002 su R2. La lezione non e' che qualcuno abbia sbagliato: e' che una dimostrazione va consegnata insieme al perimetro su cui vale, altrimenti chi la cita ne eredita la conclusione e non il confine.\n\nCio' che questo debito ha avuto ragione di dire, e che resta: che il titolo nominava la grandezza sbagliata, che S_max non e' disponibile all'avversario di TM-37, che il termine dominante e' l'orologio del ricevente, e che i quattro rimedi apparenti non rimediano. Nessuno dei quattro e' stato adottato."
+    evidence_refs: ["SPEC-020", "REVIEW-034", "REVIEW-035"]
 ---
 # La finestra di esposizione dell'attestazione e' skew piu' durata, e solo la durata e' limitata
 
@@ -362,3 +374,15 @@ risultasse illimitata, l'ordine di forza cambia e diventa **B+C > A**.
 
 ## Resolution evidence
 
+Chiuso da SPEC-020, accettata con REVIEW-034 del Lead e REVIEW-035 di AGENT-007 per GATE-SECREVIEW, dopo un giro di remediation su un finding high. Verificato dal Lead rieseguendo: 181 test da 177 di baseline, 150 probe C10 da 146 ciascuna osservata fallire da sola, protocol_hashes.py senza valori mossi, e git diff --numstat su light_client.rs vuoto, cioe' checkpoint_is_fresh invariata riga per riga.
+
+La chiusura: un tipo AttestationClock in cadence.rs con due costruttori e campi privati. now_ms = max(orologio locale, checkpoint.issued_at_ms) per chi possiede un checkpoint verificato; orologio locale nudo in bootstrap, con floor_ms() zero per costruzione.
+
+La regola 5 e' divisa sui due orologi, che e' il rimedio di RF-002: la meta' della scadenza legge il valore pavimentato, la meta' dell'ammissione legge l'orologio nudo. Senza la divisione il pavimento avrebbe dato alla chiave di rilascio una capacita' di ammissione sul trasporto che non possedeva.
+
+Il termine illimitato NON e' chiuso, ed e' scritto cosi' in quattro artefatti. Cio' che il pavimento cambia e' la grandezza da cui il residuo dipende: prima l'errore dell'orologio, non osservabile ne' correggibile senza un riferimento esterno; ora l'eta' di un artefatto che l'operatore ottiene fuori banda senza possedere un orologio giusto. Un residuo piccolo e' ottenibile, non garantito.
+
+GATE-DRIFT-ANSWERED-FIRST soddisfatta nell'ordine e nella sostanza, su tre fonti indipendenti che legano il controllo di drift alla ricezione della proposta, piu' due che confermano e nessuna che contraddica.
+
+step_one_and_the_attestation_floor_do_not_compose, in tests/light_client_perimeter.rs, asserisce la composizione invece di ragionarla: e' il test che fallisce il giorno in cui qualcuno subordina il pavimento al passo 1, mossa che altrimenti non romperebbe nulla e lo renderebbe inerte per sempre.</resolution_evidence>
+</invoke>

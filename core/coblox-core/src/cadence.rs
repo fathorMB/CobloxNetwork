@@ -1,6 +1,12 @@
-//! The chain's clocks: the measured cadence, and the reward-epoch derivation.
+//! The chain's clocks: the measured cadence, the reward-epoch derivation, and
+//! the floor under a receiver's own clock.
 //!
 //! Two rules live here and they answer the same question from opposite sides.
+//! A third item, [`AttestationClock`], was added by [SPEC-020] and belongs here
+//! for one reason: it needs the same external clock the first rule measures
+//! against, and putting it anywhere else would have given the project **two**
+//! clocks for the same property. Its documentation carries that argument in
+//! full.
 //!
 //! **The proposition this module is built on**, established by AGENT-007
 //! evaluating [DEBT-013] and written into [ADR-013] part 3: *no validity rule
@@ -54,6 +60,187 @@
 use crate::error::{CadenceError, Error, Result};
 use crate::hash::ChainId;
 use crate::params::CadenceBand;
+
+/// The clock on which an attestation's expiry is measured: the receiver's own
+/// clock, floored by the external one.
+///
+/// **Why this type exists at all, and why it is not a `u64`.** The rejection
+/// rules of `identity.md#mandatory-rejection-rules` are evaluated against a
+/// quantity the document calls `now_ms`, and until [SPEC-020] that quantity was
+/// the receiver's local clock and nothing else. `identity.md` declared the
+/// consequence in as many words — *a receiver whose clock is far behind accepts
+/// attestations that expired hours ago, and no certificate attests a clock* —
+/// and that unbounded term, not the bounded `D_max + S_max` window, is the
+/// dominant one in the exposure. A **lower bound** on `now_ms` reduces that term
+/// to `min(clock lag, checkpoint age)`. It does not eliminate it: no rule of
+/// this protocol bounds the age of the checkpoint a receiver holds, and the
+/// floor deliberately does not require a fresh one — see
+/// [`AttestationClock::with_checkpoint_floor`] for why freshness is a
+/// precondition for anchoring chain state and not for bounding real time from
+/// below. What changes is *which quantity the residue depends on*: from the
+/// receiver's own clock error, which it cannot observe and cannot correct
+/// without an external reference, to the age of an artifact an operator obtains
+/// out of band and refreshes at will. A small residue becomes obtainable, not
+/// guaranteed, and `identity.md#bounded-validity-in-time` point 5 carries the
+/// distinction in full.
+///
+/// **Which external clock, and why there is only one to choose from.** The
+/// tempting source is `timestamp_ms` of the last finalized block: it is monotone
+/// against the median of eleven, and inflating it *rejects* attestations rather
+/// than admitting them, so its abuse is fail-closed. It is nevertheless the
+/// wrong source, for two reasons that compound.
+///
+/// - *Fail-closed qualifies security, not availability.* `identity.md` does not
+///   ignore a peer without a valid attestation: it says the peer MUST be
+///   rejected **and disconnected**. A validator set inflating `timestamp_ms`
+///   would therefore not degrade a check — it would disconnect the transport
+///   layer of every honest node holding a finalized head, simultaneously,
+///   without signing anything invalid. That is exactly the actor of [DEBT-013]
+///   with exactly the capability that debt established, and the remedy would
+///   have converted a *slowdown* lever into a *partition* lever.
+/// - *It would be a second clock.* This module's whole argument is that the
+///   protocol has **one** clock the validators do not write, and that
+///   `timestamp_ms` is not it. Two clocks for the same property are worse than
+///   none, because nobody can say which is the real one.
+///
+/// So the floor is `issued_at_ms` of the weak subjectivity checkpoint — the same
+/// field, from the same signed object, that
+/// [`measure_cadence_from_checkpoint`] already measures against, signed by a
+/// release key that belongs to no validator
+/// (`README.md#the-network-release-trust-key`). The validator set's lever on
+/// this quantity is **zero**, and that is a property of the construction rather
+/// than a bound on an attacker.
+///
+/// **What the floor does not do.** It does not constrain real time, which
+/// [ADR-013] part 3 establishes no rule of this chain can do. A floor is not a
+/// constraint: it says *not earlier than this*, and it is satisfied by every
+/// clock that is not behind.
+///
+/// **The bootstrap case is the one this type is shaped around.** Reason 1 of
+/// `identity.md#bounded-validity-in-time` protects the node that cannot yet
+/// reach the ledger, and that node is the one whose clock is least trustworthy.
+/// [`AttestationClock::local_only`] is its form and it is byte-for-byte the
+/// behaviour that existed before [SPEC-020]: [`AttestationClock::floor_ms`]
+/// returns zero for it, always. A node that holds no checkpoint loses nothing
+/// and gains nothing, which is what makes the dependency **optional** rather
+/// than the circular one reason 1 rejects.
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AttestationClock {
+    now_ms: u64,
+    local_clock_ms: u64,
+}
+
+impl AttestationClock {
+    /// The bootstrap form: the receiver's local clock, and nothing else.
+    ///
+    /// For a node that holds no weak subjectivity checkpoint — freshly
+    /// installed, or long offline — this is the whole of the rule, and it is
+    /// identical to the behaviour of every release before [SPEC-020].
+    pub const fn local_only(local_clock_ms: u64) -> Self {
+        Self {
+            now_ms: local_clock_ms,
+            local_clock_ms,
+        }
+    }
+
+    /// The floored form: `max(local clock, checkpoint issued_at_ms)`.
+    ///
+    /// `checkpoint_issued_at_ms` MUST come from a checkpoint whose signature the
+    /// caller has already verified under a trust key it already held and whose
+    /// `chain_id` equals the configured one. An unverified checkpoint is an
+    /// attacker-chosen number and this constructor cannot tell.
+    ///
+    /// **Those two requirements are the whole precondition, and the freshness
+    /// gate of step 1 is deliberately not among them.** An earlier revision
+    /// cited step 1 here, and that citation made the remedy inert: step 1 is
+    /// evaluated on the receiver's bare local clock and fails with *checkpoint
+    /// issued in the future* exactly when `checkpoint_issued_at_ms >
+    /// local_clock_ms` — which is exactly when this constructor produces a
+    /// non-zero floor. The two conditions are each other's negation
+    /// ([REVIEW] RF-001).
+    ///
+    /// The resolution is not a relaxed threshold, it is that **freshness is a
+    /// precondition for anchoring chain state, not for bounding real time from
+    /// below.** A floor needs one property — that `issued_at_ms` is an instant
+    /// that really passed — and that follows from the signature, not from the
+    /// age. An old checkpoint is a *weaker* floor, never an unsafe one. A stale
+    /// checkpoint is useless as a chain anchor because there the question is
+    /// what happened *after* it, and to that question age is the answer. Same
+    /// artifact, two questions, and only one of them needs it to be recent.
+    ///
+    /// So a receiver may hold a checkpoint that step 1 rejects and still use it
+    /// here, failing closed on balance verification while getting an honest
+    /// expiry verdict on the transport. That is the node whose clock is far
+    /// behind, and the asymmetry is the point rather than an oversight.
+    ///
+    /// Two of the three functions in this crate that read this field against a
+    /// local clock treat "ahead of my clock" as an error, and the difference is
+    /// the operation rather than a preference: those two compute a **difference**
+    /// (`now - issued_at`), where a negative duration is meaningless. This one
+    /// computes a **maximum**, where being ahead of the local clock is the only
+    /// case in which the function does anything at all.
+    ///
+    /// **`timestamp_ms` is not this parameter and must not be passed as it.**
+    /// The checkpoint carries both fields and they are one line apart in the
+    /// schema; `issued_at_ms` is when the checkpoint was produced, which is the
+    /// external reading, while `timestamp_ms` is a header timestamp the
+    /// validators wrote.
+    pub const fn with_checkpoint_floor(local_clock_ms: u64, checkpoint_issued_at_ms: u64) -> Self {
+        let now_ms = if checkpoint_issued_at_ms > local_clock_ms {
+            checkpoint_issued_at_ms
+        } else {
+            local_clock_ms
+        };
+        Self {
+            now_ms,
+            local_clock_ms,
+        }
+    }
+
+    /// The floored value: the quantity the **expiry** half of rejection rule 5
+    /// is evaluated against, and only that half.
+    ///
+    /// See [`AttestationClock::local_clock_ms`] for the other half and for why
+    /// the two must not be the same number.
+    pub const fn now_ms(self) -> u64 {
+        self.now_ms
+    }
+
+    /// The receiver's own clock, unfloored: the quantity the **admission** half
+    /// of rejection rule 5 is evaluated against.
+    ///
+    /// **A floor is not fail-closed. It is fail-closed on one half of rule 5 and
+    /// fail-open on the other, and this accessor exists because of that.**
+    /// Rule 5 rejects when `now_ms > expires_at_ms` *or* when
+    /// `created_at_ms > now_ms + max_future_skew_ms`. Raising `now_ms` rejects
+    /// more on the first clause and **admits more on the second**: an anchor
+    /// ahead of real time by `Δ` lets a receiver whose own clock is exact accept
+    /// an attestation postdated beyond the signed skew tolerance, making the
+    /// real window `max_validity_ms + Δ` with `Δ` chosen by whoever signs the
+    /// checkpoint. That is not a denial capability, it is an **admission** one,
+    /// and it is not subsumed by anything the release key already holds
+    /// ([REVIEW] RF-002).
+    ///
+    /// The closure is to spend the floor only where it rejects. The expiry half
+    /// reads [`AttestationClock::now_ms`]; the admission half reads this. With
+    /// the two split, every use of the external clock in this crate can only
+    /// ever reject, and the release key's marginal capability collapses back to
+    /// denial — which it does already hold, since it can withhold a checkpoint
+    /// or name a stale head and fail a client closed outright.
+    pub const fn local_clock_ms(self) -> u64 {
+        self.local_clock_ms
+    }
+
+    /// How far the external clock raised the local one; zero when it did not.
+    ///
+    /// This is the observable the bootstrap guarantee is stated on: it is zero
+    /// for every [`AttestationClock::local_only`] value by construction, and
+    /// zero for a floored value whose local clock was not behind.
+    pub const fn floor_ms(self) -> u64 {
+        self.now_ms - self.local_clock_ms
+    }
+}
 
 /// The outcome of a cadence measurement.
 ///
@@ -499,6 +686,41 @@ mod tests {
 
     fn chain() -> ChainId {
         ChainId::from_digest(crate::hash::Digest32::repeated(0x11))
+    }
+
+    #[test]
+    fn the_bootstrap_form_applies_no_floor_and_the_floored_form_never_lowers() {
+        // The bootstrap guarantee, asserted on the observable it is stated on.
+        let local = AttestationClock::local_only(1_000);
+        assert_eq!(local.now_ms(), 1_000);
+        assert_eq!(local.floor_ms(), 0);
+
+        // A checkpoint older than the local clock changes nothing at all: the
+        // floor is a lower bound, not a replacement, and a receiver whose clock
+        // is ahead of the last checkpoint keeps its own reading.
+        let ahead = AttestationClock::with_checkpoint_floor(9_000, 1_000);
+        assert_eq!(ahead.now_ms(), 9_000);
+        assert_eq!(ahead.floor_ms(), 0);
+        assert_eq!(ahead, AttestationClock::local_only(9_000));
+
+        // A receiver whose clock is behind is raised to the external reading,
+        // and by exactly the distance it was behind.
+        let behind = AttestationClock::with_checkpoint_floor(1_000, 9_000);
+        assert_eq!(behind.now_ms(), 9_000);
+        assert_eq!(behind.floor_ms(), 8_000);
+
+        // The boundary: equality applies no floor, and one millisecond of lag
+        // applies one millisecond of floor. A `>=` written where `>` belongs
+        // would agree on both values and disagree on nothing, so the case that
+        // pins the comparison is the arithmetic of `floor_ms`, not `now_ms`.
+        assert_eq!(
+            AttestationClock::with_checkpoint_floor(5_000, 5_000).floor_ms(),
+            0
+        );
+        assert_eq!(
+            AttestationClock::with_checkpoint_floor(5_000, 5_001).floor_ms(),
+            1
+        );
     }
 
     #[test]

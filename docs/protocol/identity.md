@@ -485,8 +485,11 @@ attestation with `signature` removed.
 A receiver MUST reject an attestation, and disconnect the peer presenting it,
 when any of the following holds. Each rule is stated as a rejection because it
 is one, and each is decidable by the receiver alone from the certificate, the
-attestation, the authenticated connection, and the active signed
-`consensus_parameters` document.
+attestation, the authenticated connection, the active signed
+`consensus_parameters` document, and — for rule 5 only, and only when the
+receiver holds one — the weak subjectivity checkpoint it has already verified.
+That last input is listed because rule 5 acquired it and a list of inputs that
+lags the rules is how a reader concludes a rule is local when it is not.
 
 1. `transport_public_key` **equals the enrolled identity public key** of the
    certificate. See §[Key hierarchy](#key-hierarchy) for why this is a validity
@@ -496,9 +499,15 @@ attestation, the authenticated connection, and the active signed
 3. `expires_at_ms < created_at_ms`.
 4. `expires_at_ms - created_at_ms > max_transport_attestation_validity_ms`, read
    from the active signed `consensus_parameters` document.
-5. `now_ms > expires_at_ms`, or
-   `created_at_ms > now_ms + max_transport_attestation_future_skew_ms`, both
-   read as defined in §[Bounded validity in time](#bounded-validity-in-time).
+5. `anchored_now_ms > expires_at_ms`, or
+   `created_at_ms > local_clock_ms + max_transport_attestation_future_skew_ms`.
+   **The two halves read two different clocks and this is deliberate**:
+   `anchored_now_ms` is the floored quantity of
+   §[Bounded validity in time](#bounded-validity-in-time) point 5 and
+   `local_clock_ms` is the receiver's own clock, unfloored. Raising the clock
+   rejects more on the first half and would **admit** more on the second, so the
+   floor is spent only on the first. For a receiver holding no checkpoint the two
+   are the same number.
 6. `network_id` is not the local network, or `node_id` is not the `node_id`
    derived from the certificate's public key, or the signature does not verify
    under that public key with domain `coblox-transport-key-attestation-v0`.
@@ -533,9 +542,14 @@ choice:
    Before [ADR-015] the same result required the identity key: total
    compromise, but **revocable**. There is no early invalidation of an
    attestation already in circulation — no epoch counter, no serial number, no
-   list — so the only bound on the exposure is the length of the window, which
-   is why rule 3 is a rule and not an example. The threat model carries the
-   scenario as TM-37.
+   list — so the only bound on the exposure is the window in which a receiver
+   accepts the attestation, which is why point 3 is a rule and not an example.
+   That window is **not** `expires_at_ms - created_at_ms`: it is the sum point 3
+   writes out, offset by however far the receiver's clock is behind. Point 5
+   reduces that offset for a receiver holding a checkpoint and leaves it
+   untouched for one that is not, and **reduces is the whole of the claim** —
+   the residue is then the checkpoint's own age, which no rule of this protocol
+   bounds either. The threat model carries the scenario as TM-37.
 3. **Bounded exposure window:** Nodes MUST reject attestations where
    `expires_at_ms < created_at_ms`, and MUST reject attestations where
    `expires_at_ms - created_at_ms` exceeds
@@ -548,6 +562,36 @@ choice:
    usable on its own — depends on the magnitude, not merely on the ordering of
    the two timestamps. This is the same closure `max_envelope_validity_ms`
    already gives the wire envelope, which carries the same pair of fields.
+
+   **The window a receiver accepts is the sum, and the sum is written here so
+   that no reader has to compute it.** Rule 5 rejects unless
+   `created_at_ms - max_transport_attestation_future_skew_ms <= now_ms <= expires_at_ms`,
+   so the interval in which a given attestation is accepted has width
+
+   ```text
+   (expires_at_ms - created_at_ms) + max_transport_attestation_future_skew_ms
+   ```
+
+   which rule 4 caps at
+   **`max_transport_attestation_validity_ms + max_transport_attestation_future_skew_ms`**.
+   The cap of rule 4 is therefore *not* the accepted window: the accepted window
+   is that cap **plus the skew tolerance**, and the two parameters must be read
+   as a sum whenever the question is how long a leaked transport key remains
+   usable. Neither parameter is fixed by any genesis document of this protocol;
+   the sum is what a deployment is choosing when it chooses them.
+
+   **What the sum does *not* bound, stated immediately after it for the reason
+   that a sum presented alone reads as a total.** Postdating an attestation
+   requires the identity key, so the skew term is not available to the attacker
+   of TM-37, who holds only the transport key; the term is realized either by a
+   genuine clock gap between issuer and receiver — which is what the tolerance
+   exists to absorb — or by an issuer deliberately handing a confederate a
+   credential longer than the rule-4 cap, which is an evasion of rule 4 by a
+   node colluding with itself. And **the sum is not the exposure**: the exposure
+   is the sum plus however far the receiver's clock is behind real time. The
+   next point puts a floor under that third term for receivers that hold a
+   checkpoint, which **reduces it without bounding it**, and leaves it exactly
+   as it was for those that do not.
 4. **Declared clock tolerance, in one direction only.** Reason 1 says the node
    that most needs an attestation to verify is the one that cannot yet reach
    the ledger — freshly installed, long offline — and that node is also the one
@@ -565,12 +609,161 @@ choice:
    closed for protected protocols
    ([wire.md](wire.md#signed-envelope)).
 
-   **Declared limit.** A receiver whose clock is far *behind* accepts
-   attestations that expired hours ago, and no certificate attests a clock.
-   This is stated with the same plainness as the declared limit on the
-   availability of enrollment: the guarantees of this section are relative to
-   the receiver's clock, and a deployment whose clocks are unmanaged gets a
-   weaker exposure bound than the parameter names.
+5. **A floor under `now_ms`, from the one clock no validator writes.** The
+   quantity **rejection rule 5** is evaluated against is defined here and
+   nowhere else. Throughout this point, *rejection rule N* means item N of
+   §[Mandatory rejection rules](#mandatory-rejection-rules), never item N of
+   this list.
+
+   ```text
+   now_ms = max(local clock, checkpoint.issued_at_ms)   // receiver holds a verified checkpoint
+   now_ms = local clock                                  // receiver holds none
+   ```
+
+   `checkpoint` is a `WeakSubjectivityCheckpoint`
+   ([README.md](README.md#weak-subjectivity-checkpoint)) whose signature the
+   receiver has already verified under a trust key it already held and whose
+   `chain_id` equals the configured one. `issued_at_ms`, not `timestamp_ms`: the
+   two fields are one line apart in that schema and only the first is a reading
+   of a clock outside the chain.
+
+   **The floored quantity is used by the expiry half of rejection rule 5 and by
+   nothing else.** The admission half —
+   `created_at_ms > local_clock_ms + max_transport_attestation_future_skew_ms` —
+   MUST be evaluated against the receiver's own clock, unfloored, and a receiver
+   that evaluates it against the floored value does not implement this rule.
+
+   **Why, because the asymmetry is the whole reason the rule is written in two
+   halves.** A floor is not fail-closed; it is fail-closed on one half of rule 5
+   and fail-open on the other. Raising the clock rejects more attestations as
+   expired, and that is the intent. But the admission half runs the other way:
+   with an anchor ahead of real time by `Δ`, a receiver whose own clock is
+   **exact** would accept an attestation postdated further than the signed
+   tolerance permits, and the real acceptance window would become
+   `max_transport_attestation_validity_ms + Δ` with `Δ` chosen by whoever signs
+   the checkpoint. Spending the floor only where it rejects is what makes the
+   whole rule fail closed, and it also keeps the release process's marginal
+   capability to **denial** — which it already has, since withholding a
+   checkpoint fails a client closed outright — rather than granting it a new
+   power of admission on the transport.
+
+   **The floor does not require a fresh checkpoint, and is not gated on step 1
+   of [light-client balance verification](ledger.md#light-client-balance-verification).**
+   This is stated as a rule because the opposite reading makes the floor inert
+   and the two are indistinguishable from a distance. Step 1 evaluates
+   `now - issued_at_ms` on the receiver's **bare local clock** — it can use no
+   other, since evaluating it on the floored clock would make every
+   forward-dated checkpoint read as age zero and the staleness guard vacuous —
+   and it fails when `issued_at_ms` exceeds that clock. But `issued_at_ms`
+   exceeding the local clock is **exactly and only** the case in which the floor
+   does anything. If step 1's verdict gated the floor, every checkpoint capable
+   of raising `now_ms` would already have been rejected and this point would be
+   decoration.
+
+   The two requirements are separable because they answer different questions
+   about the same artifact. **Freshness is a precondition for anchoring chain
+   state, not for bounding real time from below.** A floor needs one property —
+   that `issued_at_ms` names an instant that really passed — and that follows
+   from the signature, not from the age; an old checkpoint is a *weaker* floor,
+   never an unsafe one. A stale checkpoint is useless as a chain anchor because
+   there the question is what happened *after* it, and to that question age is
+   the answer.
+
+   A receiver may therefore hold a checkpoint that step 1 rejects, fail closed on
+   balance verification, and still use that checkpoint as a floor here. That is
+   the receiver whose clock is far behind: it cannot tell a stale checkpoint from
+   its own lag and so must not trust chain state, and it should still get an
+   honest verdict on when an attestation expired.
+
+   **The consequence, stated because it is the price of the paragraph above and
+   not a detail of it: the `issued_at_ms` a receiver accepts as a floor is not
+   bounded above by any rule of this protocol.** No check compares it to the
+   local clock — that is the whole point — and none compares it to anything else
+   either. A checkpoint dated a century ahead would floor `now_ms` a century
+   ahead. What keeps that from being a surface is not a bound but the split
+   above: the floor is spent only on the expiry half, so an anchor arbitrarily
+   far ahead can only make attestations expire, never make one be accepted.
+   Whoever holds the release key can therefore deny transport, which it can
+   already do by withholding checkpoints; it cannot admit anything.
+
+   **Why a floor rather than a comparison, and why this specific clock.** A
+   floor says *not earlier than this*; it does not constrain real time, which
+   [ADR-013] part 3 establishes no rule internal to this chain can do. The
+   obvious alternative source is `timestamp_ms` of the last finalized block, and
+   it is rejected for two reasons that compound. First, `timestamp_ms` is
+   written by the validators, and although inflating it would only *reject*
+   attestations — fail-closed for security — the rejection of an attestation is
+   not a degraded check here: §[Authentication on a connection](#authentication-on-a-connection)
+   says the peer MUST be rejected **and disconnected**, so an active set could
+   partition the transport layer of every honest node at once without signing
+   anything invalid. *Fail-closed* qualifies security, not availability. Second,
+   this protocol has exactly one clock the validators do not write, it is
+   already used to measure block cadence
+   ([README.md](README.md#cadence-band)), and a second clock for the same
+   property would leave no way to say which is the real one. The active set's
+   leverage over `issued_at_ms` is **zero**, because the release key belongs to
+   no validator and to no node
+   ([README.md](README.md#the-network-release-trust-key)).
+
+   **The direction, which is the whole of the safety argument.** The floor can
+   only raise `now_ms`. Raising it can expire an attestation the local clock
+   would have accepted, and can never revive one the local clock has expired; it
+   also *loosens* the `created_at_ms > now_ms + skew` half of rejection rule 5,
+   which is
+   the half reason 1 exists to protect. Both directions therefore move the way
+   this section wants.
+
+   **A receiver that holds no checkpoint applies no floor and behaves exactly as
+   it did before this rule existed.** That is not an oversight of the rule, it
+   is the shape reason 1 requires: the node that most needs an attestation is
+   the one that cannot yet reach the ledger, and a rule that required chain
+   state to verify a transport credential would be the circular dependency
+   reason 1 rejects. The checkpoint is an out-of-band release artifact rather
+   than something fetched over the transport, so the floor is available to a
+   freshly installed node **before** it syncs, and the dependency is optional in
+   the strict sense: absent, nothing changes.
+
+   **Declared limit, and what the floor does and does not do to it.** Write `b`
+   for how far the receiver's clock is behind real time and `A` for the true age
+   of the checkpoint it holds. The third term of the exposure is `b` without a
+   floor and `min(b, A)` with one. So the total exposure of an attestation,
+   stated as a sum with every term named:
+
+   ```text
+   max_transport_attestation_validity_ms          // rejection rule 4, bounded
+   + max_transport_attestation_future_skew_ms     // rejection rule 5, bounded
+   + min(b, A)                                    // b = clock lag, A = checkpoint age;
+                                                  //   with a checkpoint; UNBOUNDED without one
+   ```
+
+   The third term is the dominant one, and saying so is the point of writing the
+   sum this way: a reader who sees only the first two concludes the exposure is
+   bounded by the two parameters that name it, and that conclusion is false at
+   any magnitude.
+
+   **`min(b, A)` is not a bound this protocol enforces, and the difference
+   matters enough to state it rather than let the formula imply it.** The
+   obvious reading is that `max_weak_subjectivity_age_ms` caps `A`, so the
+   residue is bounded by a signed parameter. It does not, for the reason given
+   above: that cap belongs to step 1, and the floor is deliberately not gated on
+   step 1, because gating it there would make it inert. **Nothing bounds `A`.**
+   A receiver that holds only a year-old checkpoint has a year-old floor, and
+   the protocol says nothing against it. **The residue is therefore still
+   unbounded by any rule of this protocol.**
+
+   What the floor changes is *which quantity it depends on*, and that is the
+   whole of the improvement: before it, the residue was the receiver's clock
+   error, which the receiver cannot observe and no operator can correct without
+   an external reference; after it, the residue is at most the age of an
+   artifact the operator obtains out of band and can refresh at will,
+   independently of its clock. A node with a badly wrong clock and a current
+   checkpoint now has a small residue; before, it had no way to have one. The
+   protocol does not *force* `A` to be small — it makes a small `A` sufficient.
+
+   The guarantees of this section remain relative to the receiver's clock **and**
+   to the freshness of the anchor it holds, and a deployment whose clocks are
+   unmanaged and whose nodes hold no checkpoint gets a weaker exposure bound than
+   the parameter names.
 
 ### Anti-reuse property
 
@@ -590,15 +783,19 @@ covers the third party that intercepts an attestation, which is the case the
 network exposes routinely. It does **not** cover an attacker that holds the
 transport private key itself, because there the handshake proves exactly what
 the attacker has; that case is the risk transfer written in
-§[Bounded validity in time](#bounded-validity-in-time) point 2 and is bounded
-only by the length of the window.
+§[Bounded validity in time](#bounded-validity-in-time) point 2 and is limited
+only by the window in which a receiver accepts the attestation, which is the sum
+point 3 writes out plus the residue point 5 reduces — not the declared duration
+alone, and not a bounded quantity.
 
 ## Authentication on a connection
 
 Noise or QUIC authenticates the libp2p transport key. Before a peer may publish
 Coblox gossip or open protected streams, the receiver MUST obtain its
 certificate, obtain its `TransportKeyAttestation`, verify both against a
-finalized ledger state and local clock, and confirm that:
+finalized ledger state and the clock of
+§[Bounded validity in time](#bounded-validity-in-time) point 5, and confirm
+that:
 
 - the certificate's public key derives the certificate's and attestation's `node_id`;
 - `attestation.transport_public_key` **differs from the certificate's public
@@ -609,8 +806,11 @@ finalized ledger state and local clock, and confirm that:
   with domain `coblox-transport-key-attestation-v0`;
 - `created_at_ms <= expires_at_ms`,
   `expires_at_ms - created_at_ms <= max_transport_attestation_validity_ms`, and
-  `now_ms <= expires_at_ms` with
-  `created_at_ms <= now_ms + max_transport_attestation_future_skew_ms`;
+  the two halves of rejection rule 5 against the two clocks that rule names:
+  `anchored_now_ms <= expires_at_ms` against the floored quantity of
+  §[Bounded validity in time](#bounded-validity-in-time) point 5, and
+  `created_at_ms <= local_clock_ms + max_transport_attestation_future_skew_ms`
+  against the receiver's own clock, unfloored;
 - `valid_from_height` of the certificate is finalized and no revocation exists at
   the receiver's finalized height;
 - `network_id` in both the certificate and the attestation equals the local network.

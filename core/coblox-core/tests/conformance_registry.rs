@@ -433,6 +433,289 @@ fn sign_test_attestation(
     identity_public_key
 }
 
+/// The term no parameter bounds, and what an anchor does to it.
+///
+/// `identity.md` declared, before [SPEC-020], that *a receiver whose clock is
+/// far behind accepts attestations that expired hours ago, and no certificate
+/// attests a clock*. That term — not the `D_max + S_max` window the debt's
+/// original title named — is the dominant one in the exposure, and it is the
+/// only one with no bound at all.
+///
+/// This test asserts three things that must hold together, and the third is the
+/// one a reader should check first:
+///
+/// 1. a receiver an hour behind **still** accepts an attestation that expired
+///    fifty minutes ago when it has no checkpoint — the declared limit,
+///    reproduced rather than assumed;
+/// 2. the same receiver, holding a checkpoint issued at real time, **rejects**
+///    it — the reduction. Not the closure: the residue becomes the age of the
+///    checkpoint held, which no rule of this protocol bounds;
+/// 3. the floor moves the comparison in the rejecting direction **only**. It
+///    never revives an attestation the local clock had already expired, and it
+///    never expires one that is genuinely live at the external reading.
+///
+/// The quantity varied here is the one every case of `gate_no_attestation_rejected`
+/// holds constant: the *form* of the clock. That gate exercises nine rejection
+/// paths and two skew edges, and all eleven with a bare local clock — which is
+/// correct for what they test and is why this case exists separately
+/// ([SKILL-001] step 4).
+///
+/// A quantity this case in turn holds constant is *which half of rule 5 is
+/// exercised*: `created_at_ms` is in the past throughout, so all six sub-cases
+/// test the expiry half. The admission half is
+/// `the_floor_is_spent_only_where_it_rejects`, and it was written after
+/// [REVIEW] RF-002 found the cell empty.
+#[test]
+fn the_external_clock_floor_reduces_the_term_no_parameter_bounds() {
+    use coblox_core::ConsensusVerifier;
+    use coblox_core::cadence::AttestationClock;
+    use coblox_core::error::AttestationError;
+    use coblox_core::identity::{AttestationBounds, TransportKeyAttestation};
+
+    let chain_id = zero_chain_id();
+    let network_id = "coblox-devnet-0";
+    let transport_pk = [0x55u8; 32];
+    let verifier = ConsensusVerifier;
+    let seed = [0x42u8; 32];
+
+    // Real time is 5 000 000. The attestation was created at 1 000 000 and
+    // expired at 2 000 000: fifty minutes dead, on a window well inside the cap.
+    let created_at_ms = 1_000_000;
+    let expires_at_ms = 2_000_000;
+    let real_time_ms = 5_000_000;
+    let bounds = AttestationBounds {
+        max_validity_ms: 1_000_000,
+        max_future_skew_ms: 5_000,
+    };
+
+    let mut attestation = TransportKeyAttestation::new(
+        network_id.to_owned(),
+        NodeId::from_string("placeholder".to_owned()),
+        transport_pk,
+        created_at_ms,
+        expires_at_ms,
+        [0u8; 64],
+    );
+    let identity_public_key = sign_test_attestation(&seed, &chain_id, &mut attestation);
+    attestation.node_id = NodeId::derive(&identity_public_key);
+    sign_test_attestation(&seed, &chain_id, &mut attestation);
+
+    let verify = |clock: AttestationClock| {
+        attestation.verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            clock,
+            &bounds,
+            &verifier,
+        )
+    };
+
+    // A receiver whose clock reads 1 500 000 while real time is 5 000 000 — an
+    // hour behind — and which holds no checkpoint.
+    let behind_ms = 1_500_000;
+    let bootstrap = AttestationClock::local_only(behind_ms);
+    assert_eq!(bootstrap.floor_ms(), 0);
+    assert!(
+        verify(bootstrap).is_ok(),
+        "the declared limit of identity.md is reproduced, not assumed: a \
+         bootstrap receiver an hour behind accepts an attestation that expired \
+         fifty minutes ago"
+    );
+
+    // The same receiver, now holding a weak subjectivity checkpoint issued at
+    // real time. Nothing about the receiver's own clock changed.
+    let anchored = AttestationClock::with_checkpoint_floor(behind_ms, real_time_ms);
+    assert_eq!(anchored.now_ms(), real_time_ms);
+    assert_eq!(anchored.floor_ms(), real_time_ms - behind_ms);
+    assert!(matches!(
+        verify(anchored).unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // Direction, asserted rather than argued. A checkpoint *older* than the
+    // local clock cannot revive an attestation the local clock has expired:
+    // the floor is a lower bound and takes the larger of the two.
+    let stale_checkpoint = AttestationClock::with_checkpoint_floor(real_time_ms, 1_500_000);
+    assert_eq!(stale_checkpoint.now_ms(), real_time_ms);
+    assert!(matches!(
+        verify(stale_checkpoint).unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // And the floor does not expire an attestation that is live at the external
+    // reading: a checkpoint issued inside the window is accepted by a behind
+    // receiver exactly as the external clock says it should be.
+    assert!(
+        verify(AttestationClock::with_checkpoint_floor(
+            behind_ms, 1_999_999
+        ))
+        .is_ok()
+    );
+    assert!(matches!(
+        verify(AttestationClock::with_checkpoint_floor(
+            behind_ms, 2_000_001
+        ))
+        .unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // The boundary itself: `now_ms > expires_at_ms` is the rejection, so the
+    // last accepting external reading is `expires_at_ms` exactly.
+    assert!(
+        verify(AttestationClock::with_checkpoint_floor(
+            behind_ms,
+            expires_at_ms
+        ))
+        .is_ok()
+    );
+}
+
+/// The half of rule 5 the floor must **not** touch, and the cell that was empty.
+///
+/// Rule 5 rejects when `now_ms > expires_at_ms` *or* when
+/// `created_at_ms > now_ms + max_future_skew_ms`. A floor under `now_ms` rejects
+/// more on the first clause and **admits more on the second**. Calling a floor
+/// "fail-closed" is therefore true of one half of the rule and false of the
+/// other, and this test is the false half.
+///
+/// The attack it excludes: an anchor ahead of real time by `Δ` lets a receiver
+/// whose own clock is **exact** accept an attestation postdated further than the
+/// signed tolerance allows, making the real acceptance window
+/// `max_validity_ms + Δ` with `Δ` chosen by whoever signs the checkpoint. The
+/// release key already holds capabilities of denial and of anchoring; this one
+/// is **admission on the transport**, and denial does not subsume admission.
+///
+/// Every other attestation case in this file — the eleven of
+/// `gate_no_attestation_rejected` and the six of the floor case — holds
+/// `created_at_ms` in the past, so all seventeen exercise the expiry half and
+/// none exercise this one ([SKILL-001] step 4: the constant quantity was *which
+/// half of rule 5 is under test*, and the cell "non-zero floor × admission half"
+/// was empty).
+#[test]
+fn the_floor_is_spent_only_where_it_rejects() {
+    use coblox_core::ConsensusVerifier;
+    use coblox_core::cadence::AttestationClock;
+    use coblox_core::error::AttestationError;
+    use coblox_core::identity::{AttestationBounds, TransportKeyAttestation};
+
+    let chain_id = zero_chain_id();
+    let network_id = "coblox-devnet-0";
+    let transport_pk = [0x55u8; 32];
+    let verifier = ConsensusVerifier;
+    let seed = [0x42u8; 32];
+
+    // Real time is 1 000 000 and the receiver's own clock is exact. The
+    // attestation is postdated by 50 000 ms, ten times the 5 000 ms tolerance
+    // the signed parameters grant. Its declared duration is well inside the cap,
+    // so rule 4 has nothing to say about it: only rule 5 stands between this
+    // attestation and acceptance.
+    let real_time_ms = 1_000_000;
+    let created_at_ms = 1_050_000;
+    let expires_at_ms = 1_500_000;
+    let bounds = AttestationBounds {
+        max_validity_ms: 1_000_000,
+        max_future_skew_ms: 5_000,
+    };
+    // The anchor runs 100 000 ms ahead of real time.
+    let anchor_ahead_ms = 1_100_000;
+
+    let mut attestation = TransportKeyAttestation::new(
+        network_id.to_owned(),
+        NodeId::from_string("placeholder".to_owned()),
+        transport_pk,
+        created_at_ms,
+        expires_at_ms,
+        [0u8; 64],
+    );
+    let identity_public_key = sign_test_attestation(&seed, &chain_id, &mut attestation);
+    attestation.node_id = NodeId::derive(&identity_public_key);
+    sign_test_attestation(&seed, &chain_id, &mut attestation);
+
+    let verify = |clock: AttestationClock| {
+        attestation.verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            clock,
+            &bounds,
+            &verifier,
+        )
+    };
+
+    // The postdating is refused against the receiver's own clock, which is the
+    // behaviour that existed before the floor and must survive it.
+    assert!(matches!(
+        verify(AttestationClock::local_only(real_time_ms)).unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // The admission the defect would have granted, demonstrated rather than
+    // described: a receiver whose clock genuinely reads the anchor's value
+    // accepts this attestation. Nothing is wrong with that — its clock says the
+    // attestation is live — and it is precisely why routing the admission half
+    // through a floored clock would be an attacker-chosen acceptance.
+    assert!(verify(AttestationClock::local_only(anchor_ahead_ms)).is_ok());
+
+    // The rule as written: the receiver's clock is exact, the anchor is ahead,
+    // the floor is non-zero — and the postdated attestation is still refused,
+    // because the admission half never reads the floored value.
+    let anchored = AttestationClock::with_checkpoint_floor(real_time_ms, anchor_ahead_ms);
+    assert_eq!(anchored.now_ms(), anchor_ahead_ms);
+    assert_eq!(anchored.local_clock_ms(), real_time_ms);
+    assert!(
+        anchored.floor_ms() > 0,
+        "the floor must be live in this case"
+    );
+    assert!(matches!(
+        verify(anchored).unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // The expiry half still spends the floor, in the same call and on the same
+    // value: an attestation that the anchor says is dead is refused even though
+    // the receiver's exact clock would have accepted it.
+    let mut dead = attestation.clone();
+    dead.created_at_ms = 900_000;
+    dead.expires_at_ms = 1_050_000;
+    sign_test_attestation(&seed, &chain_id, &mut dead);
+    let verify_dead = |clock: AttestationClock| {
+        dead.verify(
+            &chain_id,
+            network_id,
+            &identity_public_key,
+            &transport_pk,
+            clock,
+            &bounds,
+            &verifier,
+        )
+    };
+    assert!(verify_dead(AttestationClock::local_only(real_time_ms)).is_ok());
+    assert!(matches!(
+        verify_dead(AttestationClock::with_checkpoint_floor(
+            real_time_ms,
+            anchor_ahead_ms
+        ))
+        .unwrap_err(),
+        coblox_core::Error::Attestation(AttestationError::Expired { .. })
+    ));
+
+    // And the argument's own boundary: `max` is symmetric, so swapping the two
+    // arguments of `with_checkpoint_floor` leaves `now_ms` identical. Before the
+    // two halves were split that swap was invisible in behaviour and the type
+    // was pure convention. It is not invisible now — the admission half reads
+    // the argument the swap moves — and this assertion is what keeps it so.
+    let swapped = AttestationClock::with_checkpoint_floor(anchor_ahead_ms, real_time_ms);
+    assert_eq!(swapped.now_ms(), anchored.now_ms());
+    assert_ne!(swapped.local_clock_ms(), anchored.local_clock_ms());
+    assert!(
+        verify(swapped).is_ok(),
+        "the swap must be observable in behaviour, not merely in the accessors"
+    );
+}
+
 /// GATE-NO-ATTESTATION-REJECTED:
 /// A peer presenting a transport key without a valid attestation is rejected.
 /// Exercising all failure paths: missing attestation, invalid signature,
@@ -442,6 +725,7 @@ fn sign_test_attestation(
 #[allow(clippy::too_many_lines)]
 fn gate_no_attestation_rejected() {
     use coblox_core::ConsensusVerifier;
+    use coblox_core::cadence::AttestationClock;
     use coblox_core::error::AttestationError;
     use coblox_core::identity::{AttestationBounds, TransportKeyAttestation};
 
@@ -454,7 +738,11 @@ fn gate_no_attestation_rejected() {
     let seed = [0x42u8; 32];
     let created_at_ms = 1_000_000;
     let expires_at_ms = 2_000_000;
-    let now_ms = 1_500_000;
+    // The bootstrap form throughout this gate: a receiver holding no weak
+    // subjectivity checkpoint. Every assertion below therefore also asserts
+    // that [SPEC-020] changed nothing for such a receiver — `local_only` has
+    // `floor_ms() == 0` by construction.
+    let now_ms = AttestationClock::local_only(1_500_000);
     // The two signed network parameters of `identity.md#bounded-validity-in-time`.
     // The window of this attestation is exactly `max_validity_ms`, so the
     // over-long case below is one millisecond away and not an order of
@@ -536,7 +824,7 @@ fn gate_no_attestation_rejected() {
             network_id,
             &identity_public_key,
             &transport_pk,
-            2_500_000,
+            AttestationClock::local_only(2_500_000),
             &bounds,
             &verifier,
         )
@@ -553,7 +841,7 @@ fn gate_no_attestation_rejected() {
             network_id,
             &identity_public_key,
             &transport_pk,
-            500_000,
+            AttestationClock::local_only(500_000),
             &bounds,
             &verifier,
         )
@@ -645,7 +933,7 @@ fn gate_no_attestation_rejected() {
             network_id,
             &identity_public_key,
             &transport_pk,
-            1_500_000,
+            AttestationClock::local_only(1_500_000),
             &bounds,
             &verifier,
         )
@@ -715,7 +1003,7 @@ fn gate_no_attestation_rejected() {
                 network_id,
                 &identity_public_key,
                 &transport_pk,
-                earliest_accepting_clock,
+                AttestationClock::local_only(earliest_accepting_clock),
                 &bounds,
                 &verifier,
             )
@@ -728,7 +1016,7 @@ fn gate_no_attestation_rejected() {
                 network_id,
                 &identity_public_key,
                 &transport_pk,
-                earliest_accepting_clock - 1,
+                AttestationClock::local_only(earliest_accepting_clock - 1),
                 &bounds,
                 &verifier,
             )
@@ -744,7 +1032,7 @@ fn gate_no_attestation_rejected() {
                 network_id,
                 &identity_public_key,
                 &transport_pk,
-                expires_at_ms + 1,
+                AttestationClock::local_only(expires_at_ms + 1),
                 &bounds,
                 &verifier,
             )

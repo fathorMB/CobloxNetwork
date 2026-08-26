@@ -1679,8 +1679,36 @@ why = "REVIEW-021 RF-002: the cap on the attestation window used to exist only a
 id = "transport-attestation-skew-tolerance"
 site = "identity.md"
 pattern = 'max_transport_attestation_future_skew_ms'
-count = 3
-why = "REVIEW-021 RF-003: without a declared future-skew tolerance a node whose clock is slightly slow rejects every fresh attestation, loses ledger-sync, and thereby loses the only source from which it could correct its clock. Every mention is pinned: the rejection rules, the bounded-validity reasoning, and the connection-authentication list."
+count = 8
+why = "REVIEW-021 RF-003: without a declared future-skew tolerance a node whose clock is slightly slow rejects every fresh attestation, loses ledger-sync, and thereby loses the only source from which it could correct its clock. Every mention is pinned: the rejection rules, the bounded-validity reasoning, and the connection-authentication list. Raised from 3 to 7 by SPEC-020, which added four: the accepted-window inequality, the width formula, the named sum with max_transport_attestation_validity_ms, and the three-term exposure block. The four are the reason DEBT-017 existed — the parameter is only half of a sum, and a document that named it three times never wrote the sum down — so pinning them is pinning the remedy and not incidental prose. Raised again from 7 to 8 by the REVIEW RF-002 remediation, which split rejection rule 5 into its two halves: the admission half now names the parameter beside `local_clock_ms` rather than beside a floored clock, and that is the mention that must not be lost — routing this half through the floored value is the defect the split exists to prevent."
+
+[[probe]]
+id = "transport-attestation-clock-floor"
+site = "identity.md"
+pattern = 'now_ms = max\(local clock, checkpoint\.issued_at_ms\)'
+count = 1
+why = "SPEC-020, closing DEBT-017. The exposure of an attestation is validity + skew + how far the receiver's clock is behind, and only the third term was ever unbounded. This line is the floor that reduces it — to the age of the checkpoint held, which no rule bounds — and it is pinned on the exact source: issued_at_ms of the weak subjectivity checkpoint, which no validator writes. The rewrite that would silently undo the reduction is not deleting the line but changing that field to timestamp_ms — one line away in the same schema, written by the validator set, and since a peer without a valid attestation is disconnected rather than ignored it would hand that set a partition lever. The pattern therefore pins the field name and not merely the presence of a floor."
+
+[[probe]]
+id = "transport-attestation-admission-half-is-unfloored"
+site = "identity.md"
+pattern = 'created_at_ms > local_clock_ms \+ max_transport_attestation_future_skew_ms'
+count = 2
+why = "REVIEW RF-002. A floor under now_ms is not fail-closed: it is fail-closed on the expiry half of rejection rule 5 and fail-open on the admission half. Routed through the floored value, an anchor ahead of real time by D lets a receiver whose own clock is exact accept an attestation postdated past the signed tolerance, and the real acceptance window becomes max_transport_attestation_validity_ms + D with D chosen by whoever signs the checkpoint. That is a capability of admission on the transport, and the release key's existing capabilities are all of denial or of anchoring, which do not subsume it. This line is the split, and it is pinned on `local_clock_ms` because the rewrite that undoes it is not deleting the rule but changing which clock this half reads. Two occurrences and both are load-bearing: the rejection rule itself, and the restatement inside point 5 that says an implementation evaluating this half against the floored value does not implement the rule."
+
+[[probe]]
+id = "transport-attestation-floor-not-gated-on-step-1"
+site = "identity.md"
+pattern = 'The floor does not require a fresh checkpoint'
+count = 1
+why = "REVIEW RF-001. Step 1 of light-client balance verification evaluates checkpoint freshness on the receiver's bare local clock and fails when issued_at_ms exceeds it; the floor raises now_ms only when issued_at_ms exceeds it. The two conditions are each other's negation, so a reader who assumes the floor consumes only step-1-accepted checkpoints concludes the remedy is inert, and an implementer who codes that assumption makes it inert. The separation is sound because freshness is a precondition for anchoring chain state and not for bounding real time from below - an old checkpoint is a weaker floor, never an unsafe one - but it is exactly the kind of soundness that survives only while it is written down. Pinned because its absence is invisible: nothing fails, the floor simply never fires."
+
+[[probe]]
+id = "transport-attestation-residual-is-declared"
+site = "identity.md"
+pattern = 'with a checkpoint; UNBOUNDED without one'
+count = 1
+why = "SPEC-020. A reader who sees a sum concludes the sum is the total. The receiver holding no checkpoint — the freshly installed node reason 1 of this section exists to protect — applies no floor at all, so for it the third term stays unbounded exactly as before. This is the residue, written beside the sum rather than after it, and it is pinned because dropping it is how a bounded-looking sum outruns the rule that produced it. The floor reduces this term and does not close it: with a checkpoint the residue is the checkpoint's own age, which no rule of this protocol bounds either."
 
 [[probe]]
 id = "admission-shield-source-is-address"

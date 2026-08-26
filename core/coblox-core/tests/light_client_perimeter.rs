@@ -501,6 +501,58 @@ fn check_11_verifies_candidate_membership_against_the_committed_root() {
 
 // --- Steps 1, 3 and 4 -------------------------------------------------------
 
+/// Step 1 and the transport-attestation floor do **not** compose, and the rule
+/// is that neither gates the other.
+///
+/// `checkpoint_is_fresh` fails with *checkpoint issued in the future* exactly
+/// when `issued_at_ms > local clock`. `AttestationClock::with_checkpoint_floor`
+/// produces a non-zero floor exactly when `issued_at_ms > local clock`. The two
+/// conditions are each other's negation, so **every checkpoint that can raise
+/// `now_ms` is one step 1 rejects, and every checkpoint step 1 accepts leaves
+/// the floor at zero.**
+///
+/// This is asserted rather than reasoned about because the reasoning is what
+/// gets lost. A future reader who "fixes" the floor by feeding it only
+/// step-1-accepted checkpoints makes it inert without breaking anything — no
+/// test fails, the floor simply never fires again — and this is the test that
+/// does fail. [REVIEW-035] RF-001 is where the composition was found, and
+/// `identity.md#bounded-validity-in-time` point 5 is where the choice between
+/// the two horns is written down: freshness gates chain anchoring, not a lower
+/// bound on real time.
+#[test]
+fn step_one_and_the_attestation_floor_do_not_compose() {
+    use coblox_core::cadence::AttestationClock;
+
+    let local_clock_ms = 1_500_000u64;
+
+    // Every anchor ahead of the local clock: the floor is live, step 1 refuses
+    // it at every window including the widest one expressible.
+    for issued in [local_clock_ms + 1, 5_000_000, u64::MAX] {
+        assert!(
+            AttestationClock::with_checkpoint_floor(local_clock_ms, issued).floor_ms() > 0,
+            "the floor must be live for an anchor ahead of the local clock"
+        );
+        for window in [0u64, 1, 60_000, u64::MAX] {
+            assert!(
+                light_client::checkpoint_is_fresh(local_clock_ms, issued, window).is_err(),
+                "step 1 refuses an anchor ahead of the local clock at any window"
+            );
+        }
+    }
+
+    // And the converse: every anchor step 1 can accept leaves the floor at zero,
+    // so gating the floor on step 1's verdict would make it unconditionally
+    // inert rather than merely weaker.
+    for issued in [0u64, 1, local_clock_ms - 1, local_clock_ms] {
+        assert!(light_client::checkpoint_is_fresh(local_clock_ms, issued, u64::MAX).unwrap());
+        assert_eq!(
+            AttestationClock::with_checkpoint_floor(local_clock_ms, issued).floor_ms(),
+            0,
+            "an anchor step 1 accepts can never raise the clock"
+        );
+    }
+}
+
 /// Step 1 and the resolved parameter circularity.
 #[test]
 fn the_checkpoint_window_comes_from_the_checkpoint_and_must_match_the_chain() {
