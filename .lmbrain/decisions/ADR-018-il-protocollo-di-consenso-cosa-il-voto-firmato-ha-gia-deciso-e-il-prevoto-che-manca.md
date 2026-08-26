@@ -2,7 +2,7 @@
 id: ADR-018
 # Note: Quote the title if it contains a colon
 title: "Il protocollo di consenso: cosa il voto firmato ha gia' deciso, e il prevoto che manca"
-status: proposed
+status: accepted
 decision_date: 2026-08-27
 decider: OPERATOR
 # References use IDs only (e.g. [ADR-001]); use [[wikilinks]] in prose
@@ -18,10 +18,12 @@ updated: 2026-08-27
 activity:
   - date: 2026-08-27
     action: "created"
+  - date: 2026-08-27
+    action: "transitioned proposed -> accepted"
 ---
 # Il protocollo di consenso: cosa il voto firmato ha già deciso, e il prevoto che manca
 
-> Proposta dal Lead il 2026-08-27. **Non ancora decisa.**
+> Proposta dal Lead e **decisa dall'operatore il 2026-08-27**.
 >
 > È la decisione che sblocca l'esito di [M-02] — *«una devnet di validatori seed raggiunge consenso BFT»* — e non era mai stata presa.
 
@@ -58,7 +60,7 @@ Questa è la lettura che il Lead propone, ed è il cuore della decisione: non *q
 
 ## Decision
 
-> **Da decidere dall'operatore.** Quanto segue è la proposta del Lead.
+> **Decisa dall'operatore il 2026-08-27.**
 
 **Consenso a due fasi in stile Tendermint, con un dominio di firma aggiunto e nulla di esistente cambiato.**
 
