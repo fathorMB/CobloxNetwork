@@ -2,7 +2,7 @@
 id: ADR-016
 # Note: Quote the title if it contains a colon
 title: "La banda di cadenza di genesi: larga sul lato lento, stretta dove sta l'emissione"
-status: proposed
+status: accepted
 decision_date: 2026-08-26
 decider: OPERATOR
 supersedes: []
@@ -13,6 +13,8 @@ updated: 2026-08-26
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned proposed -> accepted"
 ---
 # La banda di cadenza di genesi: larga sul lato lento, stretta dove sta l'emissione
 
