@@ -33,6 +33,17 @@ review_events:
     evidence_refs: ["SPEC-023", "DEBT-036", "SPEC-022", "ADR-017", "ADR-012"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-038-EVENT-003"
+    timestamp: "2026-08-26T23:38:35.119657700+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Rimediati RF-001, RF-002, RF-004, RF-005, RF-006, RF-007, RF-008, RF-010, RF-011 in .lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md. RF-003 lasciato fuori scope (debito proprio, non rimediabile qui). RF-009 non di mia competenza (passata ADR-012 di SPEC-022). Nessun file toccato fuori dal perimetro assegnato (solo il documento di analisi; letture di verifica su docs/protocol/ledger.md, identity.md, wire.md, README.md e core/coblox-core/src/params.rs)."
+    evidence_refs: ["SPEC-023", "REVIEW-038", "DEBT-036"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: [DEBT-036]
 created: 2026-08-26
 updated: 2026-08-26
@@ -43,6 +54,8 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-26
+    action: "recorded review remediation"
 ---
 # Review
 

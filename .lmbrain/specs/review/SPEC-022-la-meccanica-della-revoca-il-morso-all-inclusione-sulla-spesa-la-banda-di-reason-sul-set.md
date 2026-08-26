@@ -199,7 +199,7 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 ### Changes made
 1. **Separation of Spending and Validator Set Revocation Paths (ADR-017)**:
    - `docs/protocol/ledger.md`: Updated *unrevoked* definition clause 2 to check inclusion height (`no finalized revoke_identity naming node_id is included at a height at most h`). Explained separation of transaction authorization path (immediate upon inclusion, class 0 ordering before spends in class 1) vs validator set transition path (`effective_height`).
-   - `docs/protocol/ledger.md`: Recalculated `AUTH-0` fixture table: rows `21` and `49` flipped from `valid` to `invalid`. Pinned boundary rows `5` (`valid_from_height`) and `21` (`included_height` 20).
+   - `docs/protocol/ledger.md`: Recalculated `AUTH-0` fixture table: rows `20`, `21` and `49` flipped from `valid` to `invalid`. Pinned boundary rows `5` (`h = valid_from_height`, clause 1) and `20` (`h = included_height`, clause 2). Row `20` was added by the [REVIEW-039] RF-001 remediation; the earlier claim that row `21` was the boundary of clause 2 was false and is corrected.
    - `docs/protocol/ledger.md`: Specified reason-dependent `effective_height` band table (`key_compromise`: `p + F <= effective_height <= p + F + G`; `validator_misconduct`/`operator_request`: `p + F <= effective_height <= p + P`). Reconciled with line 785 (`effective_height > p`) via `F >= 1`.
    - `docs/protocol/ledger.md`: Added relational constraints (`F >= 1`, `G >= 1`, `P >= F + G`) and magnitude bounds (`F <= F_max`, `G <= G_max`, `P <= P_max`).
    - `docs/protocol/identity.md`: Split non-retroactivity clause into two distinct statements for transaction authorization vs validator set succession. Preserved receiver-local rule untouched.
@@ -238,6 +238,9 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 ### Verification performed
 - Two-oracle independent derivation of `AUTH-0` fixture and 8 published digests.
 - ADR-012 sweep searching both spellings (`effective_height` and `effective height`).
+- **ADR-012 sweep, second pass ([REVIEW-039] RF-002).** The first pass missed the two artifacts that assert a count of `ConsensusParametersBody` fields, which this spec takes from twenty to twenty-two. Both are now named:
+  - `sim/tools/consensus_parameters_closure.py` — **fixed here.** It counted twenty-two and printed `Classification of all 20 fields:` and `PASS: all 20 ... fields`, with the `20` hardwired in both print statements. The hardwired number was **removed rather than updated**, so the two lines are now derived from the fields actually extracted from the schema; the docstring no longer states any count. Adding a twenty-third field cannot make this tool's output false.
+  - `.lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md` — **not fixed here, and deliberately so.** Its opening line still says *«venti parametri»*, which this spec made false. That file belongs to the [SPEC-023] remediation running in parallel on the same tree, and the file boundary of this remediation excludes it. It is recorded here so the sweep is complete as a statement even where the fix is not ours.
 - `python sim/tools/protocol_hashes.py` -> PASS
 - `python sim/tools/genesis_chain_id.py` -> PASS
 - `python sim/tools/published_artifacts.py` -> PASS (all 11 defect classes)
@@ -301,6 +304,53 @@ ok
 
 === Cargo Test Suite ===
 $ cargo test --workspace --all-features
-test result: ok. 100+ tests passed across all crates, 0 failed.
+190 passed, 0 failed (summed over the 19 `test result:` lines of the run).
+```
+
+### Remediation of [REVIEW-039]
+
+**RF-001 — the boundary of clause 2 is now exercised, and the closure was proved the way the defect was.**
+
+- `docs/protocol/ledger.md`: added the row `h = 20` to the `AUTH-0` table, verdict `invalid`; corrected the sentence that attributed the boundary of clause 2 to row `21` — the boundary is `20`; enumerated the divergence over the eight rows of the revoked identity (`20`, `21`, `49` diverge; `4`, `5`, `19`, `50`, `51` agree).
+- `core/coblox-core/tests/authorization_unrevoked.rs`: added `the_revocation_bites_exactly_at_its_inclusion_height`, which asserts `Revoked { height: 20, included_height: 20 }`, and corrected the module header.
+
+Mutation proof, run and observed rather than deduced. Perimeter: `cargo test --workspace --all-features --no-fail-fast`, whole workspace, counts summed over the `test result:` lines of each run.
+
+```text
+$ (baseline, before the new case)      190 passed, 0 failed
+$ (after the new case)                 191 passed, 0 failed
+
+$ sed -i 's/record.included_height <= including_height/record.included_height < including_height/'       core/coblox-core/src/authorization.rs
+$ cargo test --workspace --all-features --no-fail-fast
+190 passed, 1 failed
+failures:
+    the_revocation_bites_exactly_at_its_inclusion_height
+thread 'the_revocation_bites_exactly_at_its_inclusion_height' panicked at
+core\coblox-core	estsuthorization_unrevoked.rs:85:9:
+expected revocation to bite at its own inclusion height 20
+
+$ git checkout -- core/coblox-core/src/authorization.rs
+$ cargo test --workspace --all-features --no-fail-fast
+191 passed, 0 failed
+```
+
+The mutation that [REVIEW-039] observed leaving the suite green now fails, and fails on exactly one test — the one added here. Test count: **190 before, 191 after**, both counted.
+
+- `sim/tools/published_artifacts.toml`: the two C10 probes that pinned the old sentence (`auth0-divergent-rows-are-the-fixture`, `unrevoked-window-is-the-sample-not-the-enumeration`) were repointed at the new wording, and a new probe `unrevoked-clause-two-boundary-row` pins row `20` the way `unrevoked-clause-one-boundary-row` pins row `5`. Probe count: **158 before, 159 after**, read from the tool's own `C10-PROBE` line in both runs.
+- The divergence sentence now carries its perimeter: three divergent **rows** of this table, against the whole interval `20 <= h <= 49` of divergent **heights**, of which the rows are a sample. This is the distinction [REVIEW-033] RF-007 required and the added row would otherwise have blurred.
+
+**RF-002 — the hardwired `20` is gone from `consensus_parameters_closure.py`.**
+
+```text
+$ python sim/tools/consensus_parameters_closure.py
+ConsensusParametersBody fields: 22 total
+  Union covered:                22
+Classification of all 22 fields:
+PASS: all 22 ConsensusParametersBody fields are covered by constraint block or DRAFT list.
+exit=0
+
+$ python sim/tools/consensus_parameters_closure.py --negative
+Negative proof: PASS - all defect classes observed failing.
+exit=0
 ```
 

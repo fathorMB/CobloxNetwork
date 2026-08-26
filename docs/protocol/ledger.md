@@ -210,27 +210,38 @@ subscription burn authorized by each key:
 | `cblx1revokedfixture` | `4` | no | no | invalid |
 | `cblx1revokedfixture` | `5` | **yes** | no | **valid** |
 | `cblx1revokedfixture` | `19` | yes | no | valid |
+| `cblx1revokedfixture` | `20` | yes | **yes** | **invalid** |
 | `cblx1revokedfixture` | `21` | yes | **yes** | **invalid** |
 | `cblx1revokedfixture` | `49` | yes | yes | **invalid** |
 | `cblx1revokedfixture` | `50` | yes | yes | invalid |
 | `cblx1revokedfixture` | `51` | yes | yes | invalid |
 | `cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka` | `51` | yes | no revocation exists | valid |
 
-**Rows `21` and `49` are the divergent ones.** Under the previous reading where
-spending was permitted until `effective_height` `50`, rows `21` and `49` were
-`valid`; under [ADR-017], where revocation on the transaction path bites at the
-including height `20`, both rows are `invalid`. Those are the heights on which
+**Rows `20`, `21` and `49` are the divergent ones of this table**, and the
+perimeter of that count is the table and not the heights: of the eight rows for
+`cblx1revokedfixture`, the readings agree on `4`, `5`, `19`, `50` and `51` and
+disagree on the other three. The heights on which the two readings disagree are
+the whole interval `20 <= h <= 49`, of which these three rows are a sample.
+Under the
+previous reading where spending was permitted until `effective_height` `50`,
+those three rows were `valid`; under [ADR-017], where revocation on the
+transaction path bites at the including height `20`, all three are `invalid`.
+Those are the rows on which
 an implementation comparing against `effective_height` rather than inclusion
-height fails rows `21` and `49`. The remaining rows are present so that what
+height fails. The remaining rows are present so that what
 they do *not* prove stays visible: `19`, `50` and `51` are agreed on by both
 readings, and a conformance case built only from them would have been green
 before this section existed.
 
 **The two boundaries are one row each, and each is the first height at which its
 clause flips.** Row `5` is `h = valid_from_height`: a certificate authorizes
-*at* the height it becomes valid, so clause 1 is `<=` and not `<`. Row `21` (and
-the inclusion height `20`) is the boundary of clause 2: a revocation bites *at*
-its inclusion height, so clause 2 is `<=` and not `<`. Both are here because a
+*at* the height it becomes valid, so clause 1 is `<=` and not `<`. Row `20` is
+the boundary of clause 2, and it is `h = included_height`: a revocation bites
+*at* its own inclusion height, so clause 2 is `<=` and not `<`. **Row `20` is
+the only row that separates the two comparisons**, by exhaustion and not by
+sampling: `20 <= h` and `20 < h` differ exactly where `20 == h`, so the set of
+separating heights is the singleton `{20}` — row `21` does not separate them,
+because `20 <= 21` and `20 < 21` are both true. Both are here because a
 clause stated with an inclusive comparison and exercised only away from the
 boundary is a clause whose boundary is a guess.
 

@@ -1,11 +1,12 @@
 """The closure gate for ConsensusParametersBody parameters.
 
-[SPEC-023] and [DEBT-036]: ConsensusParametersBody defines twenty parameters.
-Ten election parameters are constrained by ledger.md#magnitudes-not-only-relations
-and declared in the DRAFT launch parameters list.
-The other ten operational parameters must also be accounted for: either in the
-constraint block (with magnitude/relational limits) or declared open in the DRAFT
-launch parameters list of README.md.
+[SPEC-023] and [DEBT-036]: ConsensusParametersBody defines a set of parameters
+whose size is read from the schema and never restated here, so that adding a
+field cannot make this docstring false. The election parameters are constrained
+by ledger.md#magnitudes-not-only-relations and declared in the DRAFT launch
+parameters list. The remaining operational parameters must also be accounted
+for: either in the constraint block (with magnitude/relational limits) or
+declared open in the DRAFT launch parameters list of README.md.
 
 This tool enforces that the class of consensus parameters is closed:
   C1-SCHEMA-NOT-COVERED: Every field of `ConsensusParametersBody` MUST appear in
@@ -216,7 +217,7 @@ def report_results(schema_fields: dict[str, int], readme_text: str, ledger_text:
     print(f"  Union covered:                {len(constraint_fields | (draft_tokens & schema_set))}")
     print()
 
-    print("Classification of all 20 fields:")
+    print(f"Classification of all {len(schema_set)} fields:")
     for field in sorted(schema_set):
         in_c = "CONSTRAINED" if field in constraint_fields else "             "
         in_d = "DRAFT" if field in draft_tokens else "     "
@@ -325,7 +326,10 @@ def main() -> int:
             print(f"  {code}: {msg}")
         return 1
 
-    print("PASS: all 20 ConsensusParametersBody fields are covered by constraint block or DRAFT list.")
+    print(
+        f"PASS: all {len(schema_fields)} ConsensusParametersBody fields are covered "
+        f"by constraint block or DRAFT list."
+    )
     return 0
 
 

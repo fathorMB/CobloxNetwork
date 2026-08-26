@@ -14,7 +14,10 @@
 //! revoked node would pass an implementation that rejected every key.
 //!
 //! **Both clauses of the definition have their boundary pinned.** Clause 1
-//! has row `5` (`h = valid_from_height`); clause 2 has row `21` (and `included_height` 20).
+//! has row `5` (`h = valid_from_height`); clause 2 has row `20`
+//! (`h = included_height`), which is the only height separating `<=` from `<`:
+//! the two predicates differ exactly where `20 == h`. Row `21` does not
+//! separate them, because `20 <= 21` and `20 < 21` are both true.
 //! A clause stated with an inclusive comparison and exercised only away from the boundary is a
 //! clause whose boundary is a guess.
 
@@ -63,6 +66,27 @@ fn qualification_at(node_id: &str, height: u64) -> Result<(), Error> {
 #[test]
 fn the_revocation_does_not_bite_below_its_inclusion_height() {
     assert!(qualification_at(REVOKED, 19).is_ok());
+}
+
+/// The boundary of clause 2, which [REVIEW-039] RF-001 found unpinned.
+///
+/// `included_height` is the first height at which the revocation bites, not the
+/// last at which it does not: the comparison is `<=`. This is the only height
+/// at which `included_height <= h` and `included_height < h` disagree, so it is
+/// the only case that can hold clause 2 to the inclusive reading.
+#[test]
+fn the_revocation_bites_exactly_at_its_inclusion_height() {
+    let Err(Error::Authorization(AuthorizationError::Revoked {
+        node_id,
+        height,
+        included_height,
+    })) = qualification_at(REVOKED, INCLUDED_HEIGHT)
+    else {
+        panic!("expected revocation to bite at its own inclusion height 20");
+    };
+    assert_eq!(node_id, REVOKED);
+    assert_eq!(height, INCLUDED_HEIGHT);
+    assert_eq!(included_height, INCLUDED_HEIGHT);
 }
 
 /// The first of the two rows the readings disagree on.

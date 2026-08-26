@@ -1968,9 +1968,9 @@ why = "identity.md's connection rule is worded in the second reading. It is a re
 [[probe]]
 id = "auth0-divergent-rows-are-the-fixture"
 site = "ledger.md"
-pattern = '\*\*Rows `21` and `49` are the divergent ones\.\*\*'
+pattern = '\*\*Rows `20`, `21` and `49` are the divergent ones of this table\*\*'
 count = 1
-why = "Names which rows of AUTH-0 are the guard and which are arithmetic. A later editor tidying the table would otherwise delete the two rows the fixture exists for and keep the ones both readings already agreed on. Reworded by [REVIEW-033] RF-007: the sentence used to say those rows were the only divergent cases, which is true of the table and false of the heights."
+why = "Names which rows of AUTH-0 are the guard and which are arithmetic. A later editor tidying the table would otherwise delete the two rows the fixture exists for and keep the ones both readings already agreed on. Reworded by [REVIEW-033] RF-007: the sentence used to say those rows were the only divergent cases, which is true of the table and false of the heights. Row `20` was added by [REVIEW-039] RF-001, and it is the boundary of clause 2 as well as a divergent row."
 
 [[probe]]
 id = "unrevoked-effective-height-reason-band"
@@ -1982,9 +1982,9 @@ why = "[ADR-017] replaced the uncapped effective_height with reason-dependent ba
 [[probe]]
 id = "unrevoked-window-is-the-sample-not-the-enumeration"
 site = "ledger.md"
-pattern = '\*\*Rows `21` and `49` are the divergent ones\.\*\* Under the previous reading'
+pattern = 'The heights on which the two readings disagree are\s+the whole interval'
 count = 1
-why = "[REVIEW-033] RF-007 / [ADR-017]: AUTH-0 highlights rows 21 and 49 where the inclusion-height and effective-height readings disagree."
+why = "[REVIEW-033] RF-007 / [ADR-017]: AUTH-0 samples the divergence between the inclusion-height and effective-height readings; the divergence itself runs over the whole interval 20..49. This sentence is the one that keeps the count attached to its perimeter, and deleting it turns a sample back into an apparent enumeration."
 
 [[probe]]
 id = "unrevoked-clause-one-boundary-row"
@@ -1992,6 +1992,13 @@ site = "ledger.md"
 pattern = 'Row `5` is `h = valid_from_height`'
 count = 1
 why = "[REVIEW-033] RF-004. Clause 1 was stated with an inclusive comparison and exercised only away from its boundary: mutating it to `<` left all 176 workspace tests green. This row and its test are the guard, and a later editor who reads it as a duplicate of the `19` row would remove the only case that pins it."
+
+[[probe]]
+id = "unrevoked-clause-two-boundary-row"
+site = "ledger.md"
+pattern = 'Row `20` is\s+the boundary of clause 2'
+count = 1
+why = "[REVIEW-039] RF-001. Clause 2 was stated with an inclusive comparison and exercised only away from its boundary: mutating `included_height <= h` to `<` left all 190 workspace tests green, exactly as [REVIEW-033] RF-004 had found for clause 1. Row `20` is the only height separating the two comparisons, and a later editor who reads it as a duplicate of the `21` row would remove the only case that pins it."
 
 [[probe]]
 id = "unrevoked-local-rule-reaches-the-chain-through-evidence"

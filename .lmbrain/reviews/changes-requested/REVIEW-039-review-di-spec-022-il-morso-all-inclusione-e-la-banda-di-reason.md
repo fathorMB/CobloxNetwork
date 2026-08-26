@@ -33,6 +33,17 @@ review_events:
     evidence_refs: ["SPEC-022", "ADR-017", "REVIEW-033", "REVIEW-038", "DEBT-036", "ADR-012"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-039-EVENT-003"
+    timestamp: "2026-08-26T23:38:24.305067800+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "RF-001 e RF-002 rimediate.\n\nRF-001: aggiunta la riga h=20 alla tabella AUTH-0 di ledger.md (verdetto invalid) e il caso di conformita' the_revocation_bites_exactly_at_its_inclusion_height in authorization_unrevoked.rs, che asserisce Revoked{height:20, included_height:20}. Corretta la frase che attribuiva la frontiera della clausola 2 alla riga 21: la frontiera e' 20, ed e' l'unica altezza che separa <= da <, perche' i due predicati differiscono esattamente dove 20 == h. Chiusura provata come il difetto: mutando record.included_height <= including_height in <, cargo test --workspace --all-features --no-fail-fast passa da 191 passati / 0 falliti a 190 passati / 1 fallito, e il test che fallisce e' esattamente quello nuovo. File ripristinato con git checkout e suite riverificata a 191/0. Conteggio guardato: 190 prima, 191 dopo.\n\nAggiornati anche i due probe C10 di published_artifacts.toml che pinnavano la vecchia frase, e aggiunto unrevoked-clause-two-boundary-row che pinna la riga 20 come unrevoked-clause-one-boundary-row pinna la riga 5. Probe: 158 prima, 159 dopo, lette dalla riga C10-PROBE dello strumento. La frase della divergenza porta ora il proprio perimetro: tre righe divergenti di questa tabella, contro l'intervallo 20 <= h <= 49 di altezze divergenti di cui le righe sono un campione - la distinzione che REVIEW-033 RF-007 imponeva.\n\nRF-002: tolto il numero cablato da consensus_parameters_closure.py invece di aggiornarlo. Le due righe di stampa che dicevano 20 (Classification of all 20 fields e PASS: all 20 ... fields; la seconda non era nel finding ma era lo stesso difetto) derivano ora il conteggio dai campi estratti dallo schema; la docstring non afferma piu' alcun conteggio. Lo strumento stampa 22 ovunque, exit=0, e la sua prova in negativo resta PASS. Aggiornata la lista di passata di ADR-012 nella spec nominando entrambi gli artefatti e registrando che la riga d'apertura di .lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md e' affidata alla remediation di SPEC-023, fuori dal confine di file di questa.\n\nGate rieseguite: cargo test 191/0, clippy exit=0, fmt exit=0, published_artifacts.py PASS, published_artifacts_negative.py PASS, protocol_hashes.py PASS, genesis_chain_id.py exit=0, lead_claims_check.py PASS, consensus_parameters_closure.py e --negative exit=0. Non toccato il file dell'altra remediation. GATE-SECREVIEW e GATE-CI-GREEN restano da soddisfare e non sono state affrontate qui."
+    evidence_refs: ["SPEC-022", "REVIEW-039", "ADR-017", "ADR-012", "REVIEW-033"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: [DEBT-033, DEBT-034, DEBT-035, DEBT-036]
 created: 2026-08-26
 updated: 2026-08-26
@@ -43,6 +54,8 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-26
+    action: "recorded review remediation"
 ---
 # Review
 
