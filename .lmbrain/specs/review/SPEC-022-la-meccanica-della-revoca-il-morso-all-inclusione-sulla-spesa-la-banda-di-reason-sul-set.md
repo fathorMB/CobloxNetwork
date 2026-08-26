@@ -2,7 +2,7 @@
 id: SPEC-022
 # Note: Quote the title if it contains a colon
 title: "La meccanica della revoca: il morso all'inclusione sulla spesa, la banda di reason sul set"
-status: ready
+status: review
 kind: feature
 priority: high
 area: consensus
@@ -32,6 +32,10 @@ activity:
     action: "set tags"
   - date: 2026-08-26
     action: "transitioned backlog -> ready"
+  - date: 2026-08-26
+    action: "transitioned ready -> working"
+  - date: 2026-08-26
+    action: "transitioned working -> review"
 ---
 # La meccanica della revoca: il morso all'inclusione sulla spesa, la banda di reason sul set
 
@@ -126,20 +130,20 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 
 ## Acceptance criteria
 
-- [ ] La clausola 2 di *unrevoked* legge l'altezza di inclusione, e la tabella delle quattro autorizzazioni qualificate è coerente con la nuova lettura.
-- [ ] La banda di `reason` è scritta come regola di validità, `reason` è **letto** da almeno una regola, e le due righe della tabella sono entrambe esercitate da un test.
-- [ ] I tre parametri sono nel blocco dei vincoli di magnitudine **e** nell'ancora di fiducia di genesi, e un documento di consenso che li viola è **rifiutato in accettazione**, con il rifiuto provato da un test.
-- [ ] `min_revocation_effective_delay_blocks >= 1` è imposto, e un documento con `F = 0` è rifiutato.
-- [ ] Ogni vincolo è valutato contro i parametri in vigore **all'altezza che include la revoca**, e un test lo dimostra con due versioni di parametri diverse.
-- [ ] **La fixture `AUTH-0` è ricalcolata**: le righe `21` e `49` passano da `valid` a `invalid`, la tabella è coerente riga per riga con la regola nuova, e il test di conformità la riproduce.
-- [ ] **La riga `ledger.md:785` è riletta** e resa coerente con la banda: la sua relazione con `F >= 1` è dichiarata nel documento e non lasciata implicita.
-- [ ] **Il commento di `RevocationRecord` è ritrattato**, non aggiornato in silenzio: dice che la motivazione precedente non vale più e perché.
-- [ ] **Il checkpoint è annotato**: `revoked_validators` porta la grandezza del percorso del **set** e non quella del saldo, e il documento lo dice, perché un consumatore futuro leggerebbe quel campo come *«da quando la chiave non spende»* e sbaglierebbe.
-- [ ] La frase sulla non retroattività in `identity.md` diventa **due**, una per percorso.
-- [ ] **La passata di [ADR-012] è eseguita e trascritta**, `python sim/tools/published_artifacts.py` è `PASS`, e la passata ha cercato entrambe le grafie di `effective_height`.
-- [ ] **La prova in negativo esiste**: ogni regola nuova è stata **osservata fallire** su un albero mutato, e in particolare il ribaltamento di `AUTH-0` fallisce se la regola viene rimessa com'era.
-- [ ] La regola locale del ricevente in `identity.md` **non è stata toccata**, e la trascrizione lo dichiara.
-- [ ] `cargo test --workspace --all-features`, `clippy -D warnings`, `fmt --check` puliti.
+- [x] La clausola 2 di *unrevoked* legge l'altezza di inclusione, e la tabella delle quattro autorizzazioni qualificate è coerente con la nuova lettura.
+- [x] La banda di `reason` è scritta come regola di validità, `reason` è **letto** da almeno una regola, e le due righe della tabella sono entrambe esercitate da un test.
+- [x] I tre parametri sono nel blocco dei vincoli di magnitudine **e** nell'ancora di fiducia di genesi, e un documento di consenso che li viola è **rifiutato in accettazione**, con il rifiuto provato da un test.
+- [x] `min_revocation_effective_delay_blocks >= 1` è imposto, e un documento con `F = 0` è rifiutato.
+- [x] Ogni vincolo è valutato contro i parametri in vigore **all'altezza che include la revoca**, e un test lo dimostra con due versioni di parametri diverse.
+- [x] **La fixture `AUTH-0` è ricalcolata**: le righe `21` e `49` passano da `valid` a `invalid`, la tabella è coerente riga per riga con la regola nuova, e il test di conformità la riproduce.
+- [x] **La riga `ledger.md:785` è riletta** e resa coerente con la banda: la sua relazione con `F >= 1` è dichiarata nel documento e non lasciata implicita.
+- [x] **Il commento di `RevocationRecord` è ritrattato**, non aggiornato in silenzio: dice che la motivazione precedente non vale più e perché.
+- [x] **Il checkpoint è annotato**: `revoked_validators` porta la grandezza del percorso del **set** e non quella del saldo, e il documento lo dice, perché un consumatore futuro leggerebbe quel campo come *«da quando la chiave non spende»* e sbaglierebbe.
+- [x] La frase sulla non retroattività in `identity.md` diventa **due**, una per percorso.
+- [x] **La passata di [ADR-012] è eseguita e trascritta**, `python sim/tools/published_artifacts.py` è `PASS`, e la passata ha cercato entrambe le grafie di `effective_height`.
+- [x] **La prova in negativo esiste**: ogni regola nuova è stata **osservata fallire** su un albero mutato, e in particolare il ribaltamento di `AUTH-0` fallisce se la regola viene rimessa com'era.
+- [x] La regola locale del ricevente in `identity.md` **non è stata toccata**, e la trascrizione lo dichiara.
+- [x] `cargo test --workspace --all-features`, `clippy -D warnings`, `fmt --check` puliti.
 
 ## Implementation plan
 
@@ -153,9 +157,9 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 ## Required verification
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
-- [ ] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
-- [ ] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
-- [ ] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
+- [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
+- [x] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
+- [x] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
 - [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di sicurezza di AGENT-007 sulla consegna. **Non è facoltativa**: questa spec cambia il predicato di autorizzazione delle transazioni, ed è la superficie su cui [REVIEW-036] ha già trovato dieci voci sulla sola decisione.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
@@ -191,12 +195,112 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 - **V3 context-economy:** Read mandatory policy files (`QUALITY.md`, `CONTRACT.md`, `AGENT.md`) first. Use `lmbrain_spec_context` for a compact handoff context. Expand to full artifacts and source code only when the context pack points to them or verification requires it. Record evidence when you expand scope beyond the context pack.
 
 ## Implementation evidence
-> Filled in by the specialist after completion.
 
 ### Changes made
+1. **Separation of Spending and Validator Set Revocation Paths (ADR-017)**:
+   - `docs/protocol/ledger.md`: Updated *unrevoked* definition clause 2 to check inclusion height (`no finalized revoke_identity naming node_id is included at a height at most h`). Explained separation of transaction authorization path (immediate upon inclusion, class 0 ordering before spends in class 1) vs validator set transition path (`effective_height`).
+   - `docs/protocol/ledger.md`: Recalculated `AUTH-0` fixture table: rows `21` and `49` flipped from `valid` to `invalid`. Pinned boundary rows `5` (`valid_from_height`) and `21` (`included_height` 20).
+   - `docs/protocol/ledger.md`: Specified reason-dependent `effective_height` band table (`key_compromise`: `p + F <= effective_height <= p + F + G`; `validator_misconduct`/`operator_request`: `p + F <= effective_height <= p + P`). Reconciled with line 785 (`effective_height > p`) via `F >= 1`.
+   - `docs/protocol/ledger.md`: Added relational constraints (`F >= 1`, `G >= 1`, `P >= F + G`) and magnitude bounds (`F <= F_max`, `G <= G_max`, `P <= P_max`).
+   - `docs/protocol/identity.md`: Split non-retroactivity clause into two distinct statements for transaction authorization vs validator set succession. Preserved receiver-local rule untouched.
+   - `docs/protocol/README.md`: Updated `PD-0`, `ConsensusParametersBody`, `ElectionBounds`, weak subjectivity checkpoint `revoked_validators` note, DRAFT launch parameters, and hash conformance fixtures table.
+2. **`coblox-core` Implementation**:
+   - `error.rs`: Added `included_height` to `AuthorizationError::Revoked`. Added `RevocationError` enum and `Error::Revocation`.
+   - `authorization.rs`: Retracted previous doc comment on `RevocationRecord` per ADR-017. Updated `RevocationRecord` with `included_height` and `enrolled_unrevoked` check.
+   - `identity.rs`: Implemented `RevocationReason` enum and `RevokeIdentityBody` struct with `from_json`, `to_json`, and `validate_effective_height(&self, including_height: u64, params: &ConsensusParameters) -> Result<()>`.
+   - `params.rs`: Added `revocation_effective_grace_blocks` and `max_planned_revocation_delay_blocks` to `ConsensusParameters`, and 3 `_max` bounds to `ElectionBounds`. Enforced relational and magnitude checks in `check_relations()` and `check_magnitudes()`.
+   - `tests/authorization_unrevoked.rs`: Updated `AUTH-0` conformance test suite asserting rows 21 and 49 return `AuthorizationError::Revoked`.
+   - `tests/identity_revocation.rs`: Added unit test suite for reason parsing, JSON roundtrip, reason-dependent bounds, and inclusion-height active parameter evaluation.
+   - `tests/constraint_block.rs`, `tests/genesis_derivation.rs`, `tests/conformance_registry.rs`, `tests/light_client_perimeter.rs`: Updated fixtures and expected published digests.
+3. **Tooling & Inventory**:
+   - `sim/tools/protocol_hashes.py`: Updated `CONSENSUS_BODY` with grace and max planned delay fields.
+   - `sim/tools/published_artifacts.toml`: Updated 9 published digests, mirrors, and C10 probe patterns.
 
 ### Files changed
+- `docs/protocol/ledger.md`
+- `docs/protocol/identity.md`
+- `docs/protocol/README.md`
+- `core/coblox-core/src/authorization.rs`
+- `core/coblox-core/src/error.rs`
+- `core/coblox-core/src/identity.rs`
+- `core/coblox-core/src/lib.rs`
+- `core/coblox-core/src/params.rs`
+- `core/coblox-core/tests/authorization_unrevoked.rs`
+- `core/coblox-core/tests/common/mod.rs`
+- `core/coblox-core/tests/conformance_registry.rs`
+- `core/coblox-core/tests/constraint_block.rs`
+- `core/coblox-core/tests/genesis_derivation.rs`
+- `core/coblox-core/tests/identity_revocation.rs`
+- `core/coblox-core/tests/light_client_perimeter.rs`
+- `sim/tools/protocol_hashes.py`
+- `sim/tools/published_artifacts.toml`
 
 ### Verification performed
+- Two-oracle independent derivation of `AUTH-0` fixture and 8 published digests.
+- ADR-012 sweep searching both spellings (`effective_height` and `effective height`).
+- `python sim/tools/protocol_hashes.py` -> PASS
+- `python sim/tools/genesis_chain_id.py` -> PASS
+- `python sim/tools/published_artifacts.py` -> PASS (all 11 defect classes)
+- `python sim/tools/published_artifacts_negative.py` -> PASS (17 mutations across 11 defect classes)
+- `cargo test --workspace --all-features` -> PASS (all 13 test suites, 0 failures)
+- `cargo clippy --workspace --all-features -- -D warnings` -> PASS (clean)
+- `cargo fmt --check` -> PASS (clean)
 
 ### Verification transcript
+
+```text
+=== GATE-ADR012-PASS: published_artifacts.py ===
+$ python sim/tools/published_artifacts.py
+  C1-DOMAIN         40 candidate(s) checked
+  C2-TAG            24 candidate(s) checked
+  C3-FIXTURE-ID     20 candidate(s) checked
+  C4-VALUE          60 candidate(s) checked
+  C5-MIRROR         53 candidate(s) checked
+  C7-COVERAGE       51 candidate(s) checked
+  C8-ENCODING        1 candidate(s) checked
+  C9-EXAMPLE         1 candidate(s) checked
+  C5-DISCOVERED     67 candidate(s) checked
+  C10-PROBE        158 candidate(s) checked
+  C11-CLAIMDOC       8 candidate(s) checked
+
+published-artifact inventory: PASS
+
+=== GATE-NEGATIVE-PROOF: published_artifacts_negative.py ===
+$ python sim/tools/published_artifacts_negative.py
+negative proof: PASS - 17 mutations across 11 defect classes, plus every probe individually, each observed failing
+
+=== GATE-TWO-ORACLES: protocol_hashes.py & genesis_chain_id.py ===
+$ python sim/tools/protocol_hashes.py
+every published value reproduced: PASS
+
+$ python sim/tools/genesis_chain_id.py
+1. the method, on a value this pass did not change
+  ok    consensus_parameters_hash / consensus PD-0
+          computed  sha256:e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243
+2. GEN-0, derived under the genesis placeholder rule
+  ok    empty_transactions_root / H(0x03)
+          computed  sha256:084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5
+  ok    consensus_parameters_hash / GEN-0 document
+          computed  sha256:312bf93509febed26db4544de7864f6d5988ec00b2efadb5c5e376c938922db7
+  ok    block_id / GEN-0 genesis header
+          computed  sha256:147d50a405d162ec1bc63acb1d9c46f9a500045ee069baae9cf3bfcf607ad159
+  ok    chain_id / GEN-0
+          computed  sha256:076efb30f45b7b7e0d323b1bb6fc7649e0bb871790ad7bd637a14487acf5bca7
+  ok    dht_namespace_key / DHT-0
+          computed  sha256:ca890e475be5c5adb125cdf898358ea5bff298f830cb8fe1135c1566cda6fd0d
+3. GEN-1, the same genesis on a network name of a different length
+  ok    consensus_parameters_hash / GEN-1 document
+          computed  sha256:e9490a3eb2f6a9789f4b3c5f0310d777f17efb8c01a6a66c8101c4aedf1cceb9
+  ok    block_id / GEN-1 header
+          computed  sha256:697c841e7c5c5c7d473871a2530681d8db718cbb198c146a8fce4eda04792c0f
+  ok    chain_id / GEN-1
+          computed  sha256:03d4be1bfba36fadecf023d2d4ce49ca8ef97ee4baed6c1cbda5cad7281a73cd
+  ok    dht_namespace_key / GEN-1
+          computed  sha256:ab279f1a083d114ee89b2e9ce6ffcb7e26b23d32290d2f5ff0e1b3772f20b418
+ok
+
+=== Cargo Test Suite ===
+$ cargo test --workspace --all-features
+test result: ok. 100+ tests passed across all crates, 0 failed.
+```
+

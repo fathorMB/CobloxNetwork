@@ -7,9 +7,9 @@
 use crate::SignatureVerifier;
 use crate::cadence::AttestationClock;
 use crate::encoding::{base64url_decode_fixed, base64url_encode};
-use crate::error::{AttestationError, Result};
+use crate::error::{AttestationError, Error, JsonError, Result};
 use crate::hash::{ChainId, Domain, NodeId};
-use crate::json::JsonObject;
+use crate::json::{Json, JsonObject};
 use crate::params::ConsensusParameters;
 use crate::registry::signing_preimage;
 
@@ -276,6 +276,170 @@ impl TransportKeyAttestation {
             return Err(AttestationError::InvalidSignature.into());
         }
 
+        Ok(())
+    }
+}
+
+/// The three valid values for `RevokeIdentityBody.reason`.
+///
+/// Governed by `docs/protocol/ledger.md#identity-revocation` and [ADR-017].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RevocationReason {
+    /// "key_compromise"
+    KeyCompromise,
+    /// "validator_misconduct"
+    ValidatorMisconduct,
+    /// "operator_request"
+    OperatorRequest,
+}
+
+impl RevocationReason {
+    /// Returns the canonical wire string representation of this reason.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::KeyCompromise => "key_compromise",
+            Self::ValidatorMisconduct => "validator_misconduct",
+            Self::OperatorRequest => "operator_request",
+        }
+    }
+
+    /// Parses a reason string from the wire.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::error::RevocationError::UnknownReason`] when the string is not one of
+    /// the three enumerated reasons.
+    pub fn parse(s: &str) -> Result<Self> {
+        match s {
+            "key_compromise" => Ok(Self::KeyCompromise),
+            "validator_misconduct" => Ok(Self::ValidatorMisconduct),
+            "operator_request" => Ok(Self::OperatorRequest),
+            other => Err(crate::error::RevocationError::UnknownReason(other.to_owned()).into()),
+        }
+    }
+}
+
+/// The body of a `revoke_identity` governance transaction.
+///
+/// Governed by `docs/protocol/ledger.md#identity-revocation` and [ADR-017].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RevokeIdentityBody {
+    /// The identity to revoke.
+    pub node_id: String,
+    /// The declared reason for revocation.
+    pub reason: RevocationReason,
+    /// The height at which this revocation takes effect for validator set transitions.
+    pub effective_height: u64,
+    /// Optional informational replacement node ID.
+    pub replacement_node_id: Option<String>,
+}
+
+impl RevokeIdentityBody {
+    /// Builds a new `RevokeIdentityBody`.
+    #[must_use]
+    pub fn new(
+        node_id: String,
+        reason: RevocationReason,
+        effective_height: u64,
+        replacement_node_id: Option<String>,
+    ) -> Self {
+        Self {
+            node_id,
+            reason,
+            effective_height,
+            replacement_node_id,
+        }
+    }
+
+    /// Parses a `RevokeIdentityBody` from a [`JsonObject`].
+    ///
+    /// # Errors
+    ///
+    /// Fails when any required field is missing or invalid, or an unknown field is present.
+    pub fn from_json(body: &JsonObject) -> Result<Self> {
+        body.reject_unknown_fields(&[
+            "node_id",
+            "reason",
+            "effective_height",
+            "replacement_node_id",
+        ])?;
+        let node_id = body.string("node_id")?.to_owned();
+        let reason = RevocationReason::parse(body.string("reason")?)?;
+        let effective_height = body.uint("effective_height")?;
+        let replacement_node_id = match body.get("replacement_node_id") {
+            Some(Json::Str(text)) => Some(text.clone()),
+            Some(_) => {
+                return Err(Error::from(JsonError::Field(
+                    "replacement_node_id".to_owned(),
+                )));
+            }
+            None => None,
+        };
+        Ok(Self {
+            node_id,
+            reason,
+            effective_height,
+            replacement_node_id,
+        })
+    }
+
+    /// Serializes this body into a [`JsonObject`].
+    pub fn to_json(&self) -> Result<JsonObject> {
+        let mut builder = JsonObject::builder()
+            .uint("effective_height", self.effective_height)
+            .str("node_id", &self.node_id)
+            .str("reason", self.reason.as_str());
+        if let Some(ref replacement) = self.replacement_node_id {
+            builder = builder.str("replacement_node_id", replacement);
+        }
+        builder.build()
+    }
+
+    /// Validates `effective_height` against the reason-dependent band defined in
+    /// `ledger.md#identity-revocation` and [ADR-017].
+    ///
+    /// Evaluated against the consensus parameters in force at `including_height` (the block proposing/including the revocation).
+    ///
+    /// # Errors
+    ///
+    /// [`crate::error::RevocationError::EffectiveHeightBelowFloor`] when `effective_height < p + F`.
+    /// [`crate::error::RevocationError::EffectiveHeightAboveCeiling`] when `effective_height > p + F + G` (for key compromise)
+    /// or `effective_height > p + P` (for misconduct / operator request).
+    pub fn validate_effective_height(
+        &self,
+        including_height: u64,
+        params: &ConsensusParameters,
+    ) -> Result<()> {
+        let floor = including_height
+            .checked_add(params.min_revocation_effective_delay_blocks)
+            .ok_or(crate::error::Error::Arithmetic("effective_height floor"))?;
+        if self.effective_height < floor {
+            return Err(crate::error::RevocationError::EffectiveHeightBelowFloor {
+                including_height,
+                effective_height: self.effective_height,
+                floor,
+            }
+            .into());
+        }
+        let ceiling = match self.reason {
+            RevocationReason::KeyCompromise => floor
+                .checked_add(params.revocation_effective_grace_blocks)
+                .ok_or(crate::error::Error::Arithmetic("effective_height ceiling"))?,
+            RevocationReason::ValidatorMisconduct | RevocationReason::OperatorRequest => {
+                including_height
+                    .checked_add(params.max_planned_revocation_delay_blocks)
+                    .ok_or(crate::error::Error::Arithmetic("effective_height ceiling"))?
+            }
+        };
+        if self.effective_height > ceiling {
+            return Err(crate::error::RevocationError::EffectiveHeightAboveCeiling {
+                including_height,
+                effective_height: self.effective_height,
+                ceiling,
+            }
+            .into());
+        }
         Ok(())
     }
 }

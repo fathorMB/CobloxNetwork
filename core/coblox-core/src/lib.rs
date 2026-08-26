@@ -149,7 +149,7 @@ pub mod validator_set;
 pub mod verifier;
 
 pub use error::{Error, Result};
-pub use identity::TransportKeyAttestation;
+pub use identity::{RevocationReason, RevokeIdentityBody, TransportKeyAttestation};
 pub use registry::{PreimageContext, SigningPreimage};
 pub use verifier::{ConsensusVerifier, verify_consensus_ed25519, verify_in_context};
 

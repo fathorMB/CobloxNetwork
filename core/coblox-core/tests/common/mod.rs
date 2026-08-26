@@ -240,6 +240,8 @@ pub fn consensus_parameters_pd0() -> ConsensusParameters {
         max_current_balance_age_ms: 1,
         app_suspension_notice_epochs: 1,
         min_revocation_effective_delay_blocks: 1,
+        revocation_effective_grace_blocks: 1,
+        max_planned_revocation_delay_blocks: 2,
         election_epoch_blocks: 4,
         candidacy_close_blocks: 3,
         election_entropy_blocks: 2,
@@ -298,6 +300,14 @@ pub fn consensus_body(parameters: &ConsensusParameters) -> JsonObject {
             "min_revocation_effective_delay_blocks",
             parameters.min_revocation_effective_delay_blocks,
         )
+        .uint(
+            "revocation_effective_grace_blocks",
+            parameters.revocation_effective_grace_blocks,
+        )
+        .uint(
+            "max_planned_revocation_delay_blocks",
+            parameters.max_planned_revocation_delay_blocks,
+        )
         .uint("election_epoch_blocks", parameters.election_epoch_blocks)
         .uint("candidacy_close_blocks", parameters.candidacy_close_blocks)
         .uint(
@@ -341,6 +351,9 @@ pub fn permissive_bounds() -> ElectionBounds {
     ElectionBounds {
         network_id: "fixture".to_owned(),
         chain_id: zero_chain_id(),
+        min_revocation_effective_delay_blocks_max: 1_000_000,
+        revocation_effective_grace_blocks_max: 1_000_000,
+        max_planned_revocation_delay_blocks_max: 1_000_000,
         election_epoch_blocks_max: 1_000_000,
         validator_max_consecutive_terms_max: 1_000,
         validator_max_set_size_max: 1_000,
@@ -514,6 +527,8 @@ pub fn worked_example_parameters() -> ValidatedConsensusParameters {
         max_current_balance_age_ms: 1,
         app_suspension_notice_epochs: 1,
         min_revocation_effective_delay_blocks: 1,
+        revocation_effective_grace_blocks: 1,
+        max_planned_revocation_delay_blocks: 2,
         election_epoch_blocks: 100,
         candidacy_close_blocks: 10,
         election_entropy_blocks: 3,

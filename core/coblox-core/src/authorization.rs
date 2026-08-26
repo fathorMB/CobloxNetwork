@@ -12,8 +12,9 @@
 //! **The height is an argument, and that is the whole point.** The predicate is
 //! evaluated as of the height of the block that includes the transaction, never
 //! as of the verifier's own head. It takes no clock, no view, and no quorum
-//! certificate; it reads `effective_height` out of the finalized
-//! `revoke_identity` body, which every verifier reads from the same bytes.
+//! certificate; under [ADR-017], it reads the height at which the finalized
+//! `revoke_identity` was included in the chain (`included_height`), which every
+//! verifier reads identically from the block and its ancestors.
 //! Anchoring instead to *when the revocation became final* would need a
 //! quantity the chain does not record — no block carries a `QuorumCertificate`
 //! — so two verifiers holding different certificates would return opposite
@@ -33,15 +34,19 @@ pub struct EnrollmentRecord {
 
 /// A finalized `revoke_identity`, reduced to what the qualification reads.
 ///
-/// The height at which the transaction was *included* is deliberately absent:
-/// the predicate does not read it, and a field nobody reads is a field a later
-/// reader mistakes for one that matters.
+/// **Comment retraction (ADR-017 / SPEC-022):** The previous version of this comment
+/// stated that the height at which the `revoke_identity` transaction was included was
+/// deliberately absent because the predicate did not read it (reading `effective_height`
+/// instead). That rationale was invalidated by [ADR-017]: on the transaction authorization
+/// / spending path, the predicate now reads the height of the block that *included*
+/// the revocation (`included_height`), while `effective_height` is confined to the
+/// validator set transition path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RevocationRecord {
     /// The identity the revocation names.
     pub node_id: String,
-    /// `effective_height` from the `revoke_identity` body.
-    pub effective_height: u64,
+    /// The height of the block that included the `revoke_identity` transaction.
+    pub included_height: u64,
 }
 
 /// Whether `node_id` is *enrolled, unrevoked* as of `including_height`.
@@ -57,7 +62,7 @@ pub struct RevocationRecord {
 /// [`AuthorizationError::NotEnrolled`] when no finalized enrollment certificate
 /// names `node_id` with `valid_from_height <= including_height`, and
 /// [`AuthorizationError::Revoked`] when a finalized `revoke_identity` names it
-/// with `effective_height <= including_height`.
+/// with `included_height <= including_height`.
 pub fn enrolled_unrevoked(
     node_id: &str,
     including_height: u64,
@@ -78,17 +83,17 @@ pub fn enrolled_unrevoked(
         }
         .into());
     }
-    // The comparison is `<=`: `effective_height` is the first height at which
-    // the revocation bites, not the last at which it does not.
+    // The comparison is `<=`: `included_height` is the first height at which
+    // the revocation bites on the transaction path, not the last at which it does not.
     if let Some(record) = revocations
         .iter()
         .filter(|record| record.node_id == node_id)
-        .find(|record| record.effective_height <= including_height)
+        .find(|record| record.included_height <= including_height)
     {
         return Err(AuthorizationError::Revoked {
             node_id: node_id.to_owned(),
             height: including_height,
-            effective_height: record.effective_height,
+            included_height: record.included_height,
         }
         .into());
     }

@@ -104,7 +104,7 @@ finalized state that block builds on:
 
 1. a finalized enrollment certificate names `node_id` and its
    `valid_from_height` is at most `h`; and
-2. no finalized `revoke_identity` naming `node_id` carries an `effective_height`
+2. no finalized `revoke_identity` naming `node_id` is included at a height
    at most `h`.
 
 Both clauses are facts about the block being validated and its ancestors.
@@ -133,69 +133,30 @@ qualification through that rule, and so do the finality vote and the auditor
 signatures of challenge evidence, so the gap is inherited rather than introduced
 here — and it is written down instead of being left to look closed.
 
-**Why this reading and not the finalized one.** The obstacle to the finalized
-reading is structural rather than a matter of difficulty. Finality is carried by
-a `QuorumCertificate` over a block, and **no block carries one**: a
-`BlockHeader` commits `previous_block_id`, `state_root` and `transactions_root`,
-and nothing that records when any earlier block became final. The chain
-therefore contains no height at which a revocation *became finalized*. A
-verifier replaying the chain can establish that a `revoke_identity` was
-**included** below `h`; that it was **final** below `h` it can establish only
-from certificates it holds outside the chain, and two verifiers holding
-different certificates then disagree about the same block. A validity rule whose
-verdict depends on which certificates a node happens to have collected is not a
-strict rule with a wide margin — it is a fork with a specification.
+**Why inclusion height on the spending path, and the separation of the two jobs of revocation.**
+[ADR-017] separates the two jobs a revocation performs:
+1. on the **spending path**, revocation morde at the **height of the block that includes it**,
+   and `effective_height` stops governing transaction authorizations;
+2. on the **validator set path**, `effective_height` continues to govern validator set
+   transitions, where its window is justified to give surviving validators time to commit
+   a successor set, and gains a reason-dependent band ([identity revocation](#identity-revocation)).
 
-`effective_height` has the opposite shape. It is committed in the body of the
-`revoke_identity` transaction itself, it MUST be later than the block proposing
-the revocation, and every verifier therefore reads it from the same bytes.
-Anchoring the qualification to it makes the predicate a total function of the
-block and its ancestors, monotone in `h`, and identical for every verifier at
-every later head. That is the property
-[eligibility](#eligibility-demonstrated-storage-and-compute-never-availability)
-already states of its own conditions — *"each of them a fact a replaying
-verifier settles without judgement"* — it is the reading the two
-height-anchored rules of this document already use, and it is the height at
-which
-[revocation and key replacement](identity.md#revocation-and-key-replacement)
-already stops revocation from reopening signatures behind it. Choosing the other
-reading would give this protocol two meanings of *revoked* at the same height:
-one for spending and one for validating.
+The obstacle to anchoring transaction qualification to when a revocation becomes final is
+structural: finality is carried by a `QuorumCertificate` over a block, and **no block carries one**.
+A `BlockHeader` commits `previous_block_id`, `state_root` and `transactions_root`, and nothing
+that records when any earlier block became final. Anchoring to finality outside the chain would
+make block validity verifier-dependent.
 
-**The cost of this reading, declared, and it is larger than one interval.**
-Between the finalization of a `revoke_identity` and its `effective_height` the
-key still authorizes every transaction in the table below, a subscription burn
-against the node balance included. That interval is at least
-`min_revocation_effective_delay_blocks` blocks, which this protocol keeps long
-deliberately, **and it has no upper bound at all**. Nothing in v0 caps
-`effective_height`: the body carries a `u64`, [identity
-revocation](#identity-revocation) requires only that it be later than the block
-proposing the revocation, and rule 4 of
-[revocation forces a validator set transition](#revocation-forces-a-validator-set-transition)
-adds the floor. A `revoke_identity` naming an absurdly distant
-`effective_height` satisfies every MUST of this document, is finalized, appears
-in the `revoked_validators` of a checkpoint, and never bites. **Until that field
-is bounded, how much a revocation protects a balance is chosen by the quorum
-that revokes**, and this section is where that has to be said, because the
-definition above is what gave the field that reach: before it, `effective_height`
-governed the validator set transition and nothing else.
+Inclusion height has the opposite shape: whether a `revoke_identity` transaction was included
+at a height at most `h` is an immutable, total fact about the block and its ancestors,
+committed in `transactions_root`, monotone in `h`, and read from the same bytes by every verifier.
+Furthermore, intra-block execution ordering (`ledger.md:2819`) places `revoke_identity` in class 0
+and spending transactions (`burn`, `fund_app`) in class 1, guaranteeing that a revocation included
+in block `h` executes before any spending transaction in the same block.
 
-None of that is an argument for the other reading, which does not shorten the
-exposure but makes it verifier-dependent, and a verifier-dependent window is
-worse than a declared one. **But the trade is not "a declared window against a
-fork", and stating it that way would be too flattering.** A third reading —
-*no `revoke_identity` naming `node_id` is included at a height at or below `h`*
-— has every property the argument above invokes: a fact about the block and its
-ancestors, monotone in `h`, read from the same bytes by every verifier. It also
-closes the window. It is not adopted because it contradicts
-[revocation and key replacement](identity.md#revocation-and-key-replacement),
-which keeps signatures valid below `effective_height`: adopting it means
-redefining what `effective_height` is, which is revocation mechanics. **The
-trade is therefore a declared window against redefining `effective_height`**,
-and the second term is work nobody has done rather than a thing that cannot be
-done. How short the window should be, whether the floor should depend on
-`reason`, and what bounds `effective_height` from above are all questions about
-revocation mechanics and not about what the qualification means.
+This completely eliminates the vulnerability window where a compromised key could drain a
+balance between revocation finalization and `effective_height`, without introducing verifier-dependent
+forks.
 
 **One rule this definition does not govern.**
 [Authentication on a connection](identity.md#authentication-on-a-connection)
@@ -239,48 +200,43 @@ the qualification reaches them through
 [validator-set continuity](#validator-set-continuity), which already requires
 every member of the referenced set to be enrolled and unrevoked.
 
-**Fixture `AUTH-0`: the case on which the two readings disagree, and the two
-boundaries.** Both identities below hold a finalized enrollment certificate with
+**Fixture `AUTH-0`: the single-key transaction authorization rule under the inclusion-height reading of revocation, and the two boundaries.** Both identities below hold a finalized enrollment certificate with
 `valid_from_height` `5`. A `revoke_identity` naming `cblx1revokedfixture` with
-`effective_height` `50` is finalized in the block at height `20`. For a
+`effective_height` `50` is included in the block at height `20` (and finalized). For a
 subscription burn authorized by each key:
 
-| `node_id` | including height `h` | enrolled by `h` | revocation final below `h` | `effective_height <= h` | verdict |
-| --- | --- | --- | --- | --- | --- |
-| `cblx1revokedfixture` | `4` | no | no | no | invalid |
-| `cblx1revokedfixture` | `5` | **yes** | no | no | **valid** |
-| `cblx1revokedfixture` | `19` | yes | no | no | valid |
-| `cblx1revokedfixture` | `21` | yes | yes | no | **valid** |
-| `cblx1revokedfixture` | `49` | yes | yes | no | **valid** |
-| `cblx1revokedfixture` | `50` | yes | yes | **yes** | invalid |
-| `cblx1revokedfixture` | `51` | yes | yes | yes | invalid |
-| `cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka` | `51` | yes | no revocation exists | no | valid |
+| `node_id` | including height `h` | enrolled by `h` | revocation included at `<= h` | verdict |
+| --- | --- | --- | --- | --- |
+| `cblx1revokedfixture` | `4` | no | no | invalid |
+| `cblx1revokedfixture` | `5` | **yes** | no | **valid** |
+| `cblx1revokedfixture` | `19` | yes | no | valid |
+| `cblx1revokedfixture` | `21` | yes | **yes** | **invalid** |
+| `cblx1revokedfixture` | `49` | yes | yes | **invalid** |
+| `cblx1revokedfixture` | `50` | yes | yes | invalid |
+| `cblx1revokedfixture` | `51` | yes | yes | invalid |
+| `cblx1ci6q36gqm6u3spknxzr7p5r2y4xw7n25d5icm7rsoq7lq6ka` | `51` | yes | no revocation exists | valid |
 
-**Rows `21` and `49` are the divergent ones.** They are the only rows *of this
-table* on which the finalized reading says *invalid* and this definition says
-*valid* — the divergent heights are the whole interval `[20, 49]`, of which the
-table samples the first interior height and the last, and the table is a sample
-rather than an enumeration. Those are the heights on which two implementations
-would have partitioned the chain. The remaining rows are present so that what
+**Rows `21` and `49` are the divergent ones.** Under the previous reading where
+spending was permitted until `effective_height` `50`, rows `21` and `49` were
+`valid`; under [ADR-017], where revocation on the transaction path bites at the
+including height `20`, both rows are `invalid`. Those are the heights on which
+an implementation comparing against `effective_height` rather than inclusion
+height fails rows `21` and `49`. The remaining rows are present so that what
 they do *not* prove stays visible: `19`, `50` and `51` are agreed on by both
 readings, and a conformance case built only from them would have been green
 before this section existed.
 
 **The two boundaries are one row each, and each is the first height at which its
 clause flips.** Row `5` is `h = valid_from_height`: a certificate authorizes
-*at* the height it becomes valid, so clause 1 is `<=` and not `<`. Row `50` is
-`h = effective_height`: a revocation bites *at* its effective height, so clause 2
-is `<=` and not `<`. Both are here because a clause stated with an inclusive
-comparison and exercised only away from the boundary is a clause whose boundary
-is a guess.
+*at* the height it becomes valid, so clause 1 is `<=` and not `<`. Row `21` (and
+the inclusion height `20`) is the boundary of clause 2: a revocation bites *at*
+its inclusion height, so clause 2 is `<=` and not `<`. Both are here because a
+clause stated with an inclusive comparison and exercised only away from the
+boundary is a clause whose boundary is a guess.
 
 The last row varies the one quantity the revoked rows hold constant — whether a
 revocation for the key exists at all — so that an implementation answering
 *invalid* for every key, or reading clause 1 as clause 2, does not pass.
-`effective_height` `50` and the finalization height `20` are deliberately
-different: an implementation comparing `h` against the height at which the
-revocation was included rather than against `effective_height` fails rows `21`
-and `49`.
 
 ## Quorum predicate
 
@@ -783,6 +739,23 @@ RevokeIdentityAuthorization = {"quorum_certificate":TransactionQuorumCertificate
 ```
 
 The effective height MUST be later than the block proposing the revocation.
+With `p` being the height of the block proposing and including the revocation,
+`F = min_revocation_effective_delay_blocks`, `G = revocation_effective_grace_blocks`,
+and `P = max_planned_revocation_delay_blocks`, `effective_height` MUST lie within
+the reason-dependent band ([ADR-017]):
+
+| `reason` | Constraint on `effective_height` |
+| --- | --- |
+| `key_compromise` | `p + F <= effective_height <= p + F + G` |
+| `validator_misconduct`, `operator_request` | `p + F <= effective_height <= p + P` |
+
+Every constraint is evaluated against the consensus parameters in force at
+height `p`. The lower bound `p + F` ensures that surviving validators have a
+declared window in which to commit a compliant successor set. Because the genesis magnitude
+constraints enforce `F >= 1`, `effective_height >= p + F >= p + 1 > p` holds
+strictly, keeping this rule consistent with the requirement that effective height
+MUST be later than the proposing block.
+
 `replacement_node_id` receives no balance, nonce, or privileges from the old
 identity. Revocation authority and signatures are validator-governed; a node's
 self-signature alone cannot erase evidence or consensus history.
@@ -1986,6 +1959,10 @@ consensus-parameters document is accepted only if:
 ```text
 0 < validator_min_set_size <= V <= validator_max_set_size
 3 * validator_min_set_size >= 2 * V    // min_set must be at least 2/3 of V to prevent attrition capture
+min_revocation_effective_delay_blocks >= 1
+revocation_effective_grace_blocks     >= 1
+max_planned_revocation_delay_blocks   >= min_revocation_effective_delay_blocks
+                                         + revocation_effective_grace_blocks
 election_entropy_blocks >= 2
 candidacy_close_blocks  > election_entropy_blocks
 election_epoch_blocks   > candidacy_close_blocks
@@ -2002,6 +1979,9 @@ validator_eligibility_min_issuers >= 2
 
 // magnitude bounds, taken from the genesis ElectionBounds and never from the
 // document under evaluation:
+min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max
+revocation_effective_grace_blocks     <= revocation_effective_grace_blocks_max
+max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 election_epoch_blocks <= election_epoch_blocks_max
 T                     <= validator_max_consecutive_terms_max
 validator_max_set_size<= validator_max_set_size_max

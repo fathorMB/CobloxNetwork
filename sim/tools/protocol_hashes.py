@@ -140,6 +140,8 @@ CONSENSUS_BODY = {
     "max_current_balance_age_ms": "1",
     "app_suspension_notice_epochs": "1",
     "min_revocation_effective_delay_blocks": "1",
+    "revocation_effective_grace_blocks": "1",
+    "max_planned_revocation_delay_blocks": "2",
     "election_epoch_blocks": "4",
     "candidacy_close_blocks": "3",
     "election_entropy_blocks": "2",

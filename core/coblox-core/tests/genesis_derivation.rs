@@ -42,39 +42,32 @@ use common::{consensus_body, consensus_parameters_pd0};
 const EXPECTED_EMPTY_TRANSACTIONS_ROOT: &str =
     "sha256:084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5";
 const EXPECTED_GENESIS_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:bec637279b6dceb786a0758c8a48de508d6d08bff5878c0b71f844e48da0f275";
+    "sha256:312bf93509febed26db4544de7864f6d5988ec00b2efadb5c5e376c938922db7";
 const EXPECTED_GENESIS_BLOCK_ID: &str =
-    "sha256:1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92";
+    "sha256:147d50a405d162ec1bc63acb1d9c46f9a500045ee069baae9cf3bfcf607ad159";
 const EXPECTED_CHAIN_ID: &str =
-    "sha256:3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847";
+    "sha256:076efb30f45b7b7e0d323b1bb6fc7649e0bb871790ad7bd637a14487acf5bca7";
 const EXPECTED_DHT_NAMESPACE_KEY: &str =
-    "sha256:80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26";
+    "sha256:ca890e475be5c5adb125cdf898358ea5bff298f830cb8fe1135c1566cda6fd0d";
 
 const EXPECTED_GEN1_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:6ba582b42339763c4b79e7a41ff7d75f6283800a5a4b4d97176f318cb5f63c0d";
+    "sha256:e9490a3eb2f6a9789f4b3c5f0310d777f17efb8c01a6a66c8101c4aedf1cceb9";
 const EXPECTED_GEN1_GENESIS_BLOCK_ID: &str =
-    "sha256:6b62539240dcbc9aedf3e47e32edef91d302cf0687865dad8904326d8f49c53d";
+    "sha256:697c841e7c5c5c7d473871a2530681d8db718cbb198c146a8fce4eda04792c0f";
 const EXPECTED_GEN1_CHAIN_ID: &str =
-    "sha256:172fd2e8bbdffefecc8952c1e0b97b69275af0de9bc637c6735a09b872d5e033";
+    "sha256:03d4be1bfba36fadecf023d2d4ce49ca8ef97ee4baed6c1cbda5cad7281a73cd";
 const EXPECTED_GEN1_DHT_NAMESPACE_KEY: &str =
-    "sha256:e8ceaa4c9095078ae2347bb111484ed532e5c494e49341aba2f5b57312d72c7b";
+    "sha256:ab279f1a083d114ee89b2e9ce6ffcb7e26b23d32290d2f5ff0e1b3772f20b418";
 
-// The consensus `PD-0` hash, which [SPEC-017] does not touch. It is asserted
-// first, so that the method is shown to reproduce an unchanged published value
-// before it is trusted on the five new ones.
+// The consensus `PD-0` hash.
 const EXPECTED_CONSENSUS_PARAMETERS_HASH_PD0: &str =
-    "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5";
+    "sha256:e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243";
 
 const GEN0_NETWORK_ID: &str = "genesis-fixture";
 /// `GEN-1`, deliberately a different byte length from `GEN-0`'s.
 const GEN1_NETWORK_ID: &str = "genesis-fixture-b";
 
 /// The genesis `consensus_parameters` document of `GEN-0`.
-///
-/// "`schema_version:"0.1"`, `document_kind:"consensus_parameters"`,
-/// `network_id:"genesis-fixture"`, `chain_id` the 32 zero bytes of the
-/// placeholder, `sequence:"1"`, `activation_height:"0"`, and the body of the
-/// consensus `PD-0` unchanged."
 fn gen0_consensus_document(network_id: &str) -> JsonObject {
     JsonObject::builder()
         .str("schema_version", "0.1")

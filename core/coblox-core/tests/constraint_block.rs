@@ -1252,6 +1252,9 @@ fn the_election_rate_of_change_binds_downward_on_every_parameter() {
     let bounds = ElectionBounds {
         network_id: "fixture".to_owned(),
         chain_id: zero_chain_id(),
+        min_revocation_effective_delay_blocks_max: u64::MAX,
+        revocation_effective_grace_blocks_max: u64::MAX,
+        max_planned_revocation_delay_blocks_max: u64::MAX,
         election_epoch_blocks_max: u64::MAX,
         validator_max_consecutive_terms_max: u64::MAX,
         validator_max_set_size_max: u64::MAX,
@@ -1824,4 +1827,113 @@ fn existence_income_is_an_exact_quotient_of_a_capped_fund() {
     assert!(share * eligible < fund);
     assert_eq!(existence_income_share(0, 1).unwrap(), 0);
     assert!(existence_income_share(1_000_000, 0).is_err());
+}
+
+/// `min_revocation_effective_delay_blocks >= 1`: a delay floor of zero is rejected.
+#[test]
+fn revocation_delay_floor_of_zero_is_rejected() {
+    let parameters = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 0,
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        validate(&parameters).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "min_revocation_effective_delay_blocks >= 1"
+        })
+    );
+}
+
+/// `revocation_effective_grace_blocks >= 1`: grace period of zero is rejected.
+#[test]
+fn revocation_grace_blocks_of_zero_is_rejected() {
+    let parameters = ConsensusParameters {
+        revocation_effective_grace_blocks: 0,
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        validate(&parameters).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "revocation_effective_grace_blocks >= 1"
+        })
+    );
+}
+
+/// `max_planned_revocation_delay_blocks >= min_revocation_effective_delay_blocks + revocation_effective_grace_blocks`
+#[test]
+fn max_planned_revocation_delay_below_floor_is_rejected() {
+    let parameters = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 5,
+        revocation_effective_grace_blocks: 5,
+        max_planned_revocation_delay_blocks: 9, // < 5 + 5 = 10
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        validate(&parameters).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "max_planned_revocation_delay_blocks >= min_revocation_effective_delay_blocks + revocation_effective_grace_blocks"
+        })
+    );
+
+    // Exactly equal is accepted.
+    let valid_parameters = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 5,
+        revocation_effective_grace_blocks: 5,
+        max_planned_revocation_delay_blocks: 10,
+        ..consensus_parameters_pd0()
+    };
+    assert!(validate(&valid_parameters).is_ok());
+}
+
+/// Magnitude bounds on revocation parameters from `ElectionBounds`.
+#[test]
+fn revocation_delay_magnitude_bounds_are_enforced() {
+    let bounds = ElectionBounds {
+        min_revocation_effective_delay_blocks_max: 10,
+        revocation_effective_grace_blocks_max: 10,
+        max_planned_revocation_delay_blocks_max: 50,
+        ..permissive_bounds()
+    };
+
+    // 1. Exceeding min_revocation_effective_delay_blocks_max
+    let p1 = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 11,
+        revocation_effective_grace_blocks: 5,
+        max_planned_revocation_delay_blocks: 20,
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        p1.validate(&bounds, 1, 1, None).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max"
+        })
+    );
+
+    // 2. Exceeding revocation_effective_grace_blocks_max
+    let p2 = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 5,
+        revocation_effective_grace_blocks: 11,
+        max_planned_revocation_delay_blocks: 20,
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        p2.validate(&bounds, 1, 1, None).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "revocation_effective_grace_blocks <= revocation_effective_grace_blocks_max"
+        })
+    );
+
+    // 3. Exceeding max_planned_revocation_delay_blocks_max
+    let p3 = ConsensusParameters {
+        min_revocation_effective_delay_blocks: 5,
+        revocation_effective_grace_blocks: 5,
+        max_planned_revocation_delay_blocks: 51,
+        ..consensus_parameters_pd0()
+    };
+    assert_eq!(
+        p3.validate(&bounds, 1, 1, None).unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "max_planned_revocation_delay_blocks <= max_planned_revocation_delay_blocks_max"
+        })
+    );
 }

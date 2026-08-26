@@ -42,6 +42,8 @@ pub enum Error {
     /// A single-key transaction authorization failed the *enrolled, unrevoked*
     /// qualification, or the key did not derive the node ID it claims.
     Authorization(AuthorizationError),
+    /// An identity revocation violated its validity rules or reason-dependent effective height band.
+    Revocation(RevocationError),
     /// A checked `u128` intermediate overflowed, or a total power was zero.
     Arithmetic(&'static str),
 }
@@ -50,10 +52,10 @@ pub enum Error {
 ///
 /// Every variant carries the height the qualification was evaluated at, because
 /// the answer is only meaningful with it: the same key is authorized below
-/// `effective_height` and rejected at or above it, and a rejection message that
+/// the block including the revocation and rejected at or above it, and a rejection message that
 /// omitted the height would read as a statement about the key rather than about
 /// the block. See
-/// `ledger.md#what-enrolled-unrevoked-means-and-as-of-which-height`.
+/// `ledger.md#what-enrolled-unrevoked-means-and-as-of-which-height` and [ADR-017].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum AuthorizationError {
@@ -69,14 +71,14 @@ pub enum AuthorizationError {
         /// The height of the block including the transaction.
         height: u64,
     },
-    /// A finalized `revoke_identity` names the node ID and is in force here.
+    /// A finalized `revoke_identity` names the node ID and was included at or below this height.
     Revoked {
         /// The node ID the transaction body claims.
         node_id: String,
         /// The height of the block including the transaction.
         height: u64,
-        /// `effective_height` of the revocation that rejected it.
-        effective_height: u64,
+        /// The height of the block that included the `revoke_identity`.
+        included_height: u64,
     },
 }
 
@@ -341,6 +343,26 @@ pub enum AttestationError {
     InvalidSignature,
 }
 
+/// Reasons a `revoke_identity` transaction body or its `effective_height` is rejected.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum RevocationError {
+    /// An unknown revocation reason was specified.
+    UnknownReason(String),
+    /// `effective_height` is below the floor `p + min_revocation_effective_delay_blocks`.
+    EffectiveHeightBelowFloor {
+        including_height: u64,
+        effective_height: u64,
+        floor: u64,
+    },
+    /// `effective_height` is above the ceiling for the given reason.
+    EffectiveHeightAboveCeiling {
+        including_height: u64,
+        effective_height: u64,
+        ceiling: u64,
+    },
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -360,6 +382,7 @@ impl fmt::Display for Error {
             Self::Election(e) => write!(f, "no valid election result: {e:?}"),
             Self::Cadence(e) => write!(f, "chain cadence rejected: {e:?}"),
             Self::Authorization(e) => write!(f, "transaction authorization rejected: {e:?}"),
+            Self::Revocation(e) => write!(f, "identity revocation rejected: {e:?}"),
             Self::Arithmetic(ctx) => write!(f, "checked arithmetic failed in {ctx}"),
         }
     }
@@ -412,5 +435,11 @@ impl From<ElectionError> for Error {
 impl From<AuthorizationError> for Error {
     fn from(value: AuthorizationError) -> Self {
         Self::Authorization(value)
+    }
+}
+
+impl From<RevocationError> for Error {
+    fn from(value: RevocationError) -> Self {
+        Self::Revocation(value)
     }
 }

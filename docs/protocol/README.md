@@ -563,8 +563,10 @@ document — so it uses `election_entropy_blocks:"2"`,
 `candidacy_close_blocks:"3"`, `election_epoch_blocks:"4"`,
 `validator_target_set_size:"12"`, `validator_max_set_size:"12"`,
 `validator_churn_cap_seats:"3"` and `validator_max_consecutive_terms:"4"`, with
-`validator_cooldown_epochs` and `validator_min_capture_epochs` at `"1"`, and
-`validator_min_set_size:"8"`. The minimum set size cannot be `"1"` because the
+`validator_cooldown_epochs` and `validator_min_capture_epochs` at `"1"`,
+`validator_min_set_size:"8"`, and `max_planned_revocation_delay_blocks:"2"`
+(the planned delay bound must be at least `min_revocation_effective_delay_blocks + revocation_effective_grace_blocks`,
+so `"1"` would be rejected under [ADR-017]). The minimum set size cannot be `"1"` because the
 consensus constraint block requires `3 * validator_min_set_size >= 2 * V`
 ([ADR-010]): for `V = 12`, `3 * 8 = 24 >= 2 * 12 = 24`, which is the exact
 floor. Two facts about those numbers are worth
@@ -684,7 +686,7 @@ those of `GEN-0` with that substitution and nothing else.
 | `parameter_set_hash` | enrollment `PD-0` | `sha256:a2553f36f496d30a7773b9f6424c3ffd5ef22e3f8620bf0cca88a9bcdccd4f63` |
 | `policy_hash` | reward `PD-0` | `sha256:89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48` |
 | `hosting_rate_card_hash` | hosting `PD-0` | `sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8` |
-| `consensus_parameters_hash` | consensus `PD-0` | `sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5` |
+| `consensus_parameters_hash` | consensus `PD-0` | `sha256:e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243` |
 | `object_id` | bytes `00 01 02` | `sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c` |
 | `input_hash` | bytes `00 01 02` | `sha256:66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9` |
 | `issuer_commitment` | `CMT-0` | `sha256:19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5` |
@@ -699,14 +701,14 @@ those of `GEN-0` with that substitution and nothing else.
 | `account_key` (app) | `APP-0` | `sha256:a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d` |
 | `app_leaf` | `APP-0` | `sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697` |
 | `empty_transactions_root` | `GEN-0` | `sha256:084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5` |
-| `consensus_parameters_hash` (genesis) | `GEN-0` document | `sha256:bec637279b6dceb786a0758c8a48de508d6d08bff5878c0b71f844e48da0f275` |
-| `block_id` (genesis) | `GEN-0` header | `sha256:1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92` |
-| `chain_id` | `GEN-0` | `sha256:3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847` |
-| `dht_namespace_key` | `DHT-0` | `sha256:80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26` |
-| `consensus_parameters_hash` (genesis, `GEN-1`) | `GEN-1` document | `sha256:6ba582b42339763c4b79e7a41ff7d75f6283800a5a4b4d97176f318cb5f63c0d` |
-| `block_id` (genesis, `GEN-1`) | `GEN-1` header | `sha256:6b62539240dcbc9aedf3e47e32edef91d302cf0687865dad8904326d8f49c53d` |
-| `chain_id` (`GEN-1`) | `GEN-1` | `sha256:172fd2e8bbdffefecc8952c1e0b97b69275af0de9bc637c6735a09b872d5e033` |
-| `dht_namespace_key` (`GEN-1`) | `GEN-1` | `sha256:e8ceaa4c9095078ae2347bb111484ed532e5c494e49341aba2f5b57312d72c7b` |
+| `consensus_parameters_hash` (genesis) | `GEN-0` document | `sha256:312bf93509febed26db4544de7864f6d5988ec00b2efadb5c5e376c938922db7` |
+| `block_id` (genesis) | `GEN-0` header | `sha256:147d50a405d162ec1bc63acb1d9c46f9a500045ee069baae9cf3bfcf607ad159` |
+| `chain_id` | `GEN-0` | `sha256:076efb30f45b7b7e0d323b1bb6fc7649e0bb871790ad7bd637a14487acf5bca7` |
+| `dht_namespace_key` | `DHT-0` | `sha256:ca890e475be5c5adb125cdf898358ea5bff298f830cb8fe1135c1566cda6fd0d` |
+| `consensus_parameters_hash` (genesis, `GEN-1`) | `GEN-1` document | `sha256:e9490a3eb2f6a9789f4b3c5f0310d777f17efb8c01a6a66c8101c4aedf1cceb9` |
+| `block_id` (genesis, `GEN-1`) | `GEN-1` header | `sha256:697c841e7c5c5c7d473871a2530681d8db718cbb198c146a8fce4eda04792c0f` |
+| `chain_id` (`GEN-1`) | `GEN-1` | `sha256:03d4be1bfba36fadecf023d2d4ce49ca8ef97ee4baed6c1cbda5cad7281a73cd` |
+| `dht_namespace_key` (`GEN-1`) | `GEN-1` | `sha256:ab279f1a083d114ee89b2e9ce6ffcb7e26b23d32290d2f5ff0e1b3772f20b418` |
 
 `challenge_randomness` is carried on the wire as the unpadded base64url of those
 32 bytes, which for `RND-0` is `jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc`.
@@ -816,6 +818,8 @@ ConsensusParametersBody = {
   "max_current_balance_age_ms":u64-string,
   "app_suspension_notice_epochs":u64-string,
   "min_revocation_effective_delay_blocks":u64-string,
+  "revocation_effective_grace_blocks":u64-string,
+  "max_planned_revocation_delay_blocks":u64-string,
   "election_epoch_blocks":u64-string,
   "candidacy_close_blocks":u64-string,
   "election_entropy_blocks":u64-string,
@@ -1030,6 +1034,9 @@ ElectionBounds = {
   "schema_version":"0.1",
   "network_id":string,
   "chain_id":sha256-string,
+  "min_revocation_effective_delay_blocks_max":u64-string,
+  "revocation_effective_grace_blocks_max":u64-string,
+  "max_planned_revocation_delay_blocks_max":u64-string,
   "election_epoch_blocks_max":u64-string,
   "validator_max_consecutive_terms_max":u64-string,
   "validator_max_set_size_max":u64-string,
@@ -1507,7 +1514,12 @@ peer, or from any network source.
 **Revocation commitment.** `revoked_validators` lists every identity revoked by
 a finalized `revoke_identity` as of `height` that held a seat in any validator
 set active at or after its own `effective_height`. Entries are unique and sorted
-bytewise by `node_id`. The commitment mirrors the subscription tree of
+bytewise by `node_id`. **Path separation:** `revoked_validators` carries
+`(node_id, effective_height)` for the **validator set transition path** alone,
+which light clients need to verify validator set composition across transitions. It does **not**
+govern the transaction authorization and spending path (which bites at the block's inclusion height `h`,
+under [ADR-017]); a consumer MUST NOT interpret `effective_height` in this commitment
+as the height from which a key ceases to authorize spending. The commitment mirrors the subscription tree of
 [ledger.md](ledger.md#mint-existence-income-work-compensation-and-publisher-reward):
 
 ```text
@@ -1680,7 +1692,11 @@ not economic facts and remain open:
     - `min_revocation_effective_delay_blocks`: minimum delay between proposing
       an identity revocation and its effective height on validator set
       transitions; constrained relationally with `max_weak_subjectivity_age_ms`
-      and validator succession coordination margin.
+      and validator succession coordination margin;
+    - `revocation_effective_grace_blocks`: maximum grace period added to minimum delay
+      for key compromise revocations; constrained by emergency validator replacement;
+    - `max_planned_revocation_delay_blocks`: maximum planned delay for planned revocations
+      (misconduct and operator request); constrained by parameter bounds and term lengths.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select

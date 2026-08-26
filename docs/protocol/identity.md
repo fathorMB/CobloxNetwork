@@ -835,8 +835,11 @@ verification into the session and so makes it load-bearing.
 
 A `RevokeIdentity` governance transaction names the node ID, reason code,
 effective height, and replacement node ID if any. It requires a validator quorum
-certificate. Revocation is not retroactive: historical signatures remain valid
-at heights before the effective height.
+certificate. Revocation is not retroactive across either of its two paths ([ADR-017]):
+on the transaction authorization path, historical transaction authorizations remain
+valid at heights before the height of the block including the `revoke_identity`; on
+the validator set path, historical consensus signatures and validator set memberships
+remain valid at heights before `effective_height`.
 
 If the revoked node holds a seat in the active validator set, revocation alone
 would leave its voting power intact until some later set transition that no rule

@@ -34,6 +34,12 @@ pub struct ElectionBounds {
     pub network_id: String,
     /// Chain the bounds belong to; must equal the client's configured chain.
     pub chain_id: ChainId,
+    /// Ceiling on `min_revocation_effective_delay_blocks`.
+    pub min_revocation_effective_delay_blocks_max: u64,
+    /// Ceiling on `revocation_effective_grace_blocks`.
+    pub revocation_effective_grace_blocks_max: u64,
+    /// Ceiling on `max_planned_revocation_delay_blocks`.
+    pub max_planned_revocation_delay_blocks_max: u64,
     /// Ceiling on `election_epoch_blocks`.
     pub election_epoch_blocks_max: u64,
     /// Ceiling on `validator_max_consecutive_terms`.
@@ -364,6 +370,10 @@ pub struct ConsensusParameters {
     pub app_suspension_notice_epochs: u64,
     /// Minimum delay between proposing a revocation and its effective height.
     pub min_revocation_effective_delay_blocks: u64,
+    /// Grace period added to minimum delay for key compromise revocations.
+    pub revocation_effective_grace_blocks: u64,
+    /// Maximum planned delay for misconduct and operator request revocations.
+    pub max_planned_revocation_delay_blocks: u64,
     /// `L`: blocks per election epoch.
     pub election_epoch_blocks: u64,
     /// Blocks before the boundary at which candidacies close.
@@ -436,6 +446,8 @@ impl ConsensusParameters {
             "max_current_balance_age_ms",
             "app_suspension_notice_epochs",
             "min_revocation_effective_delay_blocks",
+            "revocation_effective_grace_blocks",
+            "max_planned_revocation_delay_blocks",
             "election_epoch_blocks",
             "candidacy_close_blocks",
             "election_entropy_blocks",
@@ -461,6 +473,9 @@ impl ConsensusParameters {
             app_suspension_notice_epochs: body.uint("app_suspension_notice_epochs")?,
             min_revocation_effective_delay_blocks: body
                 .uint("min_revocation_effective_delay_blocks")?,
+            revocation_effective_grace_blocks: body.uint("revocation_effective_grace_blocks")?,
+            max_planned_revocation_delay_blocks: body
+                .uint("max_planned_revocation_delay_blocks")?,
             election_epoch_blocks: body.uint("election_epoch_blocks")?,
             candidacy_close_blocks: body.uint("candidacy_close_blocks")?,
             election_entropy_blocks: body.uint("election_entropy_blocks")?,
@@ -508,6 +523,24 @@ impl ConsensusParameters {
             "0 < validator_min_set_size <= V <= validator_max_set_size",
         )?;
         require(
+            self.min_revocation_effective_delay_blocks >= 1,
+            "min_revocation_effective_delay_blocks >= 1",
+        )?;
+        require(
+            self.revocation_effective_grace_blocks >= 1,
+            "revocation_effective_grace_blocks >= 1",
+        )?;
+        let min_planned = self
+            .min_revocation_effective_delay_blocks
+            .checked_add(self.revocation_effective_grace_blocks)
+            .ok_or(Error::Arithmetic(
+                "max_planned_revocation_delay_blocks floor",
+            ))?;
+        require(
+            self.max_planned_revocation_delay_blocks >= min_planned,
+            "max_planned_revocation_delay_blocks >= min_revocation_effective_delay_blocks + revocation_effective_grace_blocks",
+        )?;
+        require(
             self.election_entropy_blocks >= 2,
             "election_entropy_blocks >= 2",
         )?;
@@ -551,6 +584,20 @@ impl ConsensusParameters {
     /// The magnitude half: taken from the genesis bounds and never from the
     /// document under evaluation.
     fn check_magnitudes(&self, bounds: &ElectionBounds) -> Result<()> {
+        require(
+            self.min_revocation_effective_delay_blocks
+                <= bounds.min_revocation_effective_delay_blocks_max,
+            "min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max",
+        )?;
+        require(
+            self.revocation_effective_grace_blocks <= bounds.revocation_effective_grace_blocks_max,
+            "revocation_effective_grace_blocks <= revocation_effective_grace_blocks_max",
+        )?;
+        require(
+            self.max_planned_revocation_delay_blocks
+                <= bounds.max_planned_revocation_delay_blocks_max,
+            "max_planned_revocation_delay_blocks <= max_planned_revocation_delay_blocks_max",
+        )?;
         require(
             self.election_epoch_blocks <= bounds.election_epoch_blocks_max,
             "election_epoch_blocks <= election_epoch_blocks_max",

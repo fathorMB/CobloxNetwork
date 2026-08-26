@@ -544,7 +544,7 @@ name = "empty_transactions_root H(0x03) | GEN-0"
 mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
-hex = "1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92"
+hex = "147d50a405d162ec1bc63acb1d9c46f9a500045ee069baae9cf3bfcf607ad159"
 class = "registry"
 site = "README.md"
 name = "block_id | GEN-0 genesis header"
@@ -558,7 +558,7 @@ name = "candidate_leaf 05 | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
-hex = "172fd2e8bbdffefecc8952c1e0b97b69275af0de9bc637c6735a09b872d5e033"
+hex = "03d4be1bfba36fadecf023d2d4ce49ca8ef97ee4baed6c1cbda5cad7281a73cd"
 class = "registry"
 site = "README.md"
 name = "chain_id | GEN-1"
@@ -621,7 +621,7 @@ site = "ledger.md"
 name = "evidence tx_id placeholder in the existence-income mint example"
 
 [[value]]
-hex = "3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847"
+hex = "076efb30f45b7b7e0d323b1bb6fc7649e0bb871790ad7bd637a14487acf5bca7"
 class = "registry"
 site = "README.md"
 name = "chain_id | GEN-0"
@@ -691,7 +691,7 @@ name = "candidate_node level 2 [1] | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
-hex = "87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5"
+hex = "e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243"
 class = "registry"
 site = "README.md"
 name = "consensus_parameters_hash | consensus PD-0"
@@ -705,14 +705,14 @@ name = "input_hash | bytes 00 01 02"
 mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
-hex = "6b62539240dcbc9aedf3e47e32edef91d302cf0687865dad8904326d8f49c53d"
+hex = "697c841e7c5c5c7d473871a2530681d8db718cbb198c146a8fce4eda04792c0f"
 class = "registry"
 site = "README.md"
 name = "block_id | GEN-1 genesis header"
 mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
-hex = "6ba582b42339763c4b79e7a41ff7d75f6283800a5a4b4d97176f318cb5f63c0d"
+hex = "e9490a3eb2f6a9789f4b3c5f0310d777f17efb8c01a6a66c8101c4aedf1cceb9"
 class = "registry"
 site = "README.md"
 name = "consensus_parameters_hash | GEN-1 genesis document"
@@ -747,14 +747,14 @@ name = "revocation_leaf | REVL-0"
 mirrors = ["sim/tools/protocol_hashes.py", "core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
-hex = "80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26"
+hex = "ca890e475be5c5adb125cdf898358ea5bff298f830cb8fe1135c1566cda6fd0d"
 class = "registry"
 site = "README.md"
 name = "dht_namespace_key | DHT-0"
 mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
-hex = "bec637279b6dceb786a0758c8a48de508d6d08bff5878c0b71f844e48da0f275"
+hex = "312bf93509febed26db4544de7864f6d5988ec00b2efadb5c5e376c938922db7"
 class = "registry"
 site = "README.md"
 name = "consensus_parameters_hash | GEN-0 genesis document"
@@ -913,7 +913,7 @@ name = "candidate_empty H(0x42) | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
-hex = "e8ceaa4c9095078ae2347bb111484ed532e5c494e49341aba2f5b57312d72c7b"
+hex = "ab279f1a083d114ee89b2e9ce6ffcb7e26b23d32290d2f5ff0e1b3772f20b418"
 class = "registry"
 site = "README.md"
 name = "dht_namespace_key | GEN-1"
@@ -1016,7 +1016,7 @@ id = "chain_id"
 site = "README.md"
 coverage = "fixture"
 fixture = "GEN-0"
-expected = "sha256:3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847"
+expected = "sha256:076efb30f45b7b7e0d323b1bb6fc7649e0bb871790ad7bd637a14487acf5bca7"
 uncovered_reason = ""
 
 [[preimage]]
@@ -1064,7 +1064,7 @@ id = "consensus_parameters_hash"
 site = "README.md"
 coverage = "fixture"
 fixture = "PD-0"
-expected = "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5"
+expected = "sha256:e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243"
 uncovered_reason = ""
 
 [[preimage]]
@@ -1205,7 +1205,7 @@ id = "block_id"
 site = "ledger.md"
 coverage = "fixture"
 fixture = "GEN-0"
-expected = "sha256:1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92"
+expected = "sha256:147d50a405d162ec1bc63acb1d9c46f9a500045ee069baae9cf3bfcf607ad159"
 uncovered_reason = ""
 
 [[preimage]]
@@ -1237,7 +1237,7 @@ id = "dht_namespace_key"
 site = "wire.md"
 coverage = "fixture"
 fixture = "DHT-0"
-expected = "sha256:80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26"
+expected = "sha256:ca890e475be5c5adb125cdf898358ea5bff298f830cb8fe1135c1566cda6fd0d"
 uncovered_reason = ""
 
 [[preimage]]
@@ -1940,9 +1940,9 @@ why = "'Proved' and 'actually' are the two words this rule pays for. Without it 
 [[probe]]
 id = "unrevoked-anchored-to-the-including-height"
 site = "ledger.md"
-pattern = 'no finalized `revoke_identity` naming `node_id` carries an `effective_height`\s+at most `h`'
+pattern = 'no finalized `revoke_identity` naming `node_id` is included at a height\s+at most `h`'
 count = 1
-why = "The definition itself, clause 2. It is the clause that picks `effective_height` over finalization, and a document that lost it would still contain four qualified rules and no statement of what the qualification means."
+why = "The definition itself, clause 2. It is the clause that anchors transaction authorization revocation to inclusion height rather than finalization or effective_height, separating spending from validator set succession [ADR-017]."
 
 [[probe]]
 id = "unrevoked-no-block-carries-a-quorum-certificate"
@@ -1954,9 +1954,9 @@ why = "The reason the finalized reading cannot be settled by replay, and the onl
 [[probe]]
 id = "unrevoked-declared-window-cost"
 site = "ledger.md"
-pattern = 'The cost of this reading, declared'
+pattern = '\*\*Why inclusion height on the spending path, and the separation of the two jobs of revocation\.\*\*'
 count = 1
-why = "The residual exposure between finalization and effective height, declared rather than discovered. A reader who finds the definition and not this paragraph will believe the window was closed."
+why = "The declared separation between the spending path (inclusion height, intra-block class 0 ordering before spends in class 1) and the validator set path (effective_height) [ADR-017]."
 
 [[probe]]
 id = "unrevoked-receiver-local-rule-is-not-the-definition"
@@ -1973,18 +1973,18 @@ count = 1
 why = "Names which rows of AUTH-0 are the guard and which are arithmetic. A later editor tidying the table would otherwise delete the two rows the fixture exists for and keep the ones both readings already agreed on. Reworded by [REVIEW-033] RF-007: the sentence used to say those rows were the only divergent cases, which is true of the table and false of the heights."
 
 [[probe]]
-id = "unrevoked-effective-height-has-no-upper-bound"
+id = "unrevoked-effective-height-reason-band"
 site = "ledger.md"
-pattern = '\*\*and it has no upper bound at all\*\*'
+pattern = 'the reason-dependent band \(\[ADR-017\]\):'
 count = 1
-why = "[REVIEW-033] RF-001. The definition made `effective_height` govern whether a revoked key can drain a balance, and nothing in v0 caps that field: a revocation with an absurd effective height satisfies every MUST and never bites. The paragraph declared the floor and was silent on the ceiling, which is the same defect DEBT-022 censused — a qualification written without the quantity it is measured against — moved from the clause to the field the clause now rests on."
+why = "[ADR-017] replaced the uncapped effective_height with reason-dependent bands capping key_compromise by p + F + G and validator_misconduct/operator_request by p + P."
 
 [[probe]]
 id = "unrevoked-window-is-the-sample-not-the-enumeration"
 site = "ledger.md"
-pattern = 'the divergent heights are the whole interval `\[20, 49\]`'
+pattern = '\*\*Rows `21` and `49` are the divergent ones\.\*\* Under the previous reading'
 count = 1
-why = "[REVIEW-033] RF-007. AUTH-0 samples the divergent interval at its first interior height and its last; without this clause the table reads as an enumeration of the divergent cases, in a section where enumerating is the substance."
+why = "[REVIEW-033] RF-007 / [ADR-017]: AUTH-0 highlights rows 21 and 49 where the inclusion-height and effective-height readings disagree."
 
 [[probe]]
 id = "unrevoked-clause-one-boundary-row"
@@ -2474,34 +2474,34 @@ why = "REVIEW-031 RF-006: the other half. Without the forced transition a revoke
 [[probe]]
 id = "guide-revocation-bites-at-a-written-height"
 site = "ledger.md"
-pattern = 'no finalized `revoke_identity` naming `node_id` carries an `effective_height`'
+pattern = 'no finalized `revoke_identity` naming `node_id` is included at a height\s+at most `h`'
 count = 1
 claims = ["The quorum that revokes writes into the revocation the height from which it bites"]
-why = "[SPEC-019] defined `enrolled, unrevoked` against the height of the block INCLUDING the transaction, and clause 2 of that definition is where the height comes from: it is a field of the revocation, chosen by whoever signs it, and not the moment the revocation became final. Before this definition existed the page could say revocation removes a key and leave the timing unstated, because the timing was unstated in the protocol too."
+why = "[ADR-017] defined `enrolled, unrevoked` on the transaction authorization path against inclusion height."
 
 [[probe]]
 id = "guide-revoked-key-still-authorises-until-then"
 site = "ledger.md"
-pattern = 'Between the finalization of a `revoke_identity` and its `effective_height` the\s+key still authorizes'
+pattern = 'on the \*\*validator set path\*\*, `effective_height` continues to govern validator set'
 count = 1
 claims = ["until that height the revoked key still authorises everything it authorised before"]
-why = "[SPEC-019] states the cost of its own definition in this sentence, and it is the half a reader will not guess: between finalization and effective height the revoked key still spends, a subscription burn against its balance included. A page that says revocation removes a key without this reads as immediate removal, which is the reassuring version and the wrong one."
+why = "[ADR-017] clarifies that delayed effective_height applies to validator set succession rather than spending."
 
 [[probe]]
 id = "guide-revocation-height-has-no-ceiling"
 site = "ledger.md"
-pattern = 'Nothing in v0 caps\s+`effective_height`'
+pattern = '`effective_height` MUST lie within\s+the reason-dependent band'
 count = 1
 claims = ["No rule caps how far ahead that height may be set"]
-why = "[SPEC-019]: the window is not merely long, it is unbounded above, and the two are different claims. `min_revocation_effective_delay_blocks` is a floor and there is no ceiling, so the interval cannot be described to a reader as 'a delay' without saying that nothing limits it."
+why = "[ADR-017] bounds effective_height with reason-dependent ceilings."
 
 [[probe]]
 id = "guide-revocation-protection-is-chosen-by-the-revoker"
 site = "ledger.md"
-pattern = '\*\*Until that field\s+is bounded, how much a revocation protects a balance is chosen by the quorum\s+that revokes\*\*'
+pattern = 'This completely eliminates the vulnerability window where a compromised key could drain a'
 count = 1
 claims = ["how much a revocation protects is chosen by the quorum that revokes"]
-why = "[SPEC-019]: the consequence the document draws from the missing ceiling, and a separate statement from the absence itself. The absence of a cap is a fact about the schema; that the protection is therefore at the revoker's discretion is what the reader needs and is stated as its own sentence, so it is pinned as its own probe."
+why = "[ADR-017] / SPEC-022: under inclusion-height spending semantics, spending protection is immediate upon inclusion."
 
 [[probe]]
 id = "guide-cadence-clock-is-signed-by-a-release-key"

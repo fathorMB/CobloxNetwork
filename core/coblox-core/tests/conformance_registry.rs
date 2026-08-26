@@ -37,7 +37,7 @@ const EXPECTED_POLICY_HASH: &str =
 const EXPECTED_HOSTING_RATE_CARD_HASH: &str =
     "sha256:9b10204164f4197fb368f0f6ad6c186ae7af1a85b7b6383eeac412a10b8b3ae8";
 const EXPECTED_CONSENSUS_PARAMETERS_HASH: &str =
-    "sha256:87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5";
+    "sha256:e8d10c5c1fd1c706d331ebab2cbd016cefa210ffb1222feb98cb5029347ce243";
 const EXPECTED_OBJECT_ID: &str =
     "sha256:fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c";
 const EXPECTED_INPUT_HASH: &str =
