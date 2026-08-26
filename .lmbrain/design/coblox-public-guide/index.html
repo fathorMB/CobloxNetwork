@@ -115,9 +115,14 @@
             arrive.
           </p>
           <p>
-            You do not choose which questions you get, and neither does the node asking them. The
-            asker has to lock in its secret before the randomness that picks the question exists,
-            so it cannot go looking for a question you happen to be able to answer.
+            You do not choose which questions you get. Which device is asked, and the randomness
+            the question is drawn from, are derived rather than picked: the asker has to lock in
+            its secret before the randomness that picks the question exists, so it cannot go
+            looking for a device it already knows will fail. One of the three kinds is not like
+            the other two. For a computation challenge the asker supplies the code and the input
+            itself, so it does choose what you are asked to compute, even though it does not
+            choose whom to ask. That is a known gap in this version, and it is recorded as one
+            rather than left for a reader to discover.
           </p>
           <p>
             On a phone this is meant to be survivable: the work is sampled rather than continuous,
@@ -172,6 +177,16 @@
             you still hold, computation you actually ran. Some of it is for being present and
             reachable at all, and that part is a fixed pot for each period, divided among everyone
             who qualified.
+          </p>
+          <p>
+            A period here is a fixed number of blocks, not a stretch of time. That distinction
+            runs through the whole page, so it is worth one paragraph. The register has no clock
+            of its own: every timestamp in it is written by the validators themselves, so how
+            fast the chain really runs is something the network measures afterwards rather than
+            something its rules impose. Blocks are meant to arrive a few seconds apart, and
+            nothing in the rules makes them. So the pot is capped for each period, which is not the same as
+            capped per week: a set of validators that produces blocks faster settles more periods
+            in a day, and mints the pot once for each of them.
           </p>
 
           <div class="plainly">
@@ -309,6 +324,12 @@
                 construction rather than by anyone's restraint.
               </p>
               <p>
+                Read that ceiling for what it is. It caps what one period mints, and no rule fixes
+                how many periods fit into a day. The band the network is measured against admits a
+                chain running up to twice as fast as intended before it objects, so the limit on
+                what is minted per period is tighter than the limit on what is minted per week.
+              </p>
+              <p>
                 Two consequences worth knowing. Your presence income falls when more devices
                 qualify, without anybody doing anything wrong. And because the count is a divisor,
                 it is committed to the actual list of qualifying devices, so an inflated count can
@@ -412,15 +433,27 @@
             exactly.
           </p>
           <p>
+            Two thirds is what it takes to sign a block. It is not what it takes to control the
+            group that signs: a coalition that drives the set into a lawful contraction holds the
+            quorum of the smaller set from about four ninths of the original one, and never has to
+            break a rule to get there. Four ninths is the number that matters for capture; it is
+            smaller than the one most people would guess, and the manoeuvre is set out in full in
+            <code class="cbx-mono">SECURITY.md</code>.
+          </p>
+          <p>
             They are not a permanent committee. Every seat carries an expiry stamped on it when it
             is filled, so a set with <span class="cbx-num">V</span> members and terms of
             <span class="cbx-num">T</span> periods gives up at least
             <span class="cbx-num">V</span> divided by <span class="cbx-num">T</span> seats every
-            period, whatever anybody intends. A departing member sits out a cooling-off period and
-            then competes for re-entry like anyone else. Nobody can be made a validator without
-            standing for it, and the sitting validators cannot name their successors: they can
-            narrow the field of candidates, but the composition comes out of a derivation from
-            randomness they cannot choose.
+            period. That certainty is counted in blocks, not in weeks: a third of the validators
+            can withhold the quorum a block needs, slow the chain down, and so stretch how long
+            their own terms last in real time without breaking a single rule. Rotation is
+            arithmetic against inertia; against a set that means to stay, it is measured rather
+            than prevented. A departing member sits out a cooling-off period and then competes for
+            re-entry like anyone else. Nobody can be made a validator without standing for it, and
+            the sitting validators cannot name their successors: they can narrow the field of
+            candidates, but not choose who is drawn from it, and how many seats can change hands
+            at one boundary is limited by a cap applied after the draw.
           </p>
           <p>
             Getting in is a threshold, not a league table. You qualify by having proved storage and
@@ -562,7 +595,8 @@
                 The register only ever grows. A validator quorum can revoke an identity &mdash; for
                 a compromised key, for misconduct, or because its owner asked &mdash; and a
                 replacement identity inherits nothing: no balance, no history, no standing. But
-                revocation removes a key from participation; it does not remove what that key did.
+                revocation removes a key from taking part in consensus and from enrolling again;
+                it does not remove what that key did.
                 Nothing you sign can erase evidence or consensus history, including your own
                 signature.
               </p>
@@ -597,8 +631,8 @@
           <p>
             The kind of cheating the design does not stop is the kind described in the first
             section: not forging anything, just being many. That is why the pot for presence income
-            is capped and shared, and why becoming a validator is anchored to work that is hard to
-            fake rather than to being switched on.
+            is capped for each period and shared, and why becoming a validator is anchored to
+            work that is hard to fake rather than to being switched on.
           </p>
 
           <details class="detail">
@@ -619,6 +653,22 @@
                 than the highest it has already trusted, nor a different block at a height it has
                 already seen.
               </p>
+              <p>
+                It can also check something no signature tells it: whether the chain is being run
+                too fast. It counts the blocks that have gone by since its checkpoint and compares
+                them with the time that has gone by on the one clock no validator writes &mdash;
+                the moment that checkpoint was issued &mdash; against a band fixed when the chain
+                was created. The band is loaded from the device's own copy and may never be learned
+                from a peer, because a peer running the chain fast would hand over a band that says
+                fast is fine.
+              </p>
+              <p>
+                Too fast, and the phone stops: nothing honest makes blocks appear. Too slow, and it
+                reports rather than refuses, because a reading that looks slow is indistinguishable
+                from a device that has not caught up. This is the one defence on this page you can
+                exercise entirely on your own hardware, without trusting anybody to tell you the
+                truth.
+              </p>
             </div>
           </details>
         </section>
@@ -627,10 +677,12 @@
       <footer class="colophon">
         <p class="cbx-label">About this page</p>
         <p>
-          Every sentence on this page that says the system <em>guarantees</em> something is tied to
-          the rule in the protocol specification that holds it, by an automated check that runs on
-          every change. If a rule is changed or removed, the check fails and names this page. That
-          is the whole of the maintenance promise: there is no promise to remember.
+          There are 76 statements of property on this page, and each one is tied to the rule in the
+          protocol specification that holds it, by an automated check that runs on every change. If
+          a rule is changed or removed, the check fails and names this page. The count is written
+          out instead of the word <em>every</em> because each tie is written by hand, one sentence
+          at a time, and a sentence can outgrow the tie that was written for it. That is the whole
+          of the maintenance promise: there is no promise to remember.
         </p>
         <p>
           Where a rule holds less than a simple sentence would suggest, this page says the smaller

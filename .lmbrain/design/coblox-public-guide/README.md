@@ -72,7 +72,7 @@ doppio clic.
 L'ancoraggio è una cerniera fra la pagina e le regole, e va tenuto in tutte e
 due le direzioni. Ciascuna è coperta da uno strumento diverso.
 
-**Regola → pagina.** `sim/tools/published_artifacts.toml` porta 65 probe con
+**Regola → pagina.** `sim/tools/published_artifacts.toml` porta 76 probe con
 prefisso `guide-`, una per ogni affermazione di proprietà della pagina. Se la
 regola cambia o sparisce, `sim/tools/published_artifacts.py` esce diverso da
 zero **nominando la frase della guida** che restava indietro. Gira in CI a ogni
@@ -90,6 +90,24 @@ controllo fallisce se la frase non è più nella pagina.
 ```bash
 node .lmbrain/design/coblox-public-guide/tools/check-guide-pairs.mjs
 ```
+
+Il numero non va tenuto a mente: il colophon della pagina lo dichiara al
+lettore e `check-guide-pairs.mjs` fallisce se i due divergono. Prima di
+[REVIEW-031] il colophon prometteva invece *«every sentence»*, che è un
+superlativo universale non enumerato: il meccanismo è un elenco di ancore
+scelte a mano, e dirlo con il numero è insieme più vero e più impressionante.
+
+**La `claims` finisce dove finisce la frase, punto fermo compreso.** È la lezione
+di [REVIEW-031], e non è un dettaglio di stile. Una `claims` che si ferma un
+carattere prima del punto lascia la frase libera di crescere una virgola e una
+clausola nuova senza che nulla se ne accorga: è esattamente così che
+*«whatever anybody intends»* è sopravvissuta accanto a una probe verde. La
+domanda da fare a ogni probe è una sola — *la frase che pinno si ferma prima
+della clausola che porta il rischio?* — e la ragione per cui non è mai
+automatizzabile del tutto è che **la clausola che eccede non è ancorabile
+proprio in quanto eccede**: non c'è una regola a cui agganciarla, quindi cade
+fuori dall'ancoraggio per costruzione. Lo strumento può misurare se una `claims`
+copre la sua frase fino in fondo; non può decidere se la frase dica il vero.
 
 Lo stesso strumento verifica altre cinque cose che nessun altro guarda: nessun
 colore letterale, nessun token inventato, nessun accostamento fuori dall'elenco

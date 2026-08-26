@@ -16,7 +16,9 @@
  *                          migliaia e U+202F, e il glifo ritirato non compare
  *   G5 SELF-CONTAINED      la pagina non carica nulla dalla rete e non ha script
  *   G6 CLAIM-STILL-MADE    ogni probe `guide-*` di published_artifacts.toml
- *                          ancora una frase che la pagina dice ancora
+ *                          ancora una frase che la pagina dice ancora, e il
+ *                          numero che il colophon dichiara al lettore e il
+ *                          numero di quelle probe
  *
  * G6 e il verso che il manifesto delle probe non copre da solo: le probe
  * proteggono la guida dal cambiamento delle regole, questo controllo protegge
@@ -220,6 +222,26 @@ const COLOUR_LITERALS = [
   }
   if (checked === 0) {
     fail('G6-CLAIM-STILL-MADE', 'no guide-* probe exists in published_artifacts.toml; the guide is unanchored');
+  }
+  /* Il colophon dichiarava «every sentence», che e un superlativo universale non
+     enumerato (REVIEW-031 RF-009): il meccanismo e 76 ancore scelte a mano, non
+     ogni frase. Sostituito con il numero, che e vero e piu impressionante — ma
+     un numero pubblicato senza guardia e un numero che divergera. Questa e la
+     guardia: la pagina deve dichiarare esattamente le probe che esistono. */
+  const stated = /There are (\d+) statements of property on this page/.exec(prose);
+  if (!stated) {
+    fail(
+      'G6-CLAIM-STILL-MADE',
+      'the colophon no longer states how many statements of property are anchored. ' +
+        'The count replaced a universal claim ("every sentence"), and dropping it puts the ' +
+        'universal claim back by implication.'
+    );
+  } else if (Number(stated[1]) !== checked) {
+    fail(
+      'G6-CLAIM-STILL-MADE',
+      `the colophon tells the reader ${stated[1]} statements of property are anchored, and ` +
+        `${checked} guide-* probes exist. The page is promising the reader a count it does not have.`
+    );
   }
   note('G6-CLAIM-STILL-MADE', checked);
 }

@@ -1,7 +1,7 @@
 ---
 id: DEBT-023
 title: "GATE-SECREVIEW di SPEC-015 derogata: la guida pubblica non e' mai passata da una review di sicurezza"
-status: open
+status: resolved
 category: "verification"
 severity: "medium"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-024"]
 related_decisions: ["ADR-012"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["REVIEW-031","SPEC-015"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
 updated: 2026-08-26
 tags: ["verification-gap","documentation","security"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-26
+    action: "resolved: L'obbligo che questo debito portava e' discharged: la review c'e' stata prima della pubblicazione, e la guida non e' mai stata raggiungibile da un lettore esterno nel frattempo.\n\nUna clausola dei criteri e' pero' soddisfatta in sostanza e NON alla lettera, e va detto invece di lasciarlo dedurre. I criteri dicevano \"con la versione definitiva del protocollo sotto mano\". Il protocollo non e' definitivo: M-02 e' in corso e altre spec lo muoveranno. La review e' stata fatta contro il protocollo corrente, che e' il meglio disponibile e si e' rivelato sufficiente - ha trovato tre high che il 25 agosto non esistevano - ma non e' cio' che la clausola diceva.\n\nIl debito si chiude lo stesso perche' cio' che proteggeva era la pubblicazione, e quella e' protetta. Cio' che la clausola \"definitiva\" intercettava davvero e' un rischio diverso e permanente: la guida invecchia quando il protocollo si muove, e nessuna probe se ne accorge. E' passato su un debito proprio.\n\nVale la pena registrare che la scommessa dell'operatore ha pagato in modo misurabile. Rinviare la review invece di farla subito sembrava una deroga; si e' rivelato l'unico modo di farle trovare qualcosa. Una review il 25 agosto avrebbe trovato due low e avrebbe firmato una pagina che ventiquattro ore dopo conteneva tre affermazioni false."
 debt_events:
   - schema_version: "1"
     id: "DEBT-023-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "L'operatore ha chiesto di chiudere SPEC-015. Chiuderla con la gate non soddisfatta e senza registrare nulla avrebbe fatto sparire l'obbligo insieme alla spec: e' esattamente la famiglia 2 del censimento — la pretesa («fatto») rimasta avanti rispetto alla regola («la sicurezza l'ha guardata») — commessa dal Lead nel gesto di chiusura.\n\nIl progetto ha gia' il precedente esatto e conviene seguirlo invece di inventare: DEBT-001 si intitolava «La pipeline CI non e' mai stata eseguita: GATE-CI-GREEN derogato», portava `origin_ref: GATE-CI-GREEN`, ed e' rimasto aperto finche' la CI non ha davvero girato. Una gate derogata diventa un debito che porta il nome della gate. Cosi' l'obbligo sopravvive alla chiusura della spec, ha un proprietario, e ha un innesco preciso invece di una buona intenzione.\n\nAlternativa scartata: lasciare SPEC-015 in `review` a tempo indeterminato. Sarebbe stato onesto ma attaccato all'oggetto sbagliato — una spec in `review` dice che qualcuno la sta rivedendo, e nessuno la sta rivedendo. Avrebbe inoltre tenuto acceso un segnale in ogni digest per mesi, e un segnale che resta acceso troppo a lungo smette di essere letto."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-023-EVENT-002"
+    timestamp: "2026-08-26T13:02:34.278917300+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "L'obbligo che questo debito portava e' discharged: la review c'e' stata prima della pubblicazione, e la guida non e' mai stata raggiungibile da un lettore esterno nel frattempo.\n\nUna clausola dei criteri e' pero' soddisfatta in sostanza e NON alla lettera, e va detto invece di lasciarlo dedurre. I criteri dicevano \"con la versione definitiva del protocollo sotto mano\". Il protocollo non e' definitivo: M-02 e' in corso e altre spec lo muoveranno. La review e' stata fatta contro il protocollo corrente, che e' il meglio disponibile e si e' rivelato sufficiente - ha trovato tre high che il 25 agosto non esistevano - ma non e' cio' che la clausola diceva.\n\nIl debito si chiude lo stesso perche' cio' che proteggeva era la pubblicazione, e quella e' protetta. Cio' che la clausola \"definitiva\" intercettava davvero e' un rischio diverso e permanente: la guida invecchia quando il protocollo si muove, e nessuna probe se ne accorge. E' passato su un debito proprio.\n\nVale la pena registrare che la scommessa dell'operatore ha pagato in modo misurabile. Rinviare la review invece di farla subito sembrava una deroga; si e' rivelato l'unico modo di farle trovare qualcosa. Una review il 25 agosto avrebbe trovato due low e avrebbe firmato una pagina che ventiquattro ore dopo conteneva tre affermazioni false."
+    evidence_refs: ["REVIEW-031", "SPEC-015"]
 ---
 # GATE-SECREVIEW di SPEC-015 derogata: la guida pubblica non e' mai passata da una review di sicurezza
 
@@ -72,3 +84,11 @@ La review deve trattare esplicitamente tre cose, che sono quelle che nessuna pro
 
 ## Resolution evidence
 
+Chiuso da REVIEW-031, security review di AGENT-007, accettata dal Lead dopo un giro di remediation di AGENT-006.
+
+Verdetto: pubblicabile dopo correzioni. Tre high, quattro medium, due low; i tre high chiusi e riverificati dal Lead sui file - "whatever anybody intends" zero occorrenze, "four ninths" due, la definizione di periodo in blocchi presente.
+
+I tre criteri del debito sono soddisfatti. Criterio 1, forme inammissibili insegnate: tre trovate e corrette, piu' quattro medium. Criterio 2, le cose scomode leggibili a blocchi chiusi: verificato che nessuno degli otto details porti open, che nessun blocco plainly sia annidato in un apribile, e che quattro affermazioni scomode stiano nel filo; il residuo e' RF-007, che resta una decisione. Criterio 3, garanzie piu' forti di SECURITY.md: i due punti nominati per nome dal debito - Sybil economica e non crittografica, e la soglia dei quattro noni - sono entrambi corretti nella pagina.
+
+Strumenti: published_artifacts.py PASS con 137 probe C10 da 126; prova in negativo PASS con ogni probe osservata fallire da sola; check-guide-pairs.mjs PASS con 76 claims da 65; check-contrast.mjs 130 su 130. Le tre mutazioni che reintroducono i bloccanti verbatim ora fanno rosso, e prima non facevano fallire nulla.</resolution_evidence>
+</invoke>

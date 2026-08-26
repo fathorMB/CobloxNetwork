@@ -1813,7 +1813,7 @@ id = "guide-secret-fixed-before-randomness"
 site = "ledger.md"
 pattern = "was fixed before the beacon existed"
 count = 1
-claims = "The asker has to lock in its secret before the randomness that picks the question exists"
+claims = "the asker has to lock in its secret before the randomness that picks the question exists, so it cannot go looking for a device it already knows will fail"
 why = "This is the ordering the whole unpredictability claim rests on, and it is checkable rather than asserted. If the commitment stops having to precede the beacon, the guide's promise that nobody steers the question is empty."
 
 [[probe]]
@@ -1885,7 +1885,7 @@ id = "guide-mint-needs-checkable-evidence"
 site = "ledger.md"
 pattern = "every mint is linked to finalized, validator-verifiable eligibility evidence"
 count = 1
-claims = "Work the network checked"
+claims = "Work that the network checked leads, by a minting entry, to your account."
 why = "The first box of the first diagram. A mint with no evidence behind it would make the diagram's left-hand arrow a decoration."
 
 [[probe]]
@@ -1901,7 +1901,7 @@ id = "guide-subscription-burn-needs-your-signature"
 site = "ledger.md"
 pattern = "the key MUST derive `payer_node_id`; the signature is"
 count = 1
-claims = "the only entries that reduce your balance are ones you signed yourself"
+claims = "Nobody can take credits away from you — the only entries that reduce your balance are ones you signed yourself"
 why = "Half of the 'nobody can take your credits' claim, which the guide states in the thread next to the fact that everyone can see them. If the signature requirement weakens, the comforting half of that sentence goes first."
 
 [[probe]]
@@ -1909,7 +1909,7 @@ id = "guide-funding-an-app-needs-your-signature"
 site = "ledger.md"
 pattern = "The key MUST derive the enrolled, unrevoked `payer_node_id`\\."
 count = 1
-claims = "paying for an app subscription, and moving credits into an app's funding account"
+claims = "Two kinds of entry can lower your balance, and both require your signature: paying for an app subscription, and moving credits into an app's funding account"
 why = "The other half. These are the only two entries that debit a node account, and the guide enumerates them rather than saying 'nothing else can'."
 
 [[probe]]
@@ -2069,7 +2069,7 @@ id = "guide-turnover-is-arithmetic"
 site = "ledger.md"
 pattern = "Turnover is consequently not a target but an arithmetic certainty"
 count = 1
-claims = "gives up at least"
+claims = "gives up at least V divided by T seats every period."
 why = "The guide gives the reader the division rather than a reassurance about intent, because the rules give the same."
 
 [[probe]]
@@ -2093,7 +2093,7 @@ id = "guide-quorum-cannot-name-its-successors"
 site = "ledger.md"
 pattern = "\\*\\*cannot name its members\\*\\*"
 count = 1
-claims = "the sitting validators cannot name their successors: they can narrow the field of candidates"
+claims = "the sitting validators cannot name their successors: they can narrow the field of candidates, but not choose who is drawn from it"
 why = "The guide states the limit and its residual in one sentence, in the same order the invariant does. Dropping the second half would be the overstatement; dropping the first would be the understatement."
 
 [[probe]]
@@ -2165,7 +2165,7 @@ id = "guide-attestation-may-not-name-the-identity-key"
 site = "identity.md"
 pattern = "as its `transport_public_key` MUST be rejected"
 count = 1
-claims = "the key your device uses to make connections is deliberately a different key from the one that identifies you"
+claims = "the key your device uses to make connections is deliberately a different key from the one that identifies you, so that nobody can work out one from the other by reading the register alone"
 why = "The separation is only worth what its enforcement is worth. This is the receiver-side rejection that makes it a validity rule rather than a recommendation a node could ignore about itself."
 
 [[probe]]
@@ -2223,6 +2223,105 @@ pattern = "\\*\\*Enforce non-regression\\.\\*\\*"
 count = 1
 claims = "it will not accept a lower height than the highest it has already trusted, nor a different block at a height it has already seen"
 why = "Non-regression is what stops a device being walked backwards onto a different history. The guide describes both halves because the rule states both."
+
+# --- probes added by REVIEW-031 remediation ---------------------------------
+#
+# REVIEW-031 found that in three of the page's strongest sentences the `claims`
+# substring stopped BEFORE the clause that carried the risk, and defended the
+# modest half beside it. It could not be otherwise: a clause that exceeds what
+# the rules hold is not anchorable PRECISELY BECAUSE it exceeds them, so the
+# hand that chose the substring chose the half that was anchorable. The remedy
+# is therefore in two parts and neither works alone — the page was corrected so
+# that the exceeding clause says what the rules hold, and these probes pin the
+# corrected clause to the rule that now holds it.
+
+[[probe]]
+id = "guide-period-is-counted-in-blocks"
+site = "README.md"
+pattern = 'no v0 validity rule imposes the cadence'
+count = 1
+claims = "A period here is a fixed number of blocks, not a stretch of time."
+why = "REVIEW-031 RF-002: the page used `period` in four distinct senses, every one of them counted in blocks, and never said so — so a reader took the emission cap for a cap per unit of time. This is the rule that says the cadence is declared and not enforced, and therefore the rule that makes the distinction load-bearing rather than pedantic."
+
+[[probe]]
+id = "guide-cadence-is-measured-not-imposed"
+site = "README.md"
+pattern = 'the active\svalidator set determines the real-time duration of its own epochs'
+count = 1
+claims = "how fast the chain really runs is something the network measures afterwards rather than something its rules impose"
+why = "REVIEW-031 RF-002: the consequence, stated in the specification in the same breath as the constant it qualifies. If this sentence weakens, the guide's whole paragraph on what a period is stops being true."
+
+[[probe]]
+id = "guide-fast-side-admits-a-doubling"
+site = "README.md"
+pattern = 'real issuance rate up to \*\*twice\*\* the intended one and refuses beyond it'
+count = 1
+claims = "The band the network is measured against admits a chain running up to twice as fast as intended before it objects"
+why = "REVIEW-031 RF-002: the size of the residue, which is the part a reader cannot infer. Saying the cadence is measured without saying that the measurement tolerates a doubling would replace one reassurance with another."
+
+[[probe]]
+id = "guide-incumbency-can-be-stretched-by-a-third"
+site = "SECURITY.md"
+pattern = 'It requires only a \*\*blocking third\*\*, which\ssimply withholds the quorum'
+count = 1
+claims = "a third of the validators can withhold the quorum a block needs, slow the chain down, and so stretch how long their own terms last in real time without breaking a single rule."
+why = "REVIEW-031 RF-001: the page promised rotation `whatever anybody intends`, which is true in blocks and false in real time. The price of making it false is a blocking third — less than anything else in this protocol costs — and this is the sentence that names that price."
+
+[[probe]]
+id = "guide-control-of-the-set-is-four-ninths"
+site = "ledger.md"
+pattern = 'requires \*\*about four ninths\*\*'
+count = 1
+claims = "holds the quorum of the smaller set from about four ninths of the original one, and never has to break a rule to get there."
+why = "REVIEW-031 RF-003, and the point DEBT-023 named in advance. The page gave the reader two thirds and only two thirds, which is the intuition this document records having refuted three times. The paragraph pinned here is the one that states the corrected threshold and says why the two-thirds argument does not reach it."
+
+[[probe]]
+id = "guide-churn-cap-is-applied-after-the-draw"
+site = "ledger.md"
+pattern = '`validator_churn_cap_seats` however favourable the seed is'
+count = 1
+claims = "how many seats can change hands at one boundary is limited by a cap applied after the draw"
+why = "REVIEW-031 RF-004: the page had attributed succession safety to randomness nobody can choose, which is the property this document explicitly declines to assume. This is the mechanism that actually holds it, and it holds it however biased the seed is."
+
+[[probe]]
+id = "guide-compute-challenge-input-is-chosen-by-the-issuer"
+site = "wire.md"
+pattern = '"input": base64url\(bytes\)'
+count = 1
+claims = "For a computation challenge the asker supplies the code and the input itself, so it does choose what you are asked to compute"
+why = "REVIEW-031 RF-005: the page said the asker does not choose the question either, which holds for the pairing and the randomness and fails for compute, where the issuer supplies `module_hash` and `input` verbatim. Pinning the field is what stops the concession from being quietly dropped if the shape changes."
+
+[[probe]]
+id = "guide-light-client-measures-the-cadence"
+site = "ledger.md"
+pattern = 'MUST fail closed when the chain is faster than the band'
+count = 1
+claims = "Too fast, and the phone stops: nothing honest makes blocks appear."
+why = "REVIEW-031 RF-008, the only finding that added instead of removing. This is the one defence an ordinary device can exercise alone, and the page stopped one step before it. The asymmetry is in the rule and is kept in the page."
+
+[[probe]]
+id = "guide-cadence-band-is-not-learned-from-a-peer"
+site = "ledger.md"
+pattern = 'MUST NOT be learned from a peer, a header, or a chain'
+count = 1
+claims = "may never be learned from a peer"
+why = "REVIEW-031 RF-008: without this clause the measurement is theatre, because the party being measured would supply the ruler. It is a separate probe from the fail-closed rule because it is a separate requirement that could be relaxed on its own."
+
+[[probe]]
+id = "guide-revoked-key-cannot-re-enrol"
+site = "identity.md"
+pattern = 'neither `node_id` nor public key is already enrolled or revoked'
+count = 1
+claims = "and from enrolling again"
+why = "REVIEW-031 RF-006: the page said revocation removes a key from `participation`, which is wider than the rules and wider in exactly the direction DEBT-022 is open in. This is the half of the narrowed sentence that the enrollment rule holds."
+
+[[probe]]
+id = "guide-revocation-forces-a-set-transition"
+site = "identity.md"
+pattern = 'It therefore \*\*forces\*\* a set transition'
+count = 1
+claims = "revocation removes a key from taking part in consensus"
+why = "REVIEW-031 RF-006: the other half. Without the forced transition a revoked validator keeps its voting power until some later transition no rule requires, so this is the rule that makes the narrowed sentence true rather than merely smaller."
 
 # --- SECURITY.md, the claim document ----------------------------------------
 #
