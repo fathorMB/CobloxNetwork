@@ -57,7 +57,17 @@ Enumerazione eseguita, non dedotta: i venti campi sono letti da `docs/protocol/R
 
 Il blocco dei vincoli di magnitudine e' stato letto per intero (`ledger.md:1985-2012`): contiene i parametri di elezione, le due unita' storage/compute, e `validator_eligibility_min_issuers`. **Nessuno dei dieci.**
 
-**Tre di questi dieci erano gia' stati incontrati, uno alla volta e per caso**, senza che nessuno guardasse la classe: `max_clock_drift_ms` in [SPEC-020], confermato da [REVIEW-034] e [REVIEW-035]; `min_revocation_effective_delay_blocks` da [ADR-017]; `max_weak_subjectivity_age_ms` guardandolo adesso. Ogni volta e' stato registrato come una decisione di taratura pendente e mai come il sintomo di una lista incompleta.
+**Cinque di questi dieci erano gia' stati incontrati, uno alla volta e per caso**, senza che nessuno guardasse la classe. Le tre decisioni di taratura che [HANDOFF-003] e [ADR-017] registrano come pendenti ne coprono **quattro**, perche' una delle tre ne nomina due:
+
+| Decisione registrata | Parametro | Dove e' emersa |
+| --- | --- | --- |
+| `max_clock_drift_ms` | `max_clock_drift_ms` | [SPEC-020], confermata da [REVIEW-034] e [REVIEW-035] |
+| `D_max` / `S_max` | `max_transport_attestation_validity_ms` e `max_transport_attestation_future_skew_ms` | [SPEC-013] e la passata sul threat model |
+| il pavimento della revoca | `min_revocation_effective_delay_blocks` | [ADR-017] |
+
+Il quinto, `max_weak_subjectivity_age_ms`, e' stato guardato adesso raccogliendo i vincoli del pavimento. **Ogni volta il parametro e' stato registrato come una decisione di taratura pendente e mai come il sintomo di una lista incompleta**, e la meta' restante dei dieci non e' mai stata guardata da nessuno.
+
+Verificato che `D_max` e `S_max` siano davvero due dei dieci e non una notazione di altro: `.lmbrain/knowledge/threat-model.md:1986-1990` li usa per la durata di validita' e la tolleranza in avanti dell'attestazione di trasporto, che sono i due campi omonimi di `ConsensusParametersBody`.
 
 **Distinzione che va conservata e che smentisce una lettura troppo netta.** `max_weak_subjectivity_age_ms` ha una protezione parziale che gli altri nove non hanno: il checkpoint porta la propria copia, il client usa quella firmata dalla distribuzione, e MUST fallire chiuso se le due non concordano (`README.md:1599-1606`). Il canale di rilascio lo vincola quindi di fatto, anche se il documento di genesi no. Gli altri nove non hanno alcun secondo canale.
 
