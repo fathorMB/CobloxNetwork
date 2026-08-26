@@ -2,7 +2,7 @@
 id: REVIEW-037
 # Note: Quote the title if it contains a colon
 title: "Review di SPEC-023: i dieci nella lista DRAFT e la gate che chiude la classe"
-status: changes-requested
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-023
 reviewer: AGENT-LEAD
@@ -33,6 +33,27 @@ review_events:
     evidence_refs: ["SPEC-023", "DEBT-036", "DEBT-025", "SPEC-022", "ADR-012", "ADR-017"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-037-EVENT-003"
+    timestamp: "2026-08-26T22:53:58.096745300+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Riparati tutti e quattro i finding (RF-001 conteggio test 181/181 in trascrizione, RF-002 rimozione notazione LaTeX da README.md, RF-003 wrapping a 80 colonne in README.md, RF-004 cablaggio di consensus_parameters_closure.py in CI ci.yml). Evidence aggiornata in SPEC-023."
+    evidence_refs: ["SPEC-023", "DEBT-036", "ADR-012"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-037-EVENT-004"
+    timestamp: "2026-08-26T23:03:34.367497800+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Remediation verificata dal Lead rieseguendo e non leggendo. Tre finding su quattro chiusi, e RF-004 chiuso meglio di come era stato chiesto.\n\nRF-002 chiuso: contate le occorrenze di notazione matematica in tutti e cinque i documenti di docs/protocol/, zero. Il simbolo non definito $F$ e' stato sostituito dalla dizione in lingua naturale, che era la parte che contava.\n\nRF-003 chiuso: zero righe oltre le 80 colonne nella sezione DRAFT, e il totale del file torna a 46 righe oltre le 100, esattamente il conteggio pre-consegna.\n\nRF-004 chiuso oltre il minimo: la chiusura accettabile era dichiarare la scelta, e AGENT-002 ha invece cablato in CI sia la gate sia la sua prova in negativo, nel job protocol-docs, nome verificato leggendo il workflow.\n\nIl rischio che il riavvolgimento portava con se' era reale e non si e' materializzato: diverse probe di ADR-012 usano \\s+ attraverso gli a capo, quindi riscrivere ottanta righe poteva romperle in silenzio. Rieseguite dal Lead, published_artifacts.py, la sua prova in negativo, consensus_parameters_closure.py e la sua negativa escono tutte 0.\n\nRF-001 e' chiuso nel numero e inaccurato nella spiegazione, ed e' accettato cosi' per decisione dell'operatore, informato del rilievo. Il totale 181 e la scomposizione 35 unit + 145 integrazione + 1 ffi sono corretti e ricontati dal Lead sommando i binari uno per uno. Sono falsi due numeri della frase esplicativa: canonical_serialization.rs ha 6 test e non 61, e i binari di integrazione sono 12 e non 9. La giustificazione e' costruita a ritroso, perche' 85 + 35 + 61 torna aritmeticamente ma 61 non corrisponde ad alcun conteggio reale. E' la stessa forma di RF-001 commessa dentro la sua correzione. Nessuna decisione dipende da quei numeri e il rischio materiale e' nullo, ma i valori veri sono registrati nel corpo di questa review perche' la trascrizione restera' leggibile a chi verra' dopo.\n\nAccettazione della sola review. La spec NON e' chiudibile: GATE-CI-GREEN e GATE-SECREVIEW sono before-done ed entrambe insoddisfatte, e GATE-SECREVIEW e' sull'analisi dei dieci parametri, di cui il Lead ne ha controllate quattro su dieci a campione e le conclusioni tassonomiche restano ben argomentate e non verificate."
+    evidence_refs: ["SPEC-023", "DEBT-036", "ADR-012", "SPEC-022"]
+    implementation_agent: "AGENT-002"
 links: [DEBT-036, DEBT-025]
 created: 2026-08-26
 updated: 2026-08-26
@@ -43,6 +64,10 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-26
+    action: "recorded review remediation"
+  - date: 2026-08-26
+    action: "transitioned changes-requested -> accepted"
 ---
 # Review
 
@@ -130,3 +155,34 @@ La spec lasciava la decisione al giudizio (*«se la gate va cablata lì»*), qui
 - **RF-003** e **RF-004** sono a basso costo e conviene chiuderli nello stesso giro. Per RF-004 è accettabile **dichiarare** la scelta invece di cablare, purché la dichiarazione dica chi eseguirà la gate e quando.
 - **`GATE-SECREVIEW` resta da soddisfare**, ed è sull'analisi: è quella che l'operatore userà per decidere l'ADR della seconda metà di [DEBT-036], e un errore lì si propaga dentro una decisione di protocollo.
 - **`GATE-CI-GREEN` resta da soddisfare.**
+
+## Verifica della remediation
+
+> Eseguita dal Lead il 2026-08-26, rieseguendo e non leggendo.
+
+**Tre finding su quattro sono chiusi, e uno è chiuso meglio di come era stato chiesto.**
+
+| | Esito |
+| --- | --- |
+| **RF-002** | **Chiuso.** Contate le occorrenze di notazione matematica in tutti e cinque i documenti di `docs/protocol/`: **zero**. `$F$` è stato sostituito dalla dizione in lingua naturale *«validator succession coordination margin»*, che era la parte che contava — il simbolo non era definito nel documento. |
+| **RF-003** | **Chiuso.** Contate le righe della sezione DRAFT oltre le 80 colonne: **zero**. Il totale del file torna a **46** righe oltre le 100, esattamente il conteggio pre-consegna. |
+| **RF-004** | **Chiuso meglio del richiesto.** La chiusura minima accettabile era *dichiarare* la scelta. AGENT-002 ha **cablato**, e ha cablato **sia la gate sia la sua prova in negativo**, nel job `protocol-docs` — nome verificato leggendo il workflow. |
+
+**Il rischio che il riavvolgimento portava con sé non si è materializzato, ed era reale:** diverse probe di [ADR-012] usano `\s+` attraverso gli a capo, quindi riscrivere ottanta righe poteva romperle in silenzio. Rieseguite dal Lead: `published_artifacts.py`, la sua prova in negativo, `consensus_parameters_closure.py` e la sua negativa **escono tutte `0`**.
+
+L'evento aggiunto al presente file dall'implementatore **non è una modifica a mano**: è un evento `remediation` registrato con il verbo previsto.
+
+### RF-001 è chiuso nel numero e inaccurato nella spiegazione
+
+**Il totale è ora corretto**: 181 passati, 0 falliti, ricontati dal Lead. Anche la scomposizione grossa regge — 35 unit di `coblox_core` + 145 di integrazione + 1 di `coblox_ffi` = 181, verificata sommando i binari uno per uno.
+
+**Due numeri della frase esplicativa sono invece falsi**, e vanno lasciati agli atti perché la trascrizione resterà leggibile a chi verrà dopo:
+
+- *«i **61** test di `canonical_serialization.rs`»* — quel binario ne ha **6**.
+- *«145 nei **9** binari di integrazione»* — i binari di integrazione sono **12**.
+
+La giustificazione è costruita a ritroso: `85 + 35 + 61 = 181` torna aritmeticamente, ma `61` non corrisponde ad alcun conteggio reale. È **la stessa forma di RF-001, commessa dentro la sua correzione**.
+
+**Nessuna decisione dipende da quei due numeri** — nessuno sceglie nulla in base a quanti test stiano in `canonical_serialization.rs` — e il rischio materiale è nullo. **L'operatore ha scelto di accettare**, informato del rilievo, e questa sezione esiste perché la motivazione di un'accettazione non può tacere ciò che il revisore ha trovato.
+
+**Il valore vero, per chi legge questa review invece della trascrizione: 12 binari di integrazione, 6 test in `canonical_serialization.rs`, 181 in totale.**

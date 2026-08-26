@@ -99,6 +99,12 @@ jobs:
         run: python3 sim/tools/non_consensus_containment.py
       - name: That containment proved in the negative, three defect classes
         run: python3 sim/tools/non_consensus_containment.py --negative
+      # [SPEC-023] and [DEBT-036]: closure of ConsensusParametersBody schema
+      # against the union of ledger.md constraint block and README.md DRAFT list.
+      - name: ConsensusParametersBody schema closure
+        run: python3 sim/tools/consensus_parameters_closure.py
+      - name: ConsensusParametersBody closure proved in the negative
+        run: python3 sim/tools/consensus_parameters_closure.py --negative
 
   android:
     name: Android arm64 + Kotlin bindings

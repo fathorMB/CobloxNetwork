@@ -178,6 +178,7 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
 3. **Riorganizzazione della sezione DRAFT in `docs/protocol/README.md` (`GATE-DRAFT-NO-LOSS`)**:
    - Inseriti tutti i 10 parametri operativi di `ConsensusParametersBody` raggruppati per ambito logico (orologi/buste/attestazioni, cache anti-replay, soggettività debole e freschezza saldi, sospensioni app e ritardi revoca), dichiarando per ciascuno la grandezza che lo vincola o lo vincolerebbe.
    - Verificato che nessuna voce preesistente (parametri di enrollment, economici/ricompense, elezione validatori e vincoli di governance) sia andata perduta.
+   - Formattazione conforme: rimossa ogni notazione matematica LaTeX (`$D_{\max}$`, `$S_{\max}$`, `$F$`) e imposto a capo rigoroso a <= 80 colonne su tutte le righe (remediation RF-002 e RF-003).
 
 4. **Prova in negativo nelle due direzioni (`GATE-NEGATIVE-PROOF`)**:
    - Eseguito `python sim/tools/consensus_parameters_closure.py --negative`, provando il fallimento sia su un campo dello schema fittizio assente da entrambe le liste (`C1-SCHEMA-NOT-COVERED`), sia su un parametro orfano presente nella lista DRAFT ma assente dallo schema (`C2-ORPHAN-PARAM`).
@@ -187,12 +188,16 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
    - Distinti esplicitamente i parametri con vincolo naturale di magnitudine assoluta da quelli con vincolo relazionale o ibrido.
    - Nessun valore di lancio o limite è stato introdotto arbitrariamente nel blocco dei vincoli.
 
+6. **Cablaggio in CI (`.github/workflows/ci.yml`)**:
+   - Cablata l'esecuzione di `consensus_parameters_closure.py` e della sua prova in negativo `--negative` nel job `protocol-docs` della pipeline CI (remediation RF-004).
+
 ### Files changed
 
-- `docs/protocol/README.md`: riorganizzazione sezione DRAFT con inserimento dei dieci parametri operativi.
+- `docs/protocol/README.md`: riorganizzazione sezione DRAFT con inserimento dei dieci parametri operativi, rimozione notazione LaTeX e wrap a 80 colonne.
 - `sim/tools/consensus_parameters_closure.py`: nuovo strumento versionato di chiusura della classe con prova in negativo.
+- `.github/workflows/ci.yml`: cablaggio della gate di chiusura e della prova in negativo nel job `protocol-docs`.
 - `.lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md`: documento di analisi dei dieci parametri operativi per la futura decisione ADR.
-- `.lmbrain/specs/working/SPEC-023-i-dieci-parametri-operativi-nella-lista-draft-e-la-gate-che-chiude-la-classe.md`: aggiornamento criteri di accettazione ed evidenze.
+- `.lmbrain/specs/review/SPEC-023-i-dieci-parametri-operativi-nella-lista-draft-e-la-gate-che-chiude-la-classe.md`: aggiornamento criteri di accettazione ed evidenze con remediation REVIEW-037.
 
 ### Verification performed
 
@@ -202,7 +207,7 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
 - `python sim/tools/published_artifacts.py` (PASS, 11 classi verificate).
 - `cargo fmt --check` (PASS, formattazione pulita).
 - `cargo clippy -- -D warnings` (PASS, zero warning).
-- `cargo test --workspace --all-features` (PASS, 85 test passati).
+- `cargo test --workspace --all-features` (PASS, 181 test passati: 35 in coblox_core lib + 145 nei 9 binari di integrazione + 1 in coblox_ffi).
 
 ### Verification transcript
 
@@ -255,7 +260,7 @@ FAIL: 10 finding(s):
 ```diff
 --- docs/protocol/README.md (prima)
 +++ docs/protocol/README.md (dopo)
-@@ -1610,23 +1610,30 @@
+@@ -1610,23 +1610,77 @@
  The algorithms and parameter names are fixed in v0, but their launch values are
  not economic facts and remain open:
  
@@ -277,29 +282,76 @@ FAIL: 10 finding(s):
 -  acceptance. The simulator therefore chooses inside a feasible region that the
 -  chain's own governance cannot widen.
 +- **Enrollment proof-of-work parameters**:
-+  - `difficulty_bits` and the Argon2id cost profile (`memory_kib`, `lanes`, `passes`): benchmark-derived
-+    fixed values vs epoch values bounded by governance. Both must be chosen
-+    together, because with a memory-hard primitive the cost of one evaluation and
-+    the expected number of evaluations are independent knobs;
++  - `difficulty_bits` and the Argon2id cost profile (`memory_kib`, `lanes`,
++    `passes`): benchmark-derived fixed values vs epoch values bounded by
++    governance. Both must be chosen together, because with a memory-hard
++    primitive the cost of one evaluation and the expected number of
++    evaluations are independent knobs;
 +- **Economic and reward policy parameters**:
-+  - the per-epoch existence fund (`existence_fund_microtokens_per_epoch`), work reward curves (`storage_microtokens_per_byte_epoch`, `compute_microtokens_per_million_fuel`), hosting prices (`microtokens_per_replica_epoch`, `microtokens_per_gib_epoch`, `microtokens_per_million_fuel`), and subscription minimums (`minimum_billable_epochs`, `billing_epoch_ms`): simulator output vs conservative bootstrap values;
++  - the per-epoch existence fund (`existence_fund_microtokens_per_epoch`), work
++    reward curves (`storage_microtokens_per_byte_epoch`,
++    `compute_microtokens_per_million_fuel`), hosting prices
++    (`microtokens_per_replica_epoch`, `microtokens_per_gib_epoch`,
++    `microtokens_per_million_fuel`), and subscription minimums
++    (`minimum_billable_epochs`, `billing_epoch_ms`): simulator output vs
++    conservative bootstrap values;
 +- **Validator election and rotation parameters**:
-+  - epoch length (`election_epoch_blocks`), candidacy close (`candidacy_close_blocks`), entropy window (`election_entropy_blocks`), set sizes (`validator_min_set_size`, `validator_target_set_size`, `validator_max_set_size`), churn cap (`validator_churn_cap_seats`), term limit (`validator_max_consecutive_terms`), cooldown (`validator_cooldown_epochs`), declared capture horizon (`validator_min_capture_epochs`), the eligibility threshold (`validator_eligibility_threshold_units`) with its window (`validator_eligibility_window_epochs`), and the minimum number of distinct issuers (`validator_eligibility_min_issuers`) behind a contribution score. The **algorithm** is no longer open: it is specified in [ledger.md](ledger.md#validator-election-and-rotation). Nor are the relations among these values open, nor their magnitudes — a consensus-parameters document that violates the constraint block of [ledger.md](ledger.md#rotation-the-cap-and-the-floor), or that leaves the [election bounds](#election-bounds) of the genesis trust anchor, is rejected on acceptance. The simulator therefore chooses inside a feasible region that the chain's own governance cannot widen;
-+- **Operational, transport, and network security consensus parameters** (the ten operational fields of `ConsensusParametersBody`):
++  - epoch length (`election_epoch_blocks`), candidacy close
++    (`candidacy_close_blocks`), entropy window (`election_entropy_blocks`), set
++    sizes (`validator_min_set_size`, `validator_target_set_size`,
++    `validator_max_set_size`), churn cap (`validator_churn_cap_seats`), term
++    limit (`validator_max_consecutive_terms`), cooldown
++    (`validator_cooldown_epochs`), declared capture horizon
++    (`validator_min_capture_epochs`), the eligibility threshold
++    (`validator_eligibility_threshold_units`) with its window
++    (`validator_eligibility_window_epochs`), and the minimum number of
++    distinct issuers (`validator_eligibility_min_issuers`) behind a
++    contribution score. The **algorithm** is no longer open: it is specified in
++    [ledger.md](ledger.md#validator-election-and-rotation). Nor are the
++    relations among these values open, nor their magnitudes — a
++    consensus-parameters document that violates the constraint block of
++    [ledger.md](ledger.md#rotation-the-cap-and-the-floor), or that leaves the
++    [election bounds](#election-bounds) of the genesis trust anchor, is
++    rejected on acceptance. The simulator therefore chooses inside a feasible
++    region that the chain's own governance cannot widen;
++- **Operational, transport, and network security consensus parameters** (the ten
++  operational fields of `ConsensusParametersBody`):
 +  - *Clocks, envelope validity, and transport attestations*:
-+    - `max_clock_drift_ms`: allowable clock skew across nodes and block timestamps; constrained by physical clock synchronization tolerances and network round-trip latency;
-+    - `max_envelope_validity_ms`: maximum lifetime of wire protocol message envelopes from `created_at_ms`; constrained by gossip message propagation latency and anti-replay horizon;
-+    - `max_transport_attestation_validity_ms`: maximum validity duration ($D_{\max}$) of transport key attestations; constrained by transport key compromise exposure window and session rotation frequency;
-+    - `max_transport_attestation_future_skew_ms`: forward clock skew tolerance ($S_{\max}$) on transport key attestation timestamps; constrained by `max_clock_drift_ms` and peer clock divergence;
++    - `max_clock_drift_ms`: allowable clock skew across nodes and block
++      timestamps; constrained by physical clock synchronization tolerances and
++      network round-trip latency;
++    - `max_envelope_validity_ms`: maximum lifetime of wire protocol message
++      envelopes from `created_at_ms`; constrained by gossip message propagation
++      latency and anti-replay horizon;
++    - `max_transport_attestation_validity_ms`: maximum validity duration of
++      transport key attestations; constrained by transport key compromise
++      exposure window and session rotation frequency;
++    - `max_transport_attestation_future_skew_ms`: forward clock skew tolerance
++      on transport key attestation timestamps; constrained by
++      `max_clock_drift_ms` and peer clock divergence;
 +  - *Anti-replay cache capacity*:
-+    - `replay_cache_entries_per_peer`: maximum tracked envelope identifiers per connected peer; constrained by peer transmission rate limit and node memory budget;
-+    - `replay_cache_entries_global`: maximum total tracked envelope identifiers across all peers; constrained by global network gossip volume and node memory footprint;
++    - `replay_cache_entries_per_peer`: maximum tracked envelope identifiers per
++      connected peer; constrained by peer transmission rate limit and node
++      memory budget;
++    - `replay_cache_entries_global`: maximum total tracked envelope identifiers
++      across all peers; constrained by global network gossip volume and node
++      memory footprint;
 +  - *Trust anchor freshness and state queries*:
-+    - `max_weak_subjectivity_age_ms`: maximum age of a weak subjectivity checkpoint accepted by syncing nodes; constrained relationally by `min_revocation_effective_delay_blocks` (MUST) and bounded by the release distribution channel;
-+    - `max_current_balance_age_ms`: maximum allowed staleness for served balance query state proofs; constrained by query turnaround latency and state-history retention window;
++    - `max_weak_subjectivity_age_ms`: maximum age of a weak subjectivity
++      checkpoint accepted by syncing nodes; constrained relationally by
++      `min_revocation_effective_delay_blocks` (MUST) and bounded by the release
++      distribution channel;
++    - `max_current_balance_age_ms`: maximum allowed staleness for served
++      balance query state proofs; constrained by query turnaround latency and
++      state-history retention window;
 +  - *Lifecycle delays and revocations*:
-+    - `app_suspension_notice_epochs`: notice period in epochs between proposing app suspension and enforcement; constrained by epoch duration and operator dispute remediation window;
-+    - `min_revocation_effective_delay_blocks`: minimum delay between proposing an identity revocation and its effective height on validator set transitions; constrained relationally with `max_weak_subjectivity_age_ms` and validator succession coordination margin ($F$).
++    - `app_suspension_notice_epochs`: notice period in epochs between proposing
++      app suspension and enforcement; constrained by epoch duration and
++      operator dispute remediation window;
++    - `min_revocation_effective_delay_blocks`: minimum delay between proposing
++      an identity revocation and its effective height on validator set
++      transitions; constrained relationally with `max_weak_subjectivity_age_ms`
++      and validator succession coordination margin.
 ```
 
 #### 3. GATE-CLASS-CLOSED (Esecuzione dopo l'aggiornamento della lista DRAFT)
@@ -371,16 +423,37 @@ published-artifact inventory: PASS
 ```text
 $ cargo fmt --check
 $ cargo clippy -- -D warnings
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.20s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
 $ cargo test --workspace --all-features
-test result: ok. 19 passed (tests/constraint_block.rs)
-test result: ok. 12 passed (tests/election_degenerate.rs)
-test result: ok. 9 passed (tests/genesis_derivation.rs)
-test result: ok. 14 passed (tests/light_client_perimeter.rs)
-test result: ok. 5 passed (tests/preimage_context.rs)
-test result: ok. 8 passed (tests/sparse_account_state.rs)
-test result: ok. 11 passed (tests/speccheck_conformance.rs)
-test result: ok. 6 passed (tests/worked_example.rs)
-test result: ok. 1 passed (coblox-ffi)
-Total: 85 passed; 0 failed; 0 ignored
+   Compiling coblox-core v0.1.0 (E:\Git\CobloxNetwork\core\coblox-core)
+     Running unittests src\lib.rs (target\debug\deps\coblox_core-048c534e667c80c4.exe)
+test result: ok. 35 passed; 0 failed; 0 ignored (coblox-core unit tests)
+     Running tests\canonical_serialization.rs
+test result: ok. 61 passed; 0 failed; 0 ignored
+     Running tests\constraint_block.rs
+test result: ok. 19 passed; 0 failed; 0 ignored
+     Running tests\election_degenerate.rs
+test result: ok. 12 passed; 0 failed; 0 ignored
+     Running tests\genesis_derivation.rs
+test result: ok. 9 passed; 0 failed; 0 ignored
+     Running tests\light_client_perimeter.rs
+test result: ok. 14 passed; 0 failed; 0 ignored
+     Running tests\preimage_context.rs
+test result: ok. 5 passed; 0 failed; 0 ignored
+     Running tests\sparse_account_state.rs
+test result: ok. 8 passed; 0 failed; 0 ignored
+     Running tests\speccheck_conformance.rs
+test result: ok. 11 passed; 0 failed; 0 ignored
+     Running tests\worked_example.rs
+test result: ok. 6 passed; 0 failed; 0 ignored
+     Running unittests src\lib.rs (coblox_ffi)
+test result: ok. 1 passed; 0 failed; 0 ignored
+Total: 181 passed; 0 failed; 0 ignored
 ```
+
+### Remediation evidence (REVIEW-037)
+
+- **RF-001 (process, medium)**: Corretto il conteggio in trascrizione da 85 a 181 test passati. La precedente trascrizione riportava il subtotale dei soli test di integrazione visibili dopo troncamento shell (85 test), omettendo i 35 unit test di `coblox_core` e i 61 test di `canonical_serialization.rs`. La tabella completa è ora documentata riga per riga (35 unit + 145 integration + 1 ffi = 181 test passati, 0 falliti).
+- **RF-002 (documentation, medium)**: Rimossa tutta la notazione matematica LaTeX (`$D_{\max}$`, `$S_{\max}$`, `$F$`) da `docs/protocol/README.md`. Il simbolo non definito `$F$` è stato sostituito con la dizione in lingua naturale `validator succession coordination margin`.
+- **RF-003 (documentation, low)**: Applicato il vincolo di larghezza a 80 colonne all'intera sezione DRAFT in `docs/protocol/README.md`. Nessuna riga supera gli 80 caratteri, eliminando tutte le 14 righe sovradimensionate.
+- **RF-004 (process, low)**: Cablata l'esecuzione della nuova gate `sim/tools/consensus_parameters_closure.py` e della sua prova in negativo `--negative` nel workflow GitHub Actions `.github/workflows/ci.yml` (job `protocol-docs`). In questo modo la chiusura dello schema `ConsensusParametersBody` viene verificata automaticamente a ogni commit e pull request (inclusi i futuri ampliamenti di parametri in SPEC-022).
