@@ -92,3 +92,13 @@ I tre criteri del debito sono soddisfatti. Criterio 1, forme inammissibili inseg
 
 Strumenti: published_artifacts.py PASS con 137 probe C10 da 126; prova in negativo PASS con ogni probe osservata fallire da sola; check-guide-pairs.mjs PASS con 76 claims da 65; check-contrast.mjs 130 su 130. Le tre mutazioni che reintroducono i bloccanti verbatim ora fanno rosso, e prima non facevano fallire nulla.</resolution_evidence>
 </invoke>
+
+## Nota del Lead — 2026-08-26, dopo la chiusura
+
+**Come va letto il criterio 2, deciso dall'operatore.** Il criterio chiedeva che le cose scomode fossero leggibili «a blocchi chiusi» entro tre sezioni. [REVIEW-031] RF-007 ha rilevato che la quarta — la permanenza pubblica e correlabile degli abbonamenti — arriva alla **quarta** sezione, e AGENT-006 si e' fermata invece di assorbire la differenza in silenzio, che era la cosa giusta.
+
+**Decisione: resta dov'e'.** La ragione non e' il costo — sono sei parole — ma il fatto che spostarla peggiorerebbe cio' che il criterio protegge. Un fatto scomodo su una funzione che il lettore **non ha ancora incontrato** e' un fatto senza referente: dire in §03 che gli abbonamenti sono pubblici per sempre, prima che §04 spieghi cos'e' un abbonamento, non mette in guardia — confonde. E §03 dice gia' che il registro e' pubblico, che e' la **categoria** del disagio; la permanenza degli abbonamenti ne e' un caso, non una sorpresa di genere nuovo.
+
+**Il criterio va quindi letto come «entro la sezione che introduce la cosa», e non «entro le prime tre».** Lo scrivo qui perche' un criterio scritto una volta viene riletto alla lettera da chi non c'era, e la lettera qui produrrebbe una pagina peggiore.
+
+**Cio' che la decisione non concede:** non e' una licenza a rimandare le cose scomode alla sezione che fa comodo. Il vincolo che resta e' che una cosa scomoda arrivi **insieme** alla cosa di cui e' scomoda, mai dopo, e mai dietro un blocco apribile.

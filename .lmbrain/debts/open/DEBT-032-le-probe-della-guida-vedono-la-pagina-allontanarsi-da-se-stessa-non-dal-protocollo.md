@@ -81,3 +81,12 @@ Da chiudere **prima che la guida sia pubblicata su un canale permanente**, cioe'
 
 ## Resolution evidence
 
+## Nota del Lead — 2026-08-26
+
+**L'operatore ha deciso di non pubblicare la guida su GitHub Pages**, e questo debito e' la ragione per cui.
+
+La domanda e' stata posta subito dopo la chiusura di [DEBT-023], con la guida gia' corretta e pubblicabile. La scelta e' stata di restare al **file autoconsistente mandato a mano**, per l'argomento che questo debito porta: finche' e' un file che qualcuno manda, **chi lo manda sa quanto e' vecchio**; su un canale permanente e indicizzabile non lo sa nessuno.
+
+E' registrato perche' e' la seconda volta che l'operatore sceglie di **aspettare invece di derogare** su questa pagina, e la prima volta ha pagato in modo misurabile: il rinvio della security review le ha fatto trovare tre `high` che il giorno prima non esistevano.
+
+**L'innesco di questo debito resta quindi armato e non derogato.**
