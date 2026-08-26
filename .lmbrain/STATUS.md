@@ -2,60 +2,40 @@
 title: Project pulse
 status: active
 milestone: M-02
-updated: 2026-08-26
+updated: 2026-08-27
 ---
 
 # Project Pulse
 
 ## Current focus
 
-**Sessione del 26 agosto 2026, seconda parte: aperta la meccanica della revoca.** L'operatore ha scelto di chiudere i due `high` che si compongono, [DEBT-033] e [DEBT-034], invece di cominciare l'esito residuo di M-02. Ne e' nato **[ADR-017]**, `proposed` e **non ancora deciso**.
+**Sessione del 27 agosto 2026: il consenso ha finalmente un ADR, e la sessione e' uscita di strada.**
 
-**L'ADR e' stato sottoposto a critica avversariale prima della decisione, su richiesta dell'operatore**, e la critica ha morso: [REVIEW-036] di AGENT-007, **dieci finding e cinque errori fattuali**. La parte 1 e' sopravvissuta a ogni attacco; la parte 2 e' stata rifatta; la parte 3 e' stata **tolta** e la sua sostanza e' passata su [DEBT-034]. Ne e' nato anche **[DEBT-035]**.
+**[ADR-018] accettato.** E' la decisione che sblocca l'esito di M-02 e non era mai stata presa: `wire.md` non ha alcun messaggio di consenso, nessuna regola dice chi propone, nessun timeout esiste. Ma il protocollo aveva quasi deciso da se': un blocco porta il **proprio** certificato di quorum, e i domini di firma per i voti sono **uno su quaranta**. Da li' il crux - con un solo voto firmato un protocollo e' sicuro **oppure** vivo - e la tesi: **`coblox-block-vote-v0` e' senza saperlo un precommit, e manca la prima fase.** Si aggiunge `coblox-block-prevote-v0` e non cambia nulla di pubblicato. **[SPEC-025]** lo attua ed e' la prossima cosa da fare.
 
-**La lezione della sessione sta in [REVIEW-036] E-01.** L'affermazione *«`effective_height` e' nominato da due soli MUST»* e' **falsa** ed e' stata ripetuta da **tre artefatti** - [REVIEW-033] RF-001, [DEBT-033], la prima stesura di [ADR-017] - perche' l'enumerazione era fatta sul **token** mentre l'oggetto era una **grandezza**, e la grandezza ha una seconda grafia: `ledger.md:785` dice `effective height` con lo spazio. Il Lead l'ha riverificata **con lo stesso strumento che l'aveva prodotta** e ha ottenuto la stessa risposta. Non e' un errore di conteggio: e' un errore di perimetro, la stessa forma che questa sessione ha gia' censito tre volte.
+**E la sessione e' uscita dalla roadmap, per ore, senza che il Lead se ne accorgesse.** M-02 nomina quattro esiti e solo il simulatore e' fatto: **ventuno spec chiuse, diciassette dentro M-02, e nessuna consegna uno dei tre restanti**. La sessione ha invece prodotto tre passate di review su un documento preparatorio che non blocca niente. Ogni passo sembrava giusto; **il difetto stava nel fatto che nessuno guardava dove si stava andando**, ed e' il lavoro del Lead.
 
-**Due difetti di lato, entrambi della famiglia dell'insieme dichiarato.** SKILL-004 era `active` su disco e **assente dal registro** - quinta occorrenza, e come le altre quattro il membro mancante era l'ultimo arrivato; registrato come `KIT-NOTE-001` perche' la causa e' `skill_activate`, che sposta il file senza scrivere la riga. E i conteggi dei debiti in [HANDOFF-003] contavano le voci di directory invece dei debiti.
+**Cosa abbiamo davvero:** una libreria di regole - 16 000 righe, 191 test - e 6 300 righe di specifiche. **Non c'e' rete** (`libp2p` non e' nemmeno una dipendenza), **non c'e' persistenza**, **non c'e' un nodo** (`coblox-node` e' ventun righe e stampa *not configured yet*), **non c'e' consenso in esecuzione**. Abbiamo un validatore di regole, non una rete.
 
----
-
-**Sessione del 26 agosto 2026, prima parte: la coda delle spec di M-02 e' esaurita.** Ventuno spec redatte, ventuno `done`; `backlog`, `ready`, `working` e `review` sono vuote. Ventitre' commit, da `dfe44fe` a `2d3c6d7`.
-
-**Sei spec chiuse e nove debiti risolti** in questa sessione, piu' il recupero dell'implementazione di [SPEC-014] che era accettata e non committata. **181 test**, gate di [ADR-012] `PASS` con **158 probe C10** e la prova in negativo su ciascuna individualmente.
-
-**Tre cose vanno lette prima delle altre**, e riguardano il modo in cui il progetto trova i propri difetti.
-
-**La prima.** Tre volte una dimostrazione valida e' stata letta come conclusiva **oltre il perimetro su cui era fatta**: AGENT-007 su [DEBT-022] ha motivato sul margine dove la proprieta' era disponibile; AGENT-002 ha dimostrato una proprieta' su un perimetro piu' stretto del vero e ha letto la dimostrazione come conclusiva; AGENT-007 su [DEBT-017] ha stabilito il fail-closed guardando **una delle due meta'** della regola, e l'errore ha attraversato **tre artefatti** prima che qualcuno lo guardasse. La lezione: **una dimostrazione va consegnata insieme al perimetro su cui vale**, altrimenti chi la cita ne eredita la conclusione e non il confine.
-
-**La seconda.** Il Lead ha ora una guardia su di se', `sim/tools/lead_claims_check.py`, e scrivendola ha trovato **due affermazioni false scritte dal Lead**. Vincola in avanti; l'arretrato di 36 superlativi non enumerati e' in [DEBT-027].
-
-**La terza.** Quattro volte una gate ha misurato **l'insieme dichiarato invece di quello osservato**, e ogni volta il membro mancante era **l'ultimo arrivato**: un insieme dichiarato non ha modo di accorgersi di un nuovo membro.
-
-**Il rischio dominante e' la composizione.** Due volte un difetto non stava in nessuna delle due meta' ma nel fatto di comporle. Nessuna gate cerca questa forma, perche' le grandezze non cambiano: cambia cio' che vi poggia sopra.
+**Il difetto piu' grave trovato e' contro un ADR del Lead.** [REVIEW-042] RF-001: la banda di `key_compromise` di [ADR-017] ha il tetto ancorato in genesi e **il pavimento no**. Con `G = 1` una revoca per chiave compromessa va inclusa entro **due blocchi**, e due blocchi di censura la invalidano. Il tetto e' nuovo: prima un ritardo poteva solo rimandare. **Il veto e' stato reso piu' caro, non tolto.**
 
 ## Ready for handoff
 
-**Nessuna spec redatta**, e prima di redigerne una serve **la decisione dell'operatore su [ADR-017]**, che e' `proposed` nella sua seconda stesura. Decisa quella, la spec attuativa e' scrivibile e porta con se' la passata di [ADR-012] su quattro artefatti pubblicati che la parte 1 rende falsi - `AUTH-0` per primo, le cui righe `21` e `49` si ribaltano.
+**[SPEC-025] e' la prossima cosa da fare**, in `backlog`, `sol`/`maximum`, AGENT-001. Attua [ADR-018] e consegna il **motore** di consenso con una catena finalizzata da quattro validatori come prova. **Non e' una devnet**: rete e persistenza sono la spec successiva, e la spec lo dichiara in apertura.
 
-**Dieci debiti aperti** - tre `high` ([DEBT-028], [DEBT-033], [DEBT-034]) e sette `medium` - piu' **uno deferred**. Contati sui file e non sulle voci di directory, che e' l'errore che [HANDOFF-003] aveva fatto dichiarandone dieci e due.
+**Enumerando la coda per esaurimento, quattro voci:** [SPEC-022] in `review` (remediation aperta), [SPEC-023] in `review` (ferma, aspetta una deroga), [SPEC-024] in `backlog` (igiene sulle citazioni), [SPEC-025] in `backlog`. **Delle quattro, la sola che avvicini un esito nominato da M-02 e' [SPEC-025].**
 
-**Tre decisioni di taratura aspettano l'operatore**, nessuna bloccante: `max_clock_drift_ms`, `D_max`/`S_max`, e ora `min_revocation_effective_delay_blocks`, che non ha valore di lancio, non e' nella lista DRAFT, e **non e' nel blocco dei vincoli di magnitudine** - quest'ultima e' la scoperta che ha rifatto la parte 2 di [ADR-017].
+**Sequenziare, non parallelizzare:** la remediation di [SPEC-022] tocca `ledger.md` e `core/`, cioe' gli stessi file di [SPEC-025]. E' l'errore gia' pagato in questa sessione, dove due remediation parallele hanno fatto scadere le citazioni di una mentre venivano scritte.
 
-**Il resto dei candidati, invariato.** L'esito residuo di M-02 che nessun debito tocca - devnet BFT, light client con prove Merkle, mint & burn - resta il lavoro che la milestone nomina e che non e' mai stato cominciato.
+**Tredici debiti aperti**, di cui **cinque `high`** ([DEBT-028], [DEBT-033], [DEBT-034], [DEBT-036], [DEBT-037]), piu' uno deferred.
 
----
+**Quattro decisioni aspettano l'operatore:** la correzione di [ADR-017] su [REVIEW-042] RF-001 (il pavimento di `G` nell'ancora di genesi); la deroga di `GATE-SECREVIEW` su [SPEC-023] o la quarta remediation; i valori di taratura; e **l'advisory Dependabot**, una vulnerabilita' moderata sul default branch che nessuno ha ancora guardato.
 
-**Dalla prima parte della sessione.** Il prossimo blocco va deciso, e i candidati sono di due nature che non si sostituiscono.
-
-**I tre debiti `high`**, tutti M-02 e chiudibili prima della devnet: **[DEBT-033]** (`effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione esiste gia' ed e' inerte), **[DEBT-034]** (un verdetto locale del ricevente entra in catena attraverso una firma di quorum), **[DEBT-028]** (`election_epoch` dipende da un parametro governato senza che il documento dica quale versione valga). I primi due si compongono: la finestra che sfruttano e' la stessa.
-
-**L'esito residuo di M-02 che nessuno di questi tocca**: devnet BFT, light client con prove Merkle, mint & burn. E' il lavoro che la milestone nomina e non e' mai stato cominciato.
-
-**Due decisioni di taratura aspettano l'operatore**, nessuna bloccante: `max_clock_drift_ms` non e' fissato da alcun documento di genesi, e `D_max`/`S_max` restano non fissati.
+**Tre lezioni hanno un artefatto e vanno lette:** `.lmbrain/knowledge/predicato-di-accettazione.md` prima di scrivere qualunque vincolo; la conversione delle citazioni a frase invece che a numero di riga; e il fatto che **scritture disgiunte non sono riferimenti disgiunti**.
 
 ## In progress
 
-Nessuna. **Ventuno spec redatte, ventuno `done`.**
+**Due spec in `review`**: [SPEC-022] con remediation aperta su [REVIEW-042], [SPEC-023] ferma. **Nessun agente in esecuzione.**
 
 ## Done
 

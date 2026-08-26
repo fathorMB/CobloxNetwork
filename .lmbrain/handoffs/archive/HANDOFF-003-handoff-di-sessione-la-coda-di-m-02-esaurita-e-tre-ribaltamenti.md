@@ -1,11 +1,11 @@
 ---
 id: HANDOFF-003
 title: "Handoff di sessione — la coda di M-02 esaurita, e tre ribaltamenti"
-status: ready
+status: consumed
 from_role: AGENT-LEAD
 to_role: AGENT-LEAD
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 related_specs: [SPEC-015, SPEC-016, SPEC-017, SPEC-018, SPEC-019, SPEC-020, SPEC-021]
 related_reviews: [REVIEW-025, REVIEW-026, REVIEW-027, REVIEW-028, REVIEW-029, REVIEW-030, REVIEW-031, REVIEW-032, REVIEW-033, REVIEW-034, REVIEW-035]
 related_decisions: [ADR-012, ADR-013, ADR-016]
@@ -14,6 +14,8 @@ tags: [session-handoff]
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-27
+    action: "transitioned ready -> consumed"
 ---
 # Project Lead session handoff
 
