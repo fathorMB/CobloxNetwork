@@ -33,6 +33,17 @@ review_events:
     evidence_refs: ["SPEC-023", "REVIEW-038", "DEBT-036", "DEBT-037", "SPEC-024", "ADR-013"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-040-EVENT-003"
+    timestamp: "2026-08-27T00:23:43.451891800+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Remediation eseguita dal Lead e non da uno specialista, su decisione dell'operatore. E' ammissibile perche' l'oggetto e' `.lmbrain/knowledge/`, dentro il confine di scrittura del Lead; codice, test e documenti di protocollo restano fuori e non sono stati toccati.\n\nConseguenza dichiarata: il Lead non puo' verificare cio' che ha scritto. La terza passata di GATE-SECREVIEW resta ad AGENT-007, e questa remediation non porta alcun verdetto.\n\nNF-01. La riga 1 non prova piu' a vincolare la macinatura del beacon con questo parametro. Il punto 2 dichiara che il contributo e' additivo e non dominante, con l'aritmetica: la finestra ha due estremi, quello basso e' la mediana degli undici cioe' il sesto blocco piu' recente, che a cinque secondi sta circa 30 000 ms indietro, quindi a deriva zero la finestra ammette gia' 3*10^4 valori legali. Il punto 4 dichiara che due stesure hanno provato a vincolare qui la macinatura e nessuna morde; che pavimento e tetto sarebbero incompatibili se il tetto fosse tarato sulla macinatura, il che e' la prova che la grandezza e' sbagliata; e nomina le tre vie di chiusura che ledger.md indica, nessuna delle quali e' un tetto su questo parametro. La classificazione diventa magnitudine tarata sulla tolleranza d'orologio, con la macinatura dichiarata mitigazione di grado e non chiusura.\n\nIl Lead ha inoltre trovato, verificando NF-01, che la via di chiusura NON HA UN PROPRIETARIO: ledger.md colloca le due riduzioni non prese \"with the dedicated randomness beacon, which is M-02 work under DEBT-005\", e DEBT-005 e' risolto, per di piu' con un oggetto - la regola di elezione - che non e' un beacon di casualita'. La nota e' scritta nella riga 1 perche' l'ADR se la porti dietro.\n\nNF-02. La cella del rischio estremo massimo della riga 7 torna a portare l'allargamento della finestra di esposizione a una revoca finalizzata, che e' il danno che una banda chiude. L'arma di fail-closed e' ora una voce separata dentro la cella, dichiarata NON chiudibile da alcuna banda, con la ragione: il predicato e' disaccordo e non magnitudine, e si governa sulla variazione.\n\nNF-03. La relazione delle righe 5 e 6 e' ancorata a una costante di genesi, per_peer <= global / N_min, e la riga dichiara che N_peers non e' una grandezza di protocollo e che una relazione che lo invoca non e' valutabile su un documento firmato.\n\nNF-04. La riga 9 scioglie l'oppure: banda sul prodotto, valutata all'accettazione di ENTRAMBE le specie di documento, con la ragione - i quattro documenti firmati attivano indipendentemente, e legare il predicato alla sola accettazione di consensus_parameters lo farebbe eludere pubblicando hosting_rate_card dopo.\n\nNF-05. La riga 2 porta il termine relazionale con le due cache, e la cella del rischio massimo dice che la saturazione dipende dal prodotto ritenzione per tasso d'inserimento contro le cache e non dalla sola durata.\n\nNF-06. Il valore in albero e' 1 e non 0, corretto, con la nota che diceva il falso e contraddiceva la premessa dello stesso documento.\n\nNF-07. L'apertura dichiara che i tre gruppi NON sono una partizione e perche': min_revocation_effective_delay_blocks appartiene alla banda di revoca e ai dieci operativi, perche' ADR-017 gli ha dato il secondo ruolo senza togliergli il primo.\n\nNF-08. Il quinto punto della riga 6 risponde alla domanda di liveness invece di citare lo stato di review.\n\nNF-09. L'accecamento dell'allarme di fork e' marcato come deduzione dell'analisi, con la distinzione esplicita fra cio' che il documento dice e cio' che l'analisi ne inferisce, e con la ragione per cui va etichettato: un ADR eredita le frasi che cita.\n\nNF-10. La riga 10 dice check_relations invece di \"vincolo di genesi\", con la distinzione fra relazione e magnitudine e perche' conta.\n\nVerificato dal Lead con un risolutore che controlla la tripla documento-sezione-frase, non la sola frase: 36 frasi citate, 16 triple che risolvono su documento E sezione, le altre 16 risolvono a livello di albero, zero numeri di riga nudi. Nessun file fuori da .lmbrain/knowledge/ e' stato modificato."
+    evidence_refs: ["SPEC-023", "REVIEW-040", "DEBT-036", "ADR-013", "ADR-017"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-LEAD"
 links: [DEBT-036, DEBT-037]
 created: 2026-08-27
 updated: 2026-08-27
@@ -43,6 +54,8 @@ activity:
     action: "created"
   - date: 2026-08-27
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-27
+    action: "recorded review remediation"
 ---
 # Review
 
