@@ -427,6 +427,11 @@ site = "README.md"
 covers = "the suspended app account, its account_key and its app_leaf"
 
 [[fixture]]
+id = "AUTH-0"
+site = "ledger.md"
+covers = "the enrolled, unrevoked qualification across the interval in which a revocation is finalized but not yet effective (behavioural, not a digest)"
+
+[[fixture]]
 id = "CMT-0"
 site = "README.md"
 covers = "the challenge issuer commitment"
@@ -1896,13 +1901,84 @@ count = 1
 claims = "Some of it is for work that was checked: storage you proved you still hold, computation you actually ran."
 why = "'Proved' and 'actually' are the two words this rule pays for. Without it the guide would be describing self-reported work."
 
+# --- what `enrolled, unrevoked` means, and why the reading was chosen -------
+#
+# [SPEC-019] wrote the definition [DEBT-022] found missing. The whole section is
+# prose: it carries no digest, no domain string, no tag byte, so the five
+# discovery classes see nothing in it and only these probes hold it in place.
+# Losing any of them would leave the four authorization rules qualified by a
+# word with two readings again, which is where the fork was.
+
+[[probe]]
+id = "unrevoked-anchored-to-the-including-height"
+site = "ledger.md"
+pattern = 'no finalized `revoke_identity` naming `node_id` carries an `effective_height`\s+at most `h`'
+count = 1
+why = "The definition itself, clause 2. It is the clause that picks `effective_height` over finalization, and a document that lost it would still contain four qualified rules and no statement of what the qualification means."
+
+[[probe]]
+id = "unrevoked-no-block-carries-a-quorum-certificate"
+site = "ledger.md"
+pattern = 'no block carries one'
+count = 1
+why = "The reason the finalized reading cannot be settled by replay, and the only reason that does not depend on convenience. Without it the choice reads as a preference between two workable options rather than as the elimination of one."
+
+[[probe]]
+id = "unrevoked-declared-window-cost"
+site = "ledger.md"
+pattern = 'The cost of this reading, declared'
+count = 1
+why = "The residual exposure between finalization and effective height, declared rather than discovered. A reader who finds the definition and not this paragraph will believe the window was closed."
+
+[[probe]]
+id = "unrevoked-receiver-local-rule-is-not-the-definition"
+site = "ledger.md"
+pattern = 'One rule this definition does not govern'
+count = 1
+why = "identity.md's connection rule is worded in the second reading. It is a receiver-local acceptance rule and is legitimately anchored to the receiver's own view, but a reader who met it first would take it for the definition, which is exactly how the two readings came to coexist."
+
+[[probe]]
+id = "auth0-divergent-rows-are-the-fixture"
+site = "ledger.md"
+pattern = '\*\*Rows `21` and `49` are the divergent ones\.\*\*'
+count = 1
+why = "Names which rows of AUTH-0 are the guard and which are arithmetic. A later editor tidying the table would otherwise delete the two rows the fixture exists for and keep the ones both readings already agreed on. Reworded by [REVIEW-033] RF-007: the sentence used to say those rows were the only divergent cases, which is true of the table and false of the heights."
+
+[[probe]]
+id = "unrevoked-effective-height-has-no-upper-bound"
+site = "ledger.md"
+pattern = '\*\*and it has no upper bound at all\*\*'
+count = 1
+why = "[REVIEW-033] RF-001. The definition made `effective_height` govern whether a revoked key can drain a balance, and nothing in v0 caps that field: a revocation with an absurd effective height satisfies every MUST and never bites. The paragraph declared the floor and was silent on the ceiling, which is the same defect DEBT-022 censused — a qualification written without the quantity it is measured against — moved from the clause to the field the clause now rests on."
+
+[[probe]]
+id = "unrevoked-window-is-the-sample-not-the-enumeration"
+site = "ledger.md"
+pattern = 'the divergent heights are the whole interval `\[20, 49\]`'
+count = 1
+why = "[REVIEW-033] RF-007. AUTH-0 samples the divergent interval at its first interior height and its last; without this clause the table reads as an enumeration of the divergent cases, in a section where enumerating is the substance."
+
+[[probe]]
+id = "unrevoked-clause-one-boundary-row"
+site = "ledger.md"
+pattern = 'Row `5` is `h = valid_from_height`'
+count = 1
+why = "[REVIEW-033] RF-004. Clause 1 was stated with an inclusive comparison and exercised only away from its boundary: mutating it to `<` left all 176 workspace tests green. This row and its test are the guard, and a later editor who reads it as a duplicate of the `19` row would remove the only case that pins it."
+
+[[probe]]
+id = "unrevoked-local-rule-reaches-the-chain-through-evidence"
+site = "ledger.md"
+pattern = 'inside the window the two rules diverge\s+observably'
+count = 1
+why = "[REVIEW-033] RF-006. The receiver-local revocation rule is not a block-validity rule, but inside the window two auditors at different finalized heights record different challenge outcomes, and that outcome enters a quorum-signed challenge_evidence. Without this passage the paragraph reads as a clean separation and the interaction looks settled."
+
 [[probe]]
 id = "guide-subscription-burn-needs-your-signature"
 site = "ledger.md"
-pattern = "the key MUST derive `payer_node_id`; the signature is"
+pattern = 'the key MUST derive the enrolled, unrevoked `payer_node_id`;\s+the signature is'
 count = 1
 claims = "Nobody can take credits away from you — the only entries that reduce your balance are ones you signed yourself"
-why = "Half of the 'nobody can take your credits' claim, which the guide states in the thread next to the fact that everyone can see them. If the signature requirement weakens, the comforting half of that sentence goes first."
+why = "Half of the 'nobody can take your credits' claim, which the guide states in the thread next to the fact that everyone can see them. If the signature requirement weakens, the comforting half of that sentence goes first. Since [SPEC-019] it also pins the qualification, and the qualification delivers less than the claim: a revoked key stops debiting the balance from its revocation's `effective_height`, not from the moment the revocation is finalized, so inside that window an entry the holder of a stolen key signed still reduces the balance. The pattern is kept wide because the qualification is the part of the sentence the protocol does enforce; the window is declared in ledger.md and is [REVIEW-033] RF-001."
 
 [[probe]]
 id = "guide-funding-an-app-needs-your-signature"

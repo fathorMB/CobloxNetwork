@@ -23,6 +23,7 @@
 //! | [`merkle`] | hashing primitives, the five sorted trees, sparse account state |
 //! | [`params`] | signed protocol documents, election bounds, the constraint block |
 //! | [`quorum`] | quorum predicate |
+//! | [`authorization`] | unsigned transaction and authorization |
 //! | [`block`] | block format, validator-set continuity |
 //! | [`cadence`] | the measured cadence, the reward-epoch derivation |
 //! | [`validator_set`] | validator-set continuity, revocation transitions |
@@ -130,6 +131,7 @@
     clippy::must_use_candidate
 )]
 
+pub mod authorization;
 pub mod block;
 pub mod cadence;
 pub mod election;

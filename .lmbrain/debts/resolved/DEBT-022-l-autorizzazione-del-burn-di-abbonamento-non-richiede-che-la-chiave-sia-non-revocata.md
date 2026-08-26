@@ -1,7 +1,7 @@
 ---
 id: DEBT-022
 title: "L'autorizzazione del burn di abbonamento non richiede che la chiave sia non revocata"
-status: open
+status: resolved
 category: "security"
 severity: "high"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-024"]
 related_decisions: ["ADR-006"]
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["SPEC-019","REVIEW-032","REVIEW-033"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
 updated: 2026-08-26
 tags: ["ledger","security","identity"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-26
+    action: "resolved: Chiuso nella forma che la sua stessa valutazione imponeva: la definizione prima dell'allineamento. Allineare la riga alle sorelle avrebbe chiuso l'asimmetria e spostato la riga dentro l'ambiguita' invece di toglierla.\n\nLa scelta fra le due letture ha ribaltato l'esito raccomandato dalla proprietaria del debito, e la proprietaria lo ha confermato ribaltando se stessa. L'argomento che decide: la finalita' non e' ricostruibile dalla catena, perche' BlockHeader ha dodici campi e nessuno registra quando un blocco anteriore sia diventato finale. La lettura \"finalizzata\" non e' una regola stretta con margine largo, e' un fork con una specifica - cioe' avrebbe reintrodotto l'esito peggiore che rendeva questo debito high.\n\nAGENT-007 ha nominato il proprio errore per quello che e': ha motivato sul margine dove la proprieta' era disponibile. Vale la pena tenerlo accanto all'errore rovesciato che AGENT-002 ha commesso nella stessa spec su R2 - dimostrare la proprieta' su un perimetro piu' stretto di quello vero e leggere la dimostrazione come conclusiva. Sono la stessa lezione da due lati: una dimostrazione e' conclusiva solo quanto il perimetro su cui e' fatta.\n\nIl debito si chiude ma la superficie che ha scoperto e' piu' grande di lui. La definizione lega ora l'autorizzazione a effective_height, che non ha tetto e il cui unico campo distintivo - reason - e' inerte. E' lo stesso difetto salito di un livello: dalla riga al campo su cui la riga ora poggia. E' passato sui debiti nuovi, che sono la ragione per cui questa chiusura non pretende di aver chiuso il problema ma solo l'asimmetria che lo nominava."
 debt_events:
   - schema_version: "1"
     id: "DEBT-022-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Aperto dal Lead alla chiusura di SPEC-015, su segnalazione di AGENT-006 che ha riportato invece di scrivere attorno al buco, come il dispatch le imponeva. Owner AGENT-007 e non AGENT-006 ne il Lead: e una questione di sicurezza sulla spesa e va valutata da chi ha mandato di attaccarla, ed e la stessa regola applicata a DEBT-013, DEBT-014 e DEBT-017."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-022-EVENT-002"
+    timestamp: "2026-08-26T13:58:10.200610900+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Chiuso nella forma che la sua stessa valutazione imponeva: la definizione prima dell'allineamento. Allineare la riga alle sorelle avrebbe chiuso l'asimmetria e spostato la riga dentro l'ambiguita' invece di toglierla.\n\nLa scelta fra le due letture ha ribaltato l'esito raccomandato dalla proprietaria del debito, e la proprietaria lo ha confermato ribaltando se stessa. L'argomento che decide: la finalita' non e' ricostruibile dalla catena, perche' BlockHeader ha dodici campi e nessuno registra quando un blocco anteriore sia diventato finale. La lettura \"finalizzata\" non e' una regola stretta con margine largo, e' un fork con una specifica - cioe' avrebbe reintrodotto l'esito peggiore che rendeva questo debito high.\n\nAGENT-007 ha nominato il proprio errore per quello che e': ha motivato sul margine dove la proprieta' era disponibile. Vale la pena tenerlo accanto all'errore rovesciato che AGENT-002 ha commesso nella stessa spec su R2 - dimostrare la proprieta' su un perimetro piu' stretto di quello vero e leggere la dimostrazione come conclusiva. Sono la stessa lezione da due lati: una dimostrazione e' conclusiva solo quanto il perimetro su cui e' fatta.\n\nIl debito si chiude ma la superficie che ha scoperto e' piu' grande di lui. La definizione lega ora l'autorizzazione a effective_height, che non ha tetto e il cui unico campo distintivo - reason - e' inerte. E' lo stesso difetto salito di un livello: dalla riga al campo su cui la riga ora poggia. E' passato sui debiti nuovi, che sono la ragione per cui questa chiusura non pretende di aver chiuso il problema ma solo l'asimmetria che lo nominava."
+    evidence_refs: ["SPEC-019", "REVIEW-032", "REVIEW-033"]
 ---
 # L'autorizzazione del burn di abbonamento non richiede che la chiave sia non revocata
 
@@ -321,3 +333,13 @@ va previsto lo scenario che questa valutazione descrive.
 
 ## Resolution evidence
 
+Chiuso da SPEC-019, accettata con REVIEW-032 del Lead e REVIEW-033 di AGENT-007 per GATE-SECREVIEW, dopo un giro di remediation. Verificato dal Lead rieseguendo: 177 test da 167 di baseline, 146 probe C10 da 137 ciascuna osservata fallire da sola, protocol_hashes.py senza valori mossi.
+
+La definizione e' in docs/protocol/ledger.md come sezione propria, con l'altezza di valutazione nel titolo: un node_id e' enrolled, unrevoked a h quando un certificato d'iscrizione finalizzato lo nomina con valid_from_height <= h e nessun revoke_identity finalizzato che lo nomini porta effective_height <= h. Il predicato e' funzione totale del blocco e dei suoi antenati, monotona in h, identica per ogni verificatore a ogni testa.
+
+GATE-DIVERGENT-CASE: fixture AUTH-0 pubblicata, con le sole righe su cui le due letture divergono e la colonna che esercita la frontiera della clausola 1. La mutazione che reintroduce la lettura "finalizzata" fa fallire quelle righe e solo quelle; le concordi restano verdi sotto la lettura sbagliata, che dimostra cosa la fixture misura.
+
+GATE-ALL-AUTHORIZATION-RULES: tredici domini di firma enumerati dal registro del manifesto e non dalla memoria, con la qualificazione segnata per ciascuno. Nessuna seconda omissione sul percorso delle transazioni; tre residui riportati e non corretti.
+
+GATE-NO-PARAMETER-MOVED: min_revocation_effective_delay_blocks compare nel diff una sola volta, in prosa, nel paragrafo che dichiara il costo.</resolution_evidence>
+</invoke>

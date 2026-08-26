@@ -39,8 +39,45 @@ pub enum Error {
     /// A measured cadence left the genesis band, or a reward-epoch index ran
     /// ahead of the chain that has to pay for it.
     Cadence(CadenceError),
+    /// A single-key transaction authorization failed the *enrolled, unrevoked*
+    /// qualification, or the key did not derive the node ID it claims.
+    Authorization(AuthorizationError),
     /// A checked `u128` intermediate overflowed, or a total power was zero.
     Arithmetic(&'static str),
+}
+
+/// Reasons a single-key transaction authorization is rejected.
+///
+/// Every variant carries the height the qualification was evaluated at, because
+/// the answer is only meaningful with it: the same key is authorized below
+/// `effective_height` and rejected at or above it, and a rejection message that
+/// omitted the height would read as a statement about the key rather than about
+/// the block. See
+/// `ledger.md#what-enrolled-unrevoked-means-and-as-of-which-height`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AuthorizationError {
+    /// The authorizing public key does not derive the node ID the body names.
+    KeyDoesNotDerive {
+        /// The node ID the transaction body claims.
+        node_id: String,
+    },
+    /// No finalized enrollment certificate names the node ID at this height.
+    NotEnrolled {
+        /// The node ID the transaction body claims.
+        node_id: String,
+        /// The height of the block including the transaction.
+        height: u64,
+    },
+    /// A finalized `revoke_identity` names the node ID and is in force here.
+    Revoked {
+        /// The node ID the transaction body claims.
+        node_id: String,
+        /// The height of the block including the transaction.
+        height: u64,
+        /// `effective_height` of the revocation that rejected it.
+        effective_height: u64,
+    },
 }
 
 /// Reasons a cadence measurement or a reward-epoch index is rejected.
@@ -322,6 +359,7 @@ impl fmt::Display for Error {
             Self::ValidatorSet(e) => write!(f, "validator set rejected: {e:?}"),
             Self::Election(e) => write!(f, "no valid election result: {e:?}"),
             Self::Cadence(e) => write!(f, "chain cadence rejected: {e:?}"),
+            Self::Authorization(e) => write!(f, "transaction authorization rejected: {e:?}"),
             Self::Arithmetic(ctx) => write!(f, "checked arithmetic failed in {ctx}"),
         }
     }
@@ -368,5 +406,11 @@ impl From<SetError> for Error {
 impl From<ElectionError> for Error {
     fn from(value: ElectionError) -> Self {
         Self::Election(value)
+    }
+}
+
+impl From<AuthorizationError> for Error {
+    fn from(value: AuthorizationError) -> Self {
+        Self::Authorization(value)
     }
 }
