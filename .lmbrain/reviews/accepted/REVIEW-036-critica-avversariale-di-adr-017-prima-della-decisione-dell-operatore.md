@@ -2,7 +2,7 @@
 id: REVIEW-036
 # Note: Quote the title if it contains a colon
 title: "Critica avversariale di ADR-017 prima della decisione dell'operatore"
-status: pending
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-019
 reviewer: AGENT-007
@@ -22,6 +22,16 @@ review_events:
     actor_role: "project-lead"
     reason: "review artifact created"
     implementation_agent: "AGENT-XXX"
+  - schema_version: "1"
+    id: "REVIEW-036-EVENT-002"
+    timestamp: "2026-08-26T22:20:31.933619200+02:00"
+    action: "verdict"
+    from_status: "pending"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Critica avversariale di ADR-017 richiesta dall'operatore prima della decisione, e ha morso: dieci finding e cinque errori fattuali su una proposta che il Lead aveva gia' passato sotto lead_claims_check.\n\nVerdetto della reviewer: l'ADR regge con modifiche. Tutte e dieci le voci sono state indirizzate nella seconda stesura, e nessuna e' stata respinta nel merito.\n\nIl Lead ha riverificato in modo indipendente sei affermazioni fattuali della review invece di prenderle per buone, e tutte e sei reggono: ledger.md:785 come terzo MUST in grafia a spazio; ledger.md:107 con la stessa forma sintattica della clausola 8; l'assenza di min_revocation_effective_delay_blocks dal blocco dei vincoli di magnitudine; il secondo lavoro del pavimento a ledger.md:1075-1080; l'ordine di transizione a ledger.md:2819; le righe 21 e 49 di AUTH-0 marcate valid.\n\nI tre colpi che hanno cambiato la decisione. RF-002: l'uguaglianza su key_compromise era inapplicabile perche' l'autore non conosce l'altezza di inclusione, e regalava un veto sulla revoca d'emergenza a chi controlla un turno di proposta; ora e' una banda a due lati. RF-001: il pavimento non e' nel blocco dei vincoli di genesi, quindi la parte 2 non toglieva la discrezione ma la spostava su un parametro che lo stesso quorum firma; i tre parametri ora entrano in genesi. RF-004: ChallengeEvidenceBody porta auditor_signatures come lista e outcome come scalare, quindi la parte 3 cancellava la divergenza invece di renderla visibile; la parte 3 e' stata tolta e la sua sostanza e' passata su DEBT-034.\n\nE-01 e' l'errore che vale oltre questo ADR: l'affermazione \"effective_height e' nominato da due soli MUST\" e' falsa, sta in tre artefatti, e l'enumerazione era fatta sul token mentre l'oggetto era una grandezza con due grafie. Il Lead l'ha riverificata con lo stesso strumento che l'aveva prodotta e ha ottenuto la stessa risposta.\n\nRF-006 non aveva casa nell'ADR ed e' diventato DEBT-035.\n\nLa reviewer ha dichiarato il proprio perimetro e i propri buchi, compreso di non aver attaccato la clausola 3 perche' le era piaciuta, e quella dichiarazione e' stata riportata dentro l'ADR."
+    evidence_refs: ["ADR-017", "DEBT-033", "DEBT-034", "DEBT-035", "SPEC-019", "REVIEW-033"]
+    implementation_agent: "AGENT-LEAD"
 links: [DEBT-033, DEBT-034]
 created: 2026-08-26
 updated: 2026-08-26
@@ -30,6 +40,8 @@ related_decisions: [ADR-017]
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned pending -> accepted"
 ---
 # Review
 

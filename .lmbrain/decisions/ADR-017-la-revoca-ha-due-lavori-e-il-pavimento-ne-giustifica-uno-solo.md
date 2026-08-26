@@ -2,9 +2,9 @@
 id: ADR-017
 # Note: Quote the title if it contains a colon
 title: "La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo"
-status: proposed
+status: accepted
 decision_date: 2026-08-26
-decider: AGENT-LEAD
+decider: OPERATOR
 # References use IDs only (e.g. [ADR-001]); use [[wikilinks]] in prose
 # Both sides are written together by `adr_supersede` once this ADR is accepted.
 # Declaring `supersedes` while still proposed records the intent; it takes
@@ -18,12 +18,14 @@ updated: 2026-08-26
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned proposed -> accepted"
 ---
 # La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo
 
-> Proposta dal Lead il 2026-08-26 per chiudere [DEBT-033]. **Non ancora decisa.**
+> Proposta dal Lead e **decisa dall'operatore il 2026-08-26**, per chiudere [DEBT-033].
 >
-> **Seconda stesura.** La prima è stata sottoposta a critica avversariale da AGENT-007 su richiesta dell'operatore, prima della decisione: [REVIEW-036], dieci finding e cinque errori fattuali. La parte 1 è sopravvissuta a ogni attacco ed è conservata. La parte 2 è stata **rifatta**. La parte 3, che aggiungeva un campo di altezza a `challenge_evidence`, è stata **tolta**: la critica ha stabilito che non chiude la superficie che diceva di chiudere, e la sua sostanza è passata su [DEBT-034]. Il titolo stesso è cambiato, perché la premessa della prima stesura era falsa.
+> **Seconda stesura, ed è quella decisa.** La prima è stata sottoposta a critica avversariale da AGENT-007 su richiesta dell'operatore, prima della decisione: [REVIEW-036], dieci finding e cinque errori fattuali. La parte 1 è sopravvissuta a ogni attacco ed è conservata. La parte 2 è stata **rifatta**. La parte 3, che aggiungeva un campo di altezza a `challenge_evidence`, è stata **tolta**: la critica ha stabilito che non chiude la superficie che diceva di chiudere, e la sua sostanza è passata su [DEBT-034]. Il titolo stesso è cambiato, perché la premessa della prima stesura era falsa.
 
 ## Context
 
@@ -69,7 +71,7 @@ E la **(2)** è già lo stato del protocollo, in forma più forte: `ledger.md:22
 
 ## Decision
 
-> **Da decidere dall'operatore.** Quanto segue è la proposta del Lead, seconda stesura.
+> **Decisa dall'operatore il 2026-08-26**, sulla seconda stesura, dopo la critica avversariale di [REVIEW-036].
 
 La revoca fa due lavori — togliere una chiave dal set, e togliere a una chiave il potere di spendere — e questo ADR li separa lungo la linea su cui corrono le giustificazioni del pavimento.
 
