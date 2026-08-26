@@ -2,7 +2,7 @@
 id: REVIEW-037
 # Note: Quote the title if it contains a colon
 title: "Review di SPEC-023: i dieci nella lista DRAFT e la gate che chiude la classe"
-status: pending
+status: changes-requested
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-023
 reviewer: AGENT-LEAD
@@ -22,6 +22,17 @@ review_events:
     actor_role: "project-lead"
     reason: "review artifact created"
     implementation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-037-EVENT-002"
+    timestamp: "2026-08-26T22:49:23.762137+02:00"
+    action: "verdict"
+    from_status: "pending"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Quattro finding, nessuno di sostanza: due medium e due low, uno di evidenza e tre di forma su un artefatto pubblicato. La consegna e' buona e nessuna riparazione tocca il progetto dello strumento o le conclusioni dell'analisi.\n\nIl Lead ha rieseguito sei criteri su dieci invece di prenderli dall'evidenza, e reggono tutti. In particolare GATE-SEEN-IT-FAIL-FIRST non e' stata letta ma riprodotta: ripristinato README.md allo stato pre-consegna, lo strumento ha nominato esattamente i dieci parametri reali con i rispettivi numeri di riga. I codici di uscita sono corretti, 1 sul mutato e 0 sul consegnato, controllati apposta perche' una gate che stampa FAIL uscendo 0 e' decorativa. ledger.md non e' stato toccato affatto, quindi lo scopo escluso e' stato rispettato.\n\nRF-001 medium: la trascrizione dichiara 85 test dove il comando dichiarato ne produce 181. Rieseguito: 181 passati, zero falliti. Lo stato e' corretto, e' la trascrizione a portare un numero non guardato. Conta perche' su questo progetto le gate sono kind=manual con evidence=transcript: la trascrizione e' la prova, e un numero falso toglie credito anche alle righe accanto che erano vere.\n\nRF-002 medium: notazione LaTeX introdotta in docs/protocol/README.md, che e' pubblicato e nell'inventario di ADR-012. Zero occorrenze in tutti e cinque i documenti di protocollo prima, tre dopo. Il caso peggiore e' $F$, simbolo che nasce in ADR-017 - artefatto del brain, in italiano, non pubblicato - e che in README.md non e' definito da nessuna parte.\n\nRF-003 low: righe oltre le 100 colonne da 46 a 60 in un documento che va a capo ovunque, con le quattordici nuove tutte in questa sezione.\n\nRF-004 low: lo strumento non e' cablato in CI ne' altrove e la scelta non e' dichiarata. La spec la lasciava al giudizio, quindi non cablarlo non viola il perimetro; a violarlo e' non averlo detto. E' la forma di DEBT-025, e il rischio ha una data: SPEC-022 aggiunge due campi a ConsensusParametersBody e la gate esiste per accorgersene. Dichiarare chi la esegue e quando e' una chiusura accettabile quanto cablarla.\n\nPerimetro dichiarato di questa review: sei analisi su dieci non sono state controllate e la loro correttezza e' inferita da un campione di quattro citazioni, tutte precise. Le conclusioni tassonomiche sono giudicate ben argomentate e non verificate. Verificarle spetta a GATE-SECREVIEW, che e' sull'analisi e non sullo strumento perche' e' l'analisi a diventare un ADR.\n\nLa spec resta in review: la remediation e' continuazione del ciclo, non un ripristino di ciclo di vita."
+    evidence_refs: ["SPEC-023", "DEBT-036", "DEBT-025", "SPEC-022", "ADR-012", "ADR-017"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: [DEBT-036, DEBT-025]
 created: 2026-08-26
 updated: 2026-08-26
@@ -30,6 +41,8 @@ related_decisions: [ADR-012, ADR-010]
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned pending -> changes-requested"
 ---
 # Review
 
