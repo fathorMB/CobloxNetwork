@@ -121,7 +121,7 @@ RF-007 | category=documentation | severity=low | criterion=trasversale | remedia
 | --- | --- | --- |
 | 1 | `max_clock_drift_ms` | **Classificazione finalmente giusta, motivazione no** (RF-001, RF-003, RF-004) |
 | 2 | `max_envelope_validity_ms` | Cella corretta, **sezione no**: si contraddicono (RF-005) |
-| 3 | `max_transport_attestation_validity_ms` | **Utilizzabile così** — intatta per tre passate |
+| 3 | `max_transport_attestation_validity_ms` | **Utilizzabile così** — ha ceduto una volta ([REVIEW-038] RF-004, `medium`) e ha convertito |
 | 4 | `max_transport_attestation_future_skew_ms` | **Utilizzabile così** |
 | 5 | `replay_cache_entries_per_peer` | **Da non lasciar passare — l'ancora nuova è peggiore di quella che sostituisce** (RF-002) |
 | 6 | `replay_cache_entries_global` | Stesso difetto (RF-002) |
@@ -153,3 +153,11 @@ RF-007 | category=documentation | severity=low | criterion=trasversale | remedia
 2. **RF-005 e RF-006 nello stesso giro, e con essi una regola meccanica**: **ogni rilievo va verificato in tabella *e* nel corpo**. Tre su dieci sono stati applicati alla sola tabella, ed è un controllo, non un giudizio.
 3. **RF-004 restringe [DEBT-038]** alla sola quantizzazione allo slot.
 4. **RF-003 e RF-007** prima della conversione in ADR, non prima della prossima passata.
+
+## Errata di questa review, e la partizione che ne dipendeva
+
+**La cella della riga 3 diceva «intatta per tre passate».** Era falsa: la riga 3 ha ceduto in [REVIEW-038] con `RF-004`, `medium`, ed è stata corretta. **La stessa tabella, sette righe sotto, dice della riga 10 «la sola intatta per tre passate»** — un superlativo e il suo controesempio nello stesso oggetto. Corretto sopra.
+
+**È il sesto conteggio non guardato di questa sessione, ed è del Lead.** Non è un dettaglio di contabilità: **la partizione stabile/instabile che il Lead ha costruito su questa tabella poggiava in parte su quella cella.** La partizione è stata attaccata separatamente e non regge, e la ragione è registrata in `.lmbrain/knowledge/predicato-di-accettazione.md`: enumerando le tre passate, la riga 9 ha ceduto **due volte**, di cui una `high`, e ha convertito; le righe 3 e 4 una volta ciascuna. **La sola riga intatta per tre passate è la 10.**
+
+Quella tabella separa quindi **convertito da ancora aperto**, non stabile da instabile, e le due cose sono confuse dalla recenza.
