@@ -44,6 +44,17 @@ review_events:
     evidence_refs: ["SPEC-023", "REVIEW-038", "DEBT-036"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-038-EVENT-004"
+    timestamp: "2026-08-26T23:54:12.978569700+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Convertite tutte le citazioni di riga dell'analisi dei dieci parametri operativi (.lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md) in citazioni a frase o a campo/blocco di schema, verificate cercandole nei documenti sorgente (docs/protocol/ledger.md, identity.md, wire.md, README.md, core/coblox-core/src/params.rs). Aggiornata anche la sezione \"Existing-project analysis\" di .lmbrain/specs/review/SPEC-023-i-dieci-parametri-operativi-nella-lista-draft-e-la-gate-che-chiude-la-classe.md con lo stesso schema. Nessun numero di riga nudo resta nell'analisi. Trovata e segnalata (non corretta) una citazione con documento sbagliato (README.md invece di ledger.md per il fail-closed su now-issued_at_ms) e una qualifica (\"stallo irreversibile\") non letteralmente supportata dal testo sorgente, che dice solo \"stalls\"."
+    evidence_refs: [".lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md", ".lmbrain/specs/review/SPEC-023-i-dieci-parametri-operativi-nella-lista-draft-e-la-gate-che-chiude-la-classe.md"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: [DEBT-036]
 created: 2026-08-26
 updated: 2026-08-26
@@ -54,6 +65,8 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-26
+    action: "recorded review remediation"
   - date: 2026-08-26
     action: "recorded review remediation"
 ---

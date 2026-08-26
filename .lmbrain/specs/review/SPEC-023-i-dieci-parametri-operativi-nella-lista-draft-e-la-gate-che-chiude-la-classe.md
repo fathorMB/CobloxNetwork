@@ -77,10 +77,10 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
 
 ## Existing-project analysis
 
-- `docs/protocol/README.md:808-829` — `ConsensusParametersBody`, i venti campi.
-- `docs/protocol/README.md:1608-1632` — la sezione DRAFT, che oggi copre i parametri di enrollment, quelli economici e i dieci di elezione.
-- `docs/protocol/ledger.md:1985-2012` — il blocco dei vincoli di magnitudine, e la frase che ne dichiara lo scopo.
-- `docs/protocol/README.md:1599-1606` — la risoluzione della circolarità su `max_weak_subjectivity_age_ms`, che è il secondo canale di cui l'analisi deve tenere conto.
+- `docs/protocol/README.md`, blocco `ConsensusParametersBody` (§*"Signed protocol documents"*) — i venti campi.
+- `docs/protocol/README.md`, §*"DRAFT: governance-selected launch parameters"* — la sezione DRAFT, che oggi copre i parametri di enrollment, quelli economici e i dieci di elezione.
+- `docs/protocol/ledger.md`, §*"Rotation: the cap and the floor"* — il blocco dei vincoli di magnitudine, e la frase che ne dichiara lo scopo.
+- `docs/protocol/README.md`, §*"The network-release trust key"*, paragrafo *"Resolving the parameter circularity"* — la risoluzione della circolarità su `max_weak_subjectivity_age_ms`, che è il secondo canale di cui l'analisi deve tenere conto.
 - `sim/tools/published_artifacts.py` e `.toml` — la macchina delle gate, dove la gate nuova va cablata o accanto a cui va costruita.
 
 ## Technical proposal
