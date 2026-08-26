@@ -47,6 +47,12 @@ debt_events:
 
 Il lavoro a cui il documento rimanda **non e' tracciato da alcun debito aperto**. Un lettore che segua il rimando trova un debito chiuso e conclude che la questione sia chiusa con esso.
 
+> **Portata ristretta a meta', [REVIEW-041] RF-004, 2026-08-27.** Delle due riduzioni, **una e' gia' presa**, e lo dice lo stesso `ledger.md` in un altro sito, §*"Validator election and rotation"*: *«Aggregating `election_entropy_blocks` consecutive blocks raises the cost of controlling the whole window to holding consecutive proposal slots — **the reduction this document deferred to "the dedicated randomness beacon" and takes here**»*. Verificato dal Lead.
+>
+> **Il lavoro senza proprietario e' quindi la sola quantizzazione di `timestamp_ms` allo slot di consenso**, non la coppia. Questo debito va letto con quel perimetro.
+>
+> **Come l'errore e' nato, perche' vale piu' della correzione.** Questo debito e' stato aperto applicando la regola *«verificare una citazione significa leggere il suo intorno»*, che il Lead aveva appena derivato trovando il rimando morto **nella frase successiva** a una citazione di AGENT-007. La regola ha funzionato e si e' fermata troppo presto: il Lead ha letto l'intorno **della frase**, e non ha cercato **un altro sito dello stesso documento** che la superasse. AGENT-007 ha applicato la stessa regola un livello sopra e ha trovato quello che mancava. **L'intorno di una citazione non e' solo cio' che le sta accanto: e' tutto cio' che nello stesso documento parla della stessa cosa.**
+
 ## Evidence and provenance
 
 Trovato dal Lead il 2026-08-27 mentre rimediava [REVIEW-040] NF-01, leggendo la sezione per verificare le tre mitigazioni che AGENT-007 le attribuiva.
