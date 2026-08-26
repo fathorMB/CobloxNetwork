@@ -1610,23 +1610,30 @@ window.
 The algorithms and parameter names are fixed in v0, but their launch values are
 not economic facts and remain open:
 
-- enrollment `difficulty_bits` and the Argon2id cost profile: benchmark-derived
-  fixed values vs epoch values bounded by governance. Both must be chosen
-  together, because with a memory-hard primitive the cost of one evaluation and
-  the expected number of evaluations are independent knobs;
-- the per-epoch existence fund, work reward curves, hosting prices, and
-  subscription minimums: simulator output vs conservative bootstrap values;
-- the validator election parameters — epoch length, candidacy close, entropy
-  window, set sizes, churn cap, term limit, cooldown, declared capture horizon,
-  the eligibility threshold with its window, and the minimum number of distinct
-  issuers behind a contribution score. The **algorithm** is no longer open: it is
-  specified in [ledger.md](ledger.md#validator-election-and-rotation). Nor are
-  the relations among these values open, nor their magnitudes — a
-  consensus-parameters document that violates the constraint block of
-  [ledger.md](ledger.md#rotation-the-cap-and-the-floor), or that leaves the
-  [election bounds](#election-bounds) of the genesis trust anchor, is rejected on
-  acceptance. The simulator therefore chooses inside a feasible region that the
-  chain's own governance cannot widen.
+- **Enrollment proof-of-work parameters**:
+  - `difficulty_bits` and the Argon2id cost profile (`memory_kib`, `lanes`, `passes`): benchmark-derived
+    fixed values vs epoch values bounded by governance. Both must be chosen
+    together, because with a memory-hard primitive the cost of one evaluation and
+    the expected number of evaluations are independent knobs;
+- **Economic and reward policy parameters**:
+  - the per-epoch existence fund (`existence_fund_microtokens_per_epoch`), work reward curves (`storage_microtokens_per_byte_epoch`, `compute_microtokens_per_million_fuel`), hosting prices (`microtokens_per_replica_epoch`, `microtokens_per_gib_epoch`, `microtokens_per_million_fuel`), and subscription minimums (`minimum_billable_epochs`, `billing_epoch_ms`): simulator output vs conservative bootstrap values;
+- **Validator election and rotation parameters**:
+  - epoch length (`election_epoch_blocks`), candidacy close (`candidacy_close_blocks`), entropy window (`election_entropy_blocks`), set sizes (`validator_min_set_size`, `validator_target_set_size`, `validator_max_set_size`), churn cap (`validator_churn_cap_seats`), term limit (`validator_max_consecutive_terms`), cooldown (`validator_cooldown_epochs`), declared capture horizon (`validator_min_capture_epochs`), the eligibility threshold (`validator_eligibility_threshold_units`) with its window (`validator_eligibility_window_epochs`), and the minimum number of distinct issuers (`validator_eligibility_min_issuers`) behind a contribution score. The **algorithm** is no longer open: it is specified in [ledger.md](ledger.md#validator-election-and-rotation). Nor are the relations among these values open, nor their magnitudes — a consensus-parameters document that violates the constraint block of [ledger.md](ledger.md#rotation-the-cap-and-the-floor), or that leaves the [election bounds](#election-bounds) of the genesis trust anchor, is rejected on acceptance. The simulator therefore chooses inside a feasible region that the chain's own governance cannot widen;
+- **Operational, transport, and network security consensus parameters** (the ten operational fields of `ConsensusParametersBody`):
+  - *Clocks, envelope validity, and transport attestations*:
+    - `max_clock_drift_ms`: allowable clock skew across nodes and block timestamps; constrained by physical clock synchronization tolerances and network round-trip latency;
+    - `max_envelope_validity_ms`: maximum lifetime of wire protocol message envelopes from `created_at_ms`; constrained by gossip message propagation latency and anti-replay horizon;
+    - `max_transport_attestation_validity_ms`: maximum validity duration ($D_{\max}$) of transport key attestations; constrained by transport key compromise exposure window and session rotation frequency;
+    - `max_transport_attestation_future_skew_ms`: forward clock skew tolerance ($S_{\max}$) on transport key attestation timestamps; constrained by `max_clock_drift_ms` and peer clock divergence;
+  - *Anti-replay cache capacity*:
+    - `replay_cache_entries_per_peer`: maximum tracked envelope identifiers per connected peer; constrained by peer transmission rate limit and node memory budget;
+    - `replay_cache_entries_global`: maximum total tracked envelope identifiers across all peers; constrained by global network gossip volume and node memory footprint;
+  - *Trust anchor freshness and state queries*:
+    - `max_weak_subjectivity_age_ms`: maximum age of a weak subjectivity checkpoint accepted by syncing nodes; constrained relationally by `min_revocation_effective_delay_blocks` (MUST) and bounded by the release distribution channel;
+    - `max_current_balance_age_ms`: maximum allowed staleness for served balance query state proofs; constrained by query turnaround latency and state-history retention window;
+  - *Lifecycle delays and revocations*:
+    - `app_suspension_notice_epochs`: notice period in epochs between proposing app suspension and enforcement; constrained by epoch duration and operator dispute remediation window;
+    - `min_revocation_effective_delay_blocks`: minimum delay between proposing an identity revocation and its effective height on validator set transitions; constrained relationally with `max_weak_subjectivity_age_ms` and validator succession coordination margin ($F$).
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select
