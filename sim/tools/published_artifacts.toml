@@ -504,6 +504,7 @@ mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
 hex = "00811b3f6ae09c7acdb2e5c92fb273a05481f75fd477901fd43f76a9290b19b7"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "transactions_root placeholder in the block header example"
@@ -531,6 +532,7 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/t
 
 [[value]]
 hex = "1df0a6454faaa5985b7f98c48d3c60d2ed62d5b3b24fe8e97d3dca1dd36f1120"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "identity.md"
 name = "validator_set_hash placeholder in the inline examples"
@@ -551,6 +553,7 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
 hex = "2d1e35bf61f89fc50cb9cafe158f44ad63d522898971e0211d59708331c4b404"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "pricing_hash placeholder in the burn examples"
@@ -564,18 +567,21 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
 hex = "2f0e2c8a9d4b6f1c3e5a7b9d0f2468ace13579bdf02468ace13579bdf02468ac"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "eligible_set_root placeholder in the existence-income mint example"
 
 [[value]]
 hex = "313eb3d86d8c049838543325910bccb953b828da764b5f18bff11d7a123b0e68"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "evidence tx_id placeholder in the existence-income mint example"
 
 [[value]]
 hex = "3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "challenge_id placeholder; also the request_hash of the same example, which the specification requires to be equal"
@@ -589,6 +595,7 @@ mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
 hex = "44dc2df246a89f42d9a9da10f621c86f5141b597b1a6f08cc78b5e61a8388eb1"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "identity.md"
 name = "enrollment_request_hash placeholder in the certificate example"
@@ -623,6 +630,7 @@ mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
 hex = "56d2aa0cd4c2ff0b06c47b478b6bfc2dff88b2c162c6cff1e33f9bf3284c7308"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "wire.md"
 name = "message_id placeholder in the wire examples"
@@ -650,18 +658,21 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
 hex = "77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "app_id placeholder in the ledger examples"
 
 [[value]]
 hex = "7df04d03b60f62852f0d76c847d0181a2b17b43a50f987c0b9f814e70f064bcc"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "identity.md"
 name = "governed-document hash placeholder, reused as parameter_set_hash, policy_hash and consensus_parameters_hash"
 
 [[value]]
 hex = "7e0694f564afa2d047db4eb58f4f2b3d322d71db808f6bbf5313ee2d2a4a95af"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "identity.md"
 name = "block_id placeholder in the inline examples"
@@ -678,10 +689,11 @@ hex = "89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48"
 class = "registry"
 site = "README.md"
 name = "policy_hash | reward PD-0"
-mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/light_client_perimeter.rs"]
 
 [[value]]
 hex = "8bc23b6277b0892c0eea482c835359a2ad975ac18af9832b727738a880f2400f"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "response_hash placeholder in the challenge-evidence example"
@@ -702,6 +714,7 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
 hex = "993b24bf6115fbf5651d615ca57a1baa825baf304b1dcc4d52debbc7fa3bd6d8"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "state_root placeholder in the block header example"
@@ -832,6 +845,7 @@ mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
 
 [[value]]
 hex = "fc9cd19c4f7b32970a7c870e821dbca915d204c09a496d60b17f66ec8790ad3a"
+mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "active_subscription_root placeholder in the publisher mint example"
@@ -2076,21 +2090,21 @@ why = "The load-bearing claim of the whole file, and the one [ADR-007] exists to
 [[probe]]
 id = "security-sybil-is-economic-not-cryptographic"
 site = "SECURITY.md"
-pattern = 'Sybil\nresistance is treated as an economic property'
+pattern = 'Sybil\s+resistance is treated as an economic property'
 count = 1
 why = "The half of the claim that says what replaces the cryptographic guarantee. Without it the sentence above reads as an unmitigated hole rather than as a stated design position."
 
 [[probe]]
 id = "security-quorum-four-ninths"
 site = "SECURITY.md"
-pattern = 'reach a quorum from roughly \*\*four\nninths\*\* of the set'
+pattern = 'reach a quorum from roughly \*\*four\s+ninths\*\* of the set'
 count = 1
 why = "[ADR-010] and [REVIEW-014]: the relational rule prevents a coalition below two thirds from *owning* the set, not from obtaining its *quorum*. This is the corrected figure, and the third occurrence of family 2 in recurring-defects.md is the same claim being reclaimed at two thirds after a rule change. If it softens back, that occurrence has repeated."
 
 [[probe]]
 id = "security-owning-is-not-controlling"
 site = "SECURITY.md"
-pattern = 'prevents a coalition below two thirds from\n\*owning\* the set, not from obtaining its \*quorum\*'
+pattern = 'prevents a coalition below two thirds from\s+\*owning\* the set, not from obtaining its \*quorum\*'
 count = 1
 why = "The distinction the four-ninths figure rests on. Stating the figure without the distinction leaves a reader unable to check it."
 
@@ -2138,3 +2152,71 @@ pattern = 'and (\d+) attack tests'
 source = ".lmbrain/knowledge/threat-model.md"
 token = '\bAT-\d+\b'
 why = "The third number in the same sentence. It happened to be right, which is why it is checked: a claim that is correct today and unproven is one edit away from being the next stale one."
+
+# The criterion these were written against, after [REVIEW-027] RF-004 found the
+# first seven protecting one half of a two-sided claim:
+#
+#   **one probe per half of every two-sided statement.**
+#
+# A limitation stated in one direction reads as complete, so the half that is
+# unpinned is the half a future edit removes without anything failing. The
+# original seven pinned the direction the remediation *added* and left unpinned
+# the direction that was already there — the same asymmetry of attention that
+# [REVIEW-025] RF-001 censured a level above, committed inside its own fix.
+
+[[probe]]
+id = "security-cadence-stretching"
+site = "SECURITY.md"
+pattern = '\*\*Stretching\*\* lengthens, in real time'
+count = 1
+why = "The slow half of the two-sided cadence claim. Deleting it returns the paragraph to naming one direction, which is the defect [REVIEW-025] RF-001 raised; for one revision it was unpinned while its twin was pinned, and the gate stayed green on the deletion."
+
+[[probe]]
+id = "security-cadence-two-thresholds"
+site = "SECURITY.md"
+pattern = 'requires only a \*\*blocking third\*\*'
+count = 1
+why = "[REVIEW-027] RF-002: stretching costs a blocking third, compressing costs a quorum, and the file said 'either direction' as if they were the same price. This is the sentence a researcher uses to price the attack, and it is the fact that explains why the protocol fails closed on one side and only reports on the other."
+
+[[probe]]
+id = "security-cadence-quorum-side"
+site = "SECURITY.md"
+pattern = 'compressing requires a \*\*quorum\*\*'
+count = 1
+why = "The other half of the same two-sided statement. The two thresholds are only informative together: naming the cheap one alone understates the fast attack, naming the expensive one alone understates the slow one."
+
+[[probe]]
+id = "security-cadence-measurement-has-error"
+site = "SECURITY.md"
+pattern = '\*\*The measurement has a declared error'
+count = 1
+why = "[REVIEW-027] RF-001: the measurement's two ends are biased in opposite directions, and for one revision the documents claimed the bias ran one way only. A measurement published without its error reads as exact, and this one failed closed on an honest chain while it read as exact."
+
+[[probe]]
+id = "security-sybil-three-not-guaranteed"
+site = "SECURITY.md"
+pattern = 'Three things are\s+specifically not guaranteed'
+count = 1
+why = "The enumeration that stops the anti-Sybil paragraph from reading as a generic admission: it names which three properties are absent, so a reader can check them rather than guess at the scope. Deleting it left the gate green."
+
+# --- markdown outside the sweep, each with its reason ------------------------
+#
+# [REVIEW-027] RF-005: every markdown a reader can reach is classified in one of
+# meta.documents, meta.claim_documents or this list, and check_document_closure
+# fails on anything in none of them. The bucket is named `unswept` and not
+# `unpublished` because some of its members are published — what is true of all
+# of them is that the sweep deliberately does not read them.
+
+[[unswept]]
+path = "AGENTS.md"
+why = "Operating instructions addressed to agents working in this repository, not to readers of the protocol or of the product. It carries no normative rule and no security claim, and its content is governed by .lmbrain/AGENT.md rather than by this inventory."
+
+[[unswept]]
+path = "README.md"
+why = "The repository front page. It is published — GitHub serves it to every visitor — but it carries build instructions and an orientation paragraph, no normative rule and no security claim, and its basename collides with the protocol README's probe key so it cannot be swept as a claim document until one of the two is renamed. The classification is not a permission: check_document_closure scans every `unswept` document for security-claim vocabulary and fails if one appears here, which is the day it has to become a claim document."
+
+# --- files that legitimately carry published values --------------------------
+
+[[transcription_exempt]]
+path = "sim/tools/published_artifacts_negative.py"
+why = "The negative proof of this tool. It reintroduces defects by editing published values, so it must carry them literally; recording it as a mirror would make C5 assert that the inventory's own test fixture is a copy of the documents, which is the opposite of what it is."

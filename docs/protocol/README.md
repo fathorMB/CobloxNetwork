@@ -307,35 +307,71 @@ who assumed an oversight would close it and change every published value that
 depends on it for no reason.
 
 The claim is stated with its class, because the unqualified version is false and
-was checked rather than assumed. Six other preimages of this protocol also omit
-`chain_id`, and each omits it for a reason of its own: `chain_id` itself, which
-cannot bind its own output; `node_id` and the `account_key` derivations, which
-are keys rather than references to a chain object; `object_id` and `input_hash`,
-which are content addresses and are **required** to be chain-independent so the
-same bytes have one name everywhere; and `dht_namespace_key`, which binds the
-genesis block ID, the chain ID's own input. What `validator_set_hash` is the
-exception to is the narrower class it belongs to: **a preimage over a
-chain-specific consensus object that other consensus objects reference by
-hash.** Every other member of that class — `tx_id`, `block_id`,
-`consensus_parameters_hash`, `policy_hash`, `parameter_set_hash`,
-`hosting_rate_card_hash`, `weak_subjectivity_checkpoint_hash`,
-`enrollment_request_hash`, `request_hash`, `response_hash`,
-`issuer_commitment`, `challenge_randomness`, `election_entropy`,
-`election_seed`, `election_ticket`, `admission_tag`, `enrollment_pow_salt` and
-`message_id` — carries `chain_id_32`.
+was checked rather than assumed — twice, since the first correction was itself
+still too wide. Six other **domain-separated** preimages of this protocol also
+omit `chain_id`, and each omits it for a reason of its own: `chain_id` itself,
+which cannot bind its own output; `node_id` and the `account_key` derivations,
+which are keys rather than references to a chain object; `object_id` and
+`input_hash`, which are content addresses and are **required** to be
+chain-independent so the same bytes have one name everywhere; and
+`dht_namespace_key`, which binds the genesis block ID, the chain ID's own input.
+What `validator_set_hash` is the exception to is the narrower class it belongs
+to: **a domain-separated preimage over a chain-specific consensus object that
+other consensus objects reference by hash.** Every other member of that class —
+`tx_id`, `block_id`, `consensus_parameters_hash`, `policy_hash`,
+`parameter_set_hash`, `hosting_rate_card_hash`,
+`weak_subjectivity_checkpoint_hash`, `enrollment_request_hash`, `request_hash`,
+`response_hash`, `issuer_commitment`, `challenge_randomness`,
+`election_entropy`, `election_seed`, `election_ticket`, `admission_tag`,
+`enrollment_pow_salt` and `message_id` — carries `chain_id_32`.
 
-The reason it needs no binding is that a `ValidatorSet` is already bound to its
-chain **by its own bytes**, three times over, and every object that names a set
-by hash is one whose contents differ between chains: `election.election_seed`
+**`domain-separated` is doing work in that sentence and is not a flourish.** The
+tagged-tree preimages are outside the class and would falsify it if they were
+not: `node_leaf` (`0x10`), `app_leaf` (`0x13`), `subscription_leaf` (`0x20`),
+`eligible_leaf` (`0x24`), `revocation_leaf` (`0x30`), `candidate_leaf` (`0x40`)
+and their interior nodes are all preimages over chain-specific consensus objects
+referenced by hash — through `state_root`, `eligible_set_root`,
+`revocation_root` — and none of them carries `chain_id`. They are separated by
+**tag byte** rather than by domain string, and their exemption is the general
+one below: a leaf is reachable only through the root that names it, and that
+root is carried by an object already bound to its chain.
+
+**The reason `validator_set_hash` needs no binding is that reason, and it is
+placed first because it is the one without an exception.** Every object that
+names a validator set by hash is itself chain-bound, on each of the three
+surfaces separately:
+
+- **quorum certificates** — the signatures they carry are taken over
+  `"coblox-block-vote-v0\0" || chain_id_32 || …`
+  ([ledger.md](ledger.md#what-validators-sign)), so a certificate replayed onto
+  another chain fails signature verification before its `validator_set_hash` is
+  consulted at all;
+- **weak subjectivity checkpoints** — the checkpoint preimage carries
+  `chain_id_32`, and a client rejects a checkpoint whose `chain_id` is not the
+  one it is configured with. The `validator_set_hash` inside it is a field of an
+  object that is already bound;
+- **set transitions** — `next_validator_set_hash` is a field of a `BlockHeader`,
+  and `block_id` carries `chain_id_32`. A transition is never observed outside
+  an authenticated header.
+
+A second, independent binding exists in the set's **own bytes**, and it is
+recorded here as corroboration rather than as the argument: `election.election_seed`
 and each `election_ticket` are derived through `chain_id_32`
-([ledger.md](ledger.md#the-derivation)), and every `key_binding_signature` in
-the set is taken over the global chain-bound signature procedure. Two chains
-therefore cannot produce the same `validator_set_hash` unless every one of those
-also coincides — which for the seed means the same entropy block IDs, and those
-are block IDs, which are chain-bound. The genesis set, the only set without an
-`election` record, still carries the key bindings. Adding `chain_id_32` to this
-preimage would restate a binding that is already there, at the cost of
-recomputing every published value that depends on it.
+([ledger.md](ledger.md#the-derivation)), and every `key_binding_signature` is
+taken over the global chain-bound signature procedure, so two chains cannot
+share a `validator_set_hash` without those coinciding too.
+
+**Why it is corroboration and not the argument.** On the **genesis** set — the
+only set without an `election` record — two of those three bindings do not
+exist, and the remaining one, `key_binding_signature`, binds through `chain_id`,
+whose derivation at genesis is circular and is recorded as an open debt
+([DEBT-020]). The bytes argument is therefore complete on every set except the
+one where it would have to stand alone. The three surfaces above cover the
+genesis set without depending on that derivation, which is why they are stated
+first.
+
+Adding `chain_id_32` to this preimage would restate a binding that is already
+there, at the cost of recomputing every published value that depends on it.
 
 `ChallengeRequestWithoutIdOrSignature` is the challenge request with both
 `challenge_id` and `issuer_signature` removed; `challenge_id` MUST equal
@@ -1033,19 +1069,51 @@ CadenceBand = {
   "block_interval_ms":u64-string,
   "min_ms_per_block":u64-string,
   "max_ms_per_block":u64-string,
-  "min_measured_blocks":u64-string
+  "min_measured_blocks":u64-string,
+  "max_external_clock_slack_ms":u64-string
 }
 ```
 
 `chain_id` MUST equal the client's configured chain ID; `block_interval_ms`,
-`min_ms_per_block` and `min_measured_blocks` MUST be positive; and
-`min_ms_per_block <= block_interval_ms <= max_ms_per_block` MUST hold. The last
-relation is what makes the object mean its name: a band that excluded the
-interval the protocol declares would put every conformant chain permanently out
-of band, and a guard that fires on everything fires on nothing.
-`min_measured_blocks` is the denominator's own floor — a ratio over a handful of
-blocks is noise, and a measurement below it is **not made**, which is reported
-as such and never as a pass.
+`min_ms_per_block`, `min_measured_blocks` and `max_external_clock_slack_ms`
+MUST be positive; `min_ms_per_block <= block_interval_ms <= max_ms_per_block`
+MUST hold; and `max_external_clock_slack_ms` MUST be less than
+`min_measured_blocks * block_interval_ms`.
+
+The first relation is what makes the object mean its name: a band that excluded
+the interval the protocol declares would put every conformant chain permanently
+out of band, and a guard that fires on everything fires on nothing.
+`min_measured_blocks` is a floor on the **numerator** — a ratio over a handful
+of blocks is noise, and a measurement below it is **not made**, which is
+reported as such and never as a pass.
+
+**`max_external_clock_slack_ms` is the floor the denominator needs, and it is
+there because for one revision this section had only the other one.** A light
+client counts blocks from the checkpoint's `height` but counts time from its
+`issued_at_ms`, and those are not the same instant: this document says two
+sections below that `issued_at_ms` is when the checkpoint was *produced*, which
+is after the height it names was finalized. Every block produced in between is
+counted **without its time**, so the measured rate is faster than the real one
+by an amount that has nothing to do with the chain. A client clock that is
+behind, or a release clock that is ahead, shortens the same interval. The three
+are indistinguishable inside the measurement and they add, which is why one
+field bounds their sum rather than three fields bounding one term each.
+
+The second relation couples it to the window: the tolerance must be smaller than
+the real time an honest chain takes to produce the smallest measurable window,
+`min_measured_blocks * block_interval_ms`. Above that, most of the blocks
+counted would be blocks the tolerance exists to excuse, and a tolerance larger
+than the measurement it qualifies is not a tolerance. A deployment whose release
+latency trips this raises `min_measured_blocks` until the window dominates the
+shortfall.
+
+**A shortcut this protocol does not take.** The checkpoint also carries
+`timestamp_ms`, and `issued_at_ms - timestamp_ms` looks like a free measurement
+of the release latency, per checkpoint and exact. It MUST NOT be used for it.
+`timestamp_ms` is written by the validators, so a client deriving its own
+tolerance from it would let the measured party set the tolerance it is measured
+against — [ADR-013] part 3 arriving through a door nobody was watching. The
+slack is a genesis constant for exactly this reason.
 
 **How the band differs from the two bounds objects, and it is not a detail.**
 `ElectionBounds` and `RewardBounds` bound values that a signed document carries,
@@ -1061,17 +1129,36 @@ available and is the one made here.
 - a **light client** measures from the checkpoint it holds to the header it has
   authenticated, at step 4b of the
   [light-client algorithm](ledger.md#light-client-balance-verification). It
-  fails closed above the band and **reports** below it. A client that has not
-  caught up counts fewer blocks than the chain produced, so its reading is
-  biased downwards and only downwards: too-slow is not soundly attributable to
-  the chain from that vantage point, and too-fast is, because sync lag cannot
-  manufacture blocks;
+  fails closed above the band, after `max_external_clock_slack_ms` has been
+  granted to the measured interval, and **reports** below it;
 - the **checkpoint release process** measures between two consecutive
   checkpoints it has itself signed, and MUST NOT issue a checkpoint for a chain
   whose measurement is outside the band **in either direction**, or whose
-  interval is too short to measure. It has neither sync lag nor a chain clock in
-  its inputs, so it is the party entitled to fail closed both ways — and it can
-  wait, which a light client asking for a balance cannot.
+  interval is too short to measure. It grants **no** slack, because both of its
+  endpoints are `issued_at_ms` values it produced itself: the release latency
+  appears in both and cancels, and so does a constant offset in its own clock.
+  It has neither sync lag nor a chain clock in its inputs, so it is the party
+  entitled to fail closed both ways — and it can wait, which a light client
+  asking for a balance cannot.
+
+**Why the two directions are treated differently, stated in the form that
+survives scrutiny.** Both ends of the client's measurement are biased, and they
+push the ratio in **opposite** directions: the block count is short by sync lag,
+and the elapsed time is short by release latency and clock error. Neither
+verdict is therefore attributable to the chain on its own. What separates them
+is what lies past the tolerance: nothing honest makes blocks appear, so a fast
+reading beyond `max_external_clock_slack_ms` has no innocent explanation, while
+a slow reading is indistinguishable from the client's own lag **at any
+magnitude** and no tolerance would change that. The client fails closed where a
+reading can be attributed and reports where it cannot.
+
+**And the two directions do not cost an attacker the same.** Slowing production
+down requires only a **blocking third**, which withholds the quorum. Speeding it
+up requires a **quorum**, because every block carries a quorum certificate under
+the [strict quorum predicate](ledger.md#quorum-predicate). The side a light
+client fails closed on is the more expensive one; the cheaper one it only
+reports. That is a consequence of where attribution is possible, not a judgement
+that the cheaper side matters less.
 
 `timestamp_ms` is not an input to either measurement, and MUST NOT become one.
 Both endpoints of both measurements are external to the chain by construction:
@@ -1174,6 +1261,24 @@ the checkpoint when that measurement falls outside the
 `min_measured_blocks` blocks. The first checkpoint of a chain has no
 predecessor and is exempt, which is stated rather than left to be inferred.
 
+**The same procedure bounds its own latency, and the bound is the band's.** The
+release process MUST NOT sign a checkpoint whose `issued_at_ms` is more than
+`max_external_clock_slack_ms` after it observed the finality of the `height` it
+names. This is the other half of that field: the client grants a tolerance, and
+the procedure is what makes the tolerance an upper bound on something real
+rather than a guess. A process that cannot meet it publishes a checkpoint on a
+more recent height instead of a stale one on an old height.
+
+**Declared limit.** If the release process violates that obligation, clients
+past the tolerance report the chain as faster than its band and fail closed on
+an honest chain. That is a fail-closed produced by the party holding the
+external clock, and the protocol accepts it in that direction: a client cannot
+tell a late checkpoint from a fast chain, and the alternative — deriving the
+latency from the checkpoint's own `timestamp_ms` — would hand the choice of
+tolerance to the validators. The containment is that the obligation is written,
+that the two numbers are the same number, and that a chain's own operators can
+observe their release latency directly.
+
 This is a **procedure, not a validity rule**, and the distinction is the same
 one the band itself rests on. Withholding a checkpoint does not stop a chain and
 is not meant to: it withdraws the external clock from a chain that is not
@@ -1252,6 +1357,20 @@ not economic facts and remain open:
   `block_interval_ms / 4` permits four times the intended real issuance rate
   before the measurement objects. `min_measured_blocks` is the noise floor, and
   its cost is latency — a band measured over a day sees a day late.
+
+  `max_external_clock_slack_ms` is the fourth and is sized against a measurable
+  fact rather than a judgement: the deployment's worst-case checkpoint release
+  latency, plus the worst-case clock error it is willing to tolerate at either
+  end. A slack of `L * min_ms_per_block / block_interval_ms` is exactly enough
+  to absorb a release latency of `L` on a chain running at the declared
+  interval, and a slack of `L` absorbs it with room. Sizing it **below** the
+  release process's real latency is a declared choice to fail closed on that
+  process's own delay, and sizing it at or above
+  `min_measured_blocks * block_interval_ms` is refused, because the tolerance
+  would then exceed the window it qualifies — a deployment that needs more slack
+  raises `min_measured_blocks` instead. Its cost is the only cost a tolerance
+  has: a genuinely fast chain goes unreported until the measured window grows
+  past it.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select

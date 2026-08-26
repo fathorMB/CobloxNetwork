@@ -25,6 +25,20 @@
 //! a defect whose severity is entirely in its invisibility that is the part
 //! that counts, and "closed" would say more than the code says.
 //!
+//! **And the measurement itself has a declared error.** Its two ends are biased
+//! in opposite directions — the block count downwards by sync lag, the elapsed
+//! time downwards by checkpoint release latency and clock error — so the ratio
+//! is only conclusive outside a tolerance the genesis band carries
+//! ([`CadenceBand::max_external_clock_slack_ms`]). An earlier revision of this
+//! module claimed the bias ran one way only; it does not, and [REVIEW-027]
+//! RF-001 is where that was established.
+//!
+//! **The two directions do not cost the same, and nothing here changes that.**
+//! Slowing production down needs only a **blocking third**, which withholds the
+//! quorum. Speeding it up needs a **quorum**, because every block carries a
+//! quorum certificate. The side this module fails closed on is the more
+//! expensive one; the cheaper one it only reports.
+//!
 //! **The second rule, and why it belongs in the same module.** `reward_epoch`
 //! had no derivation at all ([DEBT-019]): a conforming quorum could increment
 //! it at every block and multiply real issuance without violating anything, and
@@ -49,6 +63,14 @@ use crate::params::CadenceBand;
 /// *smaller* millisecond-per-block figure. The naming follows the quantity the
 /// reader cares about rather than the arithmetic, because a reader who has to
 /// remember which way the ratio points will eventually remember wrong.
+/// `#[must_use]` is not decoration here. The half of this API that fails closed
+/// is held by `Result`; the half that **reports** is held by this value alone,
+/// and a caller writing `check_cadence_light_client(...)?;` would consume the
+/// `Result`'s own `#[must_use]` and drop a `SlowerThanBand` without a warning.
+/// The slow side is the one with the lower threshold — a blocking third, not a
+/// quorum — and the exclusive motive, so it is the half that most needs to
+/// reach a caller ([REVIEW-027] RF-006).
+#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CadenceVerdict {
     /// The observed rate lies inside the genesis band.
@@ -113,7 +135,21 @@ impl CadenceVerdict {
 /// functions, because *which two clocks were used* is the whole of the
 /// argument and a general-purpose `(blocks, ms)` entry point would let a future
 /// caller feed it `timestamp_ms`.
-fn measure(blocks: u64, elapsed_ms: u64, band: &CadenceBand) -> CadenceVerdict {
+///
+/// `fast_side_slack_ms` is the real time that may be missing from `elapsed_ms`.
+/// It is added to the measured interval on the fast comparison only, and the
+/// asymmetry is deliberate: the fast side **fails closed** for a light client,
+/// so a reading produced by something other than the chain costs that client
+/// its balance verification, while the slow side only reports. Tolerance is
+/// spent where a false positive is expensive and withheld where it is not —
+/// and withholding it on the slow side matters, because that is the side with
+/// the lower threshold and the exclusive motive ([REVIEW-027], domanda 3).
+fn measure(
+    blocks: u64,
+    elapsed_ms: u64,
+    fast_side_slack_ms: u64,
+    band: &CadenceBand,
+) -> CadenceVerdict {
     if blocks < band.min_measured_blocks {
         return CadenceVerdict::Inconclusive {
             blocks,
@@ -125,7 +161,8 @@ fn measure(blocks: u64, elapsed_ms: u64, band: &CadenceBand) -> CadenceVerdict {
     // truncated figure is carried only as a diagnostic.
     let elapsed = u128::from(elapsed_ms);
     let observed_ms_per_block = elapsed_ms / blocks;
-    if elapsed < u128::from(blocks) * u128::from(band.min_ms_per_block) {
+    let elapsed_with_slack = elapsed + u128::from(fast_side_slack_ms);
+    if elapsed_with_slack < u128::from(blocks) * u128::from(band.min_ms_per_block) {
         return CadenceVerdict::FasterThanBand {
             blocks,
             elapsed_ms,
@@ -167,12 +204,41 @@ fn measure(blocks: u64, elapsed_ms: u64, band: &CadenceBand) -> CadenceVerdict {
 /// and a `min_ms_per_block` of zero would admit any rate at all, and neither
 /// would look like an error at the call site.
 ///
-/// **Declared limit, and it is the reason [`check_cadence_light_client`] is
-/// asymmetric.** A client that has not caught up to the tip counts fewer blocks
-/// than the chain produced, so its measurement is biased *downwards* and only
-/// downwards. A `SlowerThanBand` verdict from this vantage point is therefore
-/// not soundly attributable to the chain; a `FasterThanBand` verdict is,
-/// because sync lag cannot manufacture blocks.
+/// **Both ends of this measurement are biased, in opposite directions, and the
+/// ratio is what the two biases fight over.** For one revision this comment
+/// claimed the measurement was biased "downwards and only downwards"; that was
+/// false, and [REVIEW-027] RF-001 is the finding. The true statement has two
+/// halves:
+///
+/// - the **numerator** is biased downwards. A client that has not caught up to
+///   the tip counts fewer blocks than the chain produced, and sync lag cannot
+///   manufacture blocks;
+/// - the **denominator** is biased downwards too, and that pushes the *ratio*
+///   the other way. `issued_at_ms` is when the checkpoint was **produced**, not
+///   when the height it names was finalized
+///   (`README.md#weak-subjectivity-checkpoint` says so in as many words), so
+///   the blocks produced during release latency are counted **without their
+///   time**. A client clock that is behind, or a release clock that is ahead,
+///   subtracts from the same denominator.
+///
+/// So a `FasterThanBand` reading is **not** by itself attributable to the
+/// chain, and the fast comparison therefore carries
+/// [`CadenceBand::max_external_clock_slack_ms`], a genesis tolerance sized to
+/// the largest shortfall the deployment admits. What remains true, and is the
+/// reason the asymmetry survives the finding: past that tolerance, a fast
+/// reading has no honest explanation — nothing makes blocks appear — whereas a
+/// slow reading is indistinguishable from the client's own lag at any
+/// magnitude. Each side still fails closed only where its reading can be
+/// attributed; the fast side simply needed the tolerance to say where that is.
+///
+/// **A tempting shortcut that is not taken.** The checkpoint also carries
+/// `timestamp_ms`, the header timestamp at `height`, and
+/// `issued_at_ms - timestamp_ms` looks like a free measurement of the release
+/// latency. It is not used and must not be: `timestamp_ms` is written by the
+/// validators, so deriving the client's own tolerance from it would let the
+/// measured party choose the tolerance it is measured against. That is
+/// [ADR-013] part 3 arriving through the back door, and it is the reason the
+/// slack is a genesis constant instead.
 pub fn measure_cadence_from_checkpoint(
     chain_id: &ChainId,
     checkpoint_height: u64,
@@ -188,7 +254,12 @@ pub fn measure_cadence_from_checkpoint(
     let elapsed_ms = now_ms
         .checked_sub(checkpoint_issued_at_ms)
         .ok_or(CadenceError::ClockRegression)?;
-    Ok(measure(blocks, elapsed_ms, band))
+    Ok(measure(
+        blocks,
+        elapsed_ms,
+        band.max_external_clock_slack_ms,
+        band,
+    ))
 }
 
 /// The measurement the **checkpoint release procedure** runs, over two
@@ -212,7 +283,13 @@ pub fn measure_cadence_between_checkpoints(
     let elapsed_ms = later_issued_at_ms
         .checked_sub(earlier_issued_at_ms)
         .ok_or(CadenceError::ClockRegression)?;
-    Ok(measure(blocks, elapsed_ms, band))
+    // No slack, and this is the one place where saying so is load-bearing.
+    // Both endpoints are `issued_at_ms` values signed by the same process, so
+    // the release latency appears in both and **cancels**; a constant offset in
+    // that process's clock cancels with it. This measurement is therefore not
+    // affected by [REVIEW-027] RF-001, and granting it a tolerance it does not
+    // need would blunt the only two-sided fail-closed the protocol has.
+    Ok(measure(blocks, elapsed_ms, 0, band))
 }
 
 /// The light client's normative behaviour on a measurement.
@@ -220,11 +297,16 @@ pub fn measure_cadence_between_checkpoints(
 /// Fails closed on `FasterThanBand` and returns the verdict otherwise, so a
 /// `SlowerThanBand` reading reaches the caller as a **reported observation**
 /// rather than a rejection. The asymmetry is argued at
-/// [`measure_cadence_from_checkpoint`]: from a client's vantage point one
-/// direction is soundly attributable to the chain and the other is not, and
-/// rejecting on a reading that the client's own sync lag produces would be a
-/// guard that cries wolf — which [ADR-012] precision 3 records as the way a
-/// guard stops being run at all.
+/// [`measure_cadence_from_checkpoint`], and the argument is narrower than an
+/// earlier revision of it claimed: past the genesis slack a fast reading has no
+/// honest explanation, while a slow reading is indistinguishable from the
+/// client's own sync lag at any magnitude. Rejecting on a reading that the
+/// client's own position produces would be a guard that cries wolf — which
+/// [ADR-012] precision 3 records as the way a guard stops being run at all, and
+/// which this function did on an honest chain until the slack existed.
+///
+/// The returned verdict is `#[must_use]`: reporting is the other half of this
+/// rule, and a caller that drops the value has not performed it.
 pub fn check_cadence_light_client(verdict: CadenceVerdict) -> Result<CadenceVerdict> {
     match verdict {
         CadenceVerdict::FasterThanBand {
@@ -408,6 +490,10 @@ mod tests {
             min_ms_per_block: 2_500,
             max_ms_per_block: 10_000,
             min_measured_blocks: 100,
+            // Five minutes of shortfall tolerated on the fast side:
+            // release latency plus clock error. A test input, not a
+            // launch value.
+            max_external_clock_slack_ms: 300_000,
         }
     }
 
@@ -467,17 +553,17 @@ mod tests {
         // while disagreeing on the neighbouring case below.
         let b = band();
         assert!(matches!(
-            measure(100, 249_999, &b),
+            measure(100, 249_999, 0, &b),
             CadenceVerdict::FasterThanBand { .. }
         ));
         assert!(matches!(
-            measure(100, 250_000, &b),
+            measure(100, 250_000, 0, &b),
             CadenceVerdict::WithinBand { .. }
         ));
         // 100 blocks in 1 000 099 ms truncates to 10 000 ms per block, which a
         // dividing implementation would call in-band; it is not.
         assert!(matches!(
-            measure(100, 1_000_099, &b),
+            measure(100, 1_000_099, 0, &b),
             CadenceVerdict::SlowerThanBand { .. }
         ));
     }
@@ -502,8 +588,8 @@ mod tests {
 
     #[test]
     fn the_lag_names_an_index_that_is_not_advancing() {
-        // Height 3 456 000 is 200 epochs of chain, so epochs 0..=198 are
-        // settleable.
+        // Height 3 456 000 is 200 epochs of chain, so epochs 0..=199 are
+        // settleable: epoch 199 needs height 200 * 17 280, which is exactly it.
         assert_eq!(
             settleable_reward_epoch(3_456_000, 86_400_000, 5_000).unwrap(),
             Some(199)

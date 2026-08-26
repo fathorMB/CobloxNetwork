@@ -2,7 +2,7 @@
 id: SPEC-016
 # Note: Quote the title if it contains a colon
 title: "Gli orologi della catena: cadenza misurabile, epoca di ricompensa, e il legame di catena del set"
-status: review
+status: done
 kind: feature
 priority: high
 area: consensus
@@ -29,6 +29,21 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-26
     action: "transitioned working -> review"
+  - date: 2026-08-26
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-26
+    action: "transitioned review -> done"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "d8ba8fb66014eef3b9c34439c0c35cbe17f58c587af4f03f6faf24c2515abd5f"
+    evidence_ref: "REVIEW-027"
+    id: "SPEC-016-ATTEST-001"
+    requirement_digest: "713d45cefafc49f3014c7b58c2f1209bb396655703758ddc8d6607dbbd67299b"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-26T02:29:59.895127300+02:00"
 ---
 # Gli orologi della catena: cadenza misurabile, epoca di ricompensa, e il legame di catena del set
 
@@ -114,7 +129,7 @@ L'ordine è quello di forza stabilito da AGENT-007, e la prima è la sola impres
 - [x] GATE-NO-TIMESTAMP-RULE | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Una ricerca su tutto il diff mostra che **nessuna regola sulla distanza fra `timestamp_ms` consecutivi è stata introdotta**. È respinta da [ADR-013] e la sua reintroduzione sarebbe la famiglia 3 commessa dentro il rimedio: la gate esiste perché è il rimedio che sembra ovvio.
 - [x] GATE-BOTH-DIRECTIONS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Per `reward_epoch` entrambi i versi sono trattati con un caso ciascuno: indice che avanza troppo in fretta e indice che non avanza. Il secondo congela l'emissione senza violare alcuna regola ed è il gemello del caso che `README.md` già dichiara invalido per `reward_epoch_ms` sopra il tetto.
 - [x] GATE-ADR012 | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La passata su tutti gli artefatti pubblicati è eseguita con lo strumento versionato e la trascrizione allegata, **anche se non trova nulla**.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha rivisto la chiusura e il Lead ha accettato la review. Due dei tre debiti nascono da una sua valutazione, e il terzo da una sua osservazione adiacente: chiuderli senza la sua verifica sarebbe incoerente con il modo in cui sono stati aperti.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha rivisto la chiusura e il Lead ha accettato la review. Due dei tre debiti nascono da una sua valutazione, e il terzo da una sua osservazione adiacente: chiuderli senza la sua verifica sarebbe incoerente con il modo in cui sono stati aperti.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
@@ -618,6 +633,368 @@ $ cargo clippy --workspace --all-targets --all-features -- -D warnings
 $ cargo test --workspace --all-features
 TOTAL PASSED: 147   (invariato: la remediation non tocca il crate)
 ```
+
+---
+
+## Remediation, giro 2 (2026-08-26) — [REVIEW-027], GATE-SECREVIEW
+
+Otto finding: uno `high`, quattro `medium`, tre `low`. Tutti chiusi. RF-002 di
+[REVIEW-027] è indirizzato; la riga di [DEBT-013] resa falsa resta al Lead per
+istruzione esplicita.
+
+### RF-001 (high) — il denominatore ha una distorsione propria e opposta
+
+**Il difetto, e la parte che mi era sfuggita.** Il mio argomento — *un client non
+allineato conta meno blocchi, quindi la misura è distorta verso il basso e solo
+verso il basso* — è vero del **numeratore** e non dice nulla del
+**denominatore**. `issued_at_ms` è, per definizione scritta in
+`README.md#weak-subjectivity-checkpoint`, il momento in cui il checkpoint è stato
+**prodotto**, non quello in cui l'altezza che nomina è stata finalizzata: i
+blocchi prodotti durante la latenza di rilascio sono quindi **contati senza il
+loro tempo**, e la lettura è spinta verso `FasterThanBand`, che è il lato su cui
+il client fallisce chiuso. Avevo guardato un estremo di una misura che ne ha due,
+e avevo messo il pavimento solo su quello.
+
+**La formulazione nuova**, che è la stessa in tutti gli artefatti che portavano
+quella vecchia:
+
+> Entrambi gli estremi sono distorti verso il basso, e le due distorsioni
+> spingono il **rapporto** in versi opposti: il conteggio dei blocchi è corto per
+> il ritardo di sync, il tempo misurato è corto per la latenza di rilascio e per
+> l'errore d'orologio. Nessuno dei due verdetti è attribuibile alla catena da
+> solo. Ciò che separa le due direzioni è cosa c'è **oltre la tolleranza**: nulla
+> di onesto fa apparire blocchi, quindi una lettura veloce oltre
+> `max_external_clock_slack_ms` non ha spiegazione innocente, mentre una lettura
+> lenta è indistinguibile dal ritardo del client **a qualunque grandezza**, e
+> nessuna tolleranza cambierebbe questo.
+
+**Cinque artefatti, non quattro.** La review ne nomina quattro; il quinto è
+l'intestazione di modulo di `cadence.rs`, che portava la stessa affermazione in
+forma riassunta.
+
+1. `core/coblox-core/src/cadence.rs` — doc di `measure_cadence_from_checkpoint`;
+2. `core/coblox-core/src/cadence.rs` — intestazione di modulo (il quinto sito);
+3. `core/coblox-core/src/cadence.rs` — doc di `check_cadence_light_client`;
+4. `docs/protocol/README.md` §*Cadence band*;
+5. `docs/protocol/ledger.md` passo 4b;
+6. `SECURITY.md` §*Known limitations*.
+
+**La tolleranza sul lato veloce, e perché non si chiama come la review
+suggeriva.** Nuovo campo di genesi in `CadenceBand`:
+`max_external_clock_slack_ms`. Il confronto veloce diventa
+`elapsed_ms + max_external_clock_slack_ms < blocks * min_ms_per_block`; il lato
+lento non riceve tolleranza, e il processo di rilascio non ne riceve affatto.
+
+La review propone `max_release_latency_ms`. **Non l'ho chiamato così, ed è una
+scelta motivata.** Lo stesso ammanco è prodotto da tre cause — latenza di
+rilascio, orologio del client indietro, orologio del rilascio avanti — che sono
+indistinguibili dentro la misura e **si sommano**. Un campo che ne nomina una
+vincolerebbe un termine di una somma: è la famiglia 3, commessa nel rimedio a un
+finding di famiglia 3. Il campo è denominato in ciò che vincola, cioè la somma.
+
+**La regola relazionale, e un errore che ho fatto e corretto prima di consegnare.**
+Ho scritto per primo `max_external_clock_slack_ms < min_measured_blocks *
+min_ms_per_block`, che è la soglia della review letta al contrario. È **sbagliato**:
+vieta esattamente la latenza che il campo esiste per tollerare, e i miei stessi
+test l'hanno respinta subito. La regola giusta è
+
+```text
+0 < max_external_clock_slack_ms < min_measured_blocks * block_interval_ms
+```
+
+cioè la tolleranza deve essere più corta della **finestra** che qualifica —
+`min_measured_blocks * block_interval_ms` è il tempo reale che una catena onesta
+impiega a produrre la finestra misurabile più piccola. Sopra quella soglia la
+maggior parte dei blocchi contati sarebbero blocchi che la tolleranza esiste per
+scusare. Un deployment che ha bisogno di più tolleranza alza
+`min_measured_blocks`, e questo è ciò che rende i due pavimenti **una** regola
+invece di due. La ragione aritmetica per cui la prima versione era sbagliata è
+scritta accanto alla regola: l'ammanco entra nel confronto scalato di
+`min_ms_per_block / block_interval_ms`, quindi una slack di `L * m / I` copre già
+una latenza `L`.
+
+**La procedura di rilascio prende lo stesso numero.** `README.md` ora vincola il
+processo a non firmare un checkpoint il cui `issued_at_ms` sia più di
+`max_external_clock_slack_ms` dopo l'osservazione della finalità dell'altezza che
+nomina. È la seconda metà del campo: il client concede una tolleranza, e la
+procedura è ciò che la rende un limite superiore su qualcosa di reale invece che
+una supposizione. **Il residuo è dichiarato**: se il processo viola il proprio
+obbligo, i client oltre la tolleranza falliscono chiusi su una catena onesta, ed
+è visibile nella trascrizione (il caso `L = 3 600 000`).
+
+**Una scorciatoia nominata perché non venga presa.** Il checkpoint porta anche
+`timestamp_ms`, e `issued_at_ms - timestamp_ms` sembra una misura gratuita ed
+esatta della latenza di rilascio, per checkpoint. È **vietata** in `README.md`,
+in `ledger.md` e in `cadence.rs`: `timestamp_ms` è scritto dai validatori, quindi
+derivarne la tolleranza del client lascerebbe alla parte misurata la scelta della
+tolleranza con cui è misurata. È [ADR-013] parte 3 che rientra da una porta che
+nessuno stava guardando, ed è la ragione per cui la slack è una costante di
+genesi.
+
+**Il valore non è stato scelto.** È istruito nella lista DRAFT con la formula
+esatta (`L * min_ms_per_block / block_interval_ms` basta, `L` basta con margine),
+il costo della scelta in entrambi i versi, e il rimando all'operatore.
+
+### RF-002 (medium) — `SECURITY.md` dava lo stesso prezzo alle due direzioni
+
+Riscritto: *stretching* richiede un **terzo bloccante**, *compressing* richiede un
+**quorum**, perché ogni blocco porta un certificato di quorum e nessuna minoranza
+può far esistere un blocco. La frase chiude dicendo che **l'attacco più economico
+è quello all'incumbency**, che è il lato su cui il protocollo si limita a
+segnalare. Lo stesso fatto è ora anche in `README.md#cadence-band` e
+nell'intestazione di `cadence.rs`, perché era assente da tutti e tre.
+
+### RF-003 (medium) — la classe di [DEBT-014], e l'ordine degli argomenti
+
+(a) **«domain-separated» inserito** nella definizione della classe, in
+`README.md` e in `ledger.md`, con il paragrafo che dice perché le preimmagini ad
+albero sono fuori classe — sono separate per tag byte, non per dominio, ed
+ereditano il legame dall'oggetto che nomina la radice. I sei controesempi
+(`node_leaf` `0x10`, `app_leaf` `0x13`, `subscription_leaf` `0x20`,
+`eligible_leaf` `0x24`, `revocation_leaf` `0x30`, `candidate_leaf` `0x40`) sono
+nominati, così che il lettore possa rifare la verifica invece di crederci.
+
+(b) **Ordine invertito.** L'argomento dell'oggetto che nomina è ora il portante e
+quello per byte è corroborazione, con la ragione scritta: sul **set di genesi**
+cadono `election_seed` ed `election_ticket`, resta il solo
+`key_binding_signature`, che lega attraverso `chain_id`, la cui derivazione alla
+genesi è circolare e aperta come [DEBT-020]. L'argomento per byte è completo su
+ogni set tranne quello in cui dovrebbe reggere da solo.
+
+(c) **La pronuncia separata sulle tre superfici** è scritta in entrambi i
+documenti: certificati di quorum (firme su `coblox-block-vote-v0` con
+`chain_id_32`), checkpoint (preimmagine legata alla catena e `chain_id`
+confrontato), transizioni (`next_validator_set_hash` dentro un `BlockHeader`, e
+`block_id` porta `chain_id_32`).
+
+### RF-004 (medium) — le probe proteggevano una metà sola
+
+Cinque probe nuove su `SECURITY.md`: `security-cadence-stretching`,
+`security-cadence-two-thresholds`, `security-cadence-quorum-side`,
+`security-cadence-measurement-has-error`, `security-sybil-three-not-guaranteed`.
+
+Il criterio è scritto nel commento del blocco, perché il rimedio senza il criterio
+si ripete: **una probe per ciascuna metà di ogni affermazione a due lati**, dato
+che una limitazione enunciata a metà si legge come completa. Le sette originali
+avevano pinnato la direzione che la remediation **aggiungeva** e lasciato scoperta
+quella che c'era già — la stessa asimmetria di attenzione che [REVIEW-025] RF-001
+censurava un livello sopra, commessa dentro il proprio rimedio.
+
+Ho inoltre applicato la nota di forma della review, limitatamente alle probe su
+`SECURITY.md`: gli a-capo dentro i pattern sono diventati `\s+`, così un
+riflusso del paragrafo a testo immutato non fa fallire la gate. Serviva anche per
+un'altra ragione: il Lead riscriverà il paragrafo anti-Sybil, e due delle probe
+esistenti codificavano l'a-capo che quella riscrittura sposta. Le altre 91 probe
+del manifesto hanno la stessa forma e **non** le ho toccate: sono convenzione
+preesistente e fuori da questa spec.
+
+### RF-005 (medium) — la gate senza lato disco, chiusa un livello sopra
+
+**Il finding.** `C11-CLAIMDOC` confrontava `meta.claim_documents` con la costante
+Python `CLAIM_DOCS`: due dichiarazioni che si davano ragione a vicenda. Un
+`SECURITY-OVERVIEW.md` nuovo che dichiara «Sybil-resistant» e «prevents» passava
+verde.
+
+**Non ho chiuso l'istanza, ho chiuso la classe.** Il difetto non è che una lista
+fosse corta: è che **una lista può essere corta senza che nulla lo dica**. Il
+manifesto aveva tre liste consultate dal tool e **due** erano prive di lato
+disco: `CLAIM_DOCS` e `MIRROR_FILES`. Ora nessuna lo è.
+
+1. **`CLAIM_DOCS` non esiste più.** I documenti di pretese si leggono dal
+   manifesto, che è l'unica dichiarazione rimasta.
+2. **`check_document_closure`** enumera dal disco ogni markdown raggiungibile —
+   radice più `docs/**` — e pretende che ciascuno sia classificato in
+   `meta.documents`, `meta.claim_documents` o `[[unswept]]` con una ragione
+   scritta. Non classificato ⇒ **fallimento**, perché il difetto lo ha prodotto
+   il silenzio. Verifica anche il verso opposto (una classificazione che nomina
+   un file assente) e le sovrapposizioni.
+3. **Il bucket si chiama `unswept` e non `unpublished`**, perché alcuni dei suoi
+   membri **sono** pubblicati: `README.md` alla radice lo è. Ciò che è vero di
+   tutti è che la passata non li legge, ed è quello il nome.
+4. **Il bypass del mio stesso rimedio è chiuso.** Un documento parcheggiato in
+   `unswept` afferma di non portare pretese, e un'affermazione che nessuno
+   controlla è come `SECURITY.md` è rimasto fuori per tutta la vita del tool.
+   `check_document_closure` cerca quindi il vocabolario di una pretesa di
+   sicurezza nei documenti `unswept` e fallisce se ne compare una — altrimenti lo
+   scenario di RF-005 si riproduce classificando invece che nascondendo.
+5. **`MIRROR_FILES` non esiste più**, ed è la stessa malattia sull'altra lista.
+   `check_transcription_closure` enumera i sorgenti (`sim/**/*.py`,
+   `core/**/*.rs`), vi cerca i digest **pubblicati**, e pretende che ogni
+   occorrenza sia registrata in `mirrors`. Non registrata ⇒ fallimento. Le
+   esenzioni legittime sono dichiarate in `[[transcription_exempt]]` con la
+   ragione.
+6. **La prima esecuzione ha trovato quindici trascrizioni** che l'inventario non
+   conosceva — quattordici in `canonical_serialization.rs`, una in
+   `light_client_perimeter.rs` — cioè valori pubblicati copiati in una suite di
+   conformità e mai confrontati con la loro fonte. Registrate: `C5` passa da 43
+   a 57 controlli.
+7. **Un difetto latente nel mio codice del giro 1, trovato aggiungendo la
+   chiusura.** Le probe sono indicizzate per nome di documento, e unire i
+   documenti di pretese ai documenti di protocollo faceva **ombreggiare** un
+   `README.md` all'altro: classificare la radice come documento di pretese ha
+   fatto fallire undici probe di `docs/protocol/README.md` che leggevano il file
+   sbagliato. La collisione è ora un **errore diagnosticato** invece che
+   un'ombreggiatura silenziosa, e `README.md` alla radice sta in `unswept` con
+   quella ragione scritta.
+
+### RF-006 / RF-007 / RF-008 (low)
+
+- **RF-006**: `#[must_use]` su `CadenceVerdict`, con la ragione accanto — la metà
+  che fallisce chiuso è tenuta da `Result`, la metà che **segnala** era tenuta
+  dalla prosa, ed è la metà con la soglia più bassa e il movente esclusivo. La
+  prova è arrivata da sé: sotto `-D warnings` i miei stessi test nuovi non
+  compilavano più, ed è esattamente il costrutto che la review descrive. In
+  `ledger.md` passo 4b è scritto **a chi** il client riporta, perché un «MUST
+  report» senza destinatario è una parola.
+- **RF-007**: il limite cumulativo è ora enunciato con
+  `existence_fund_microtokens_per_epoch_max`, che è nell'ancora di genesi, con
+  scritto che `F` è governata e che il limite in `F` vale solo a policy ferma.
+- **RF-008**: `0..=198` → `0..=199`, con il calcolo accanto.
+
+### RF-002 di [REVIEW-027] sul debito, e ciò che non ho toccato
+
+`.lmbrain/debts/open/DEBT-013-*.md` **non è stato toccato**, su istruzione. Il
+rafforzamento del paragrafo anti-Sybil **non è stato scritto**: è del Lead, con
+la formulazione di AGENT-007 e il qualificatore per-epoca obbligatorio. Le mie due
+probe esistenti su quel paragrafo usano ora `\s+` e sopravvivono alla
+riscrittura. `sim/coblox_sim/recommended.py` e le due liste chiuse del light
+client restano fuori, confermate da entrambe le review.
+
+### Verifica del giro 2
+
+- `cargo test --workspace --all-features`: **151 passati** (147 → +4), 0 falliti.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`: pulito.
+- `cargo fmt --check`: pulito.
+- `published_artifacts.py`: PASS. C10 **103** probe (98 → +5), C11 **8**
+  candidati, **C5-DISCOVERED 57** trascrizioni (classe nuova), C5 43.
+- `published_artifacts_negative.py`: PASS — **15 mutazioni su 11 classi**, più
+  **tutte e 103 le probe** provate singolarmente.
+- `protocol_hashes.py`: PASS, nessun valore pubblicato mosso in questo giro.
+- Tre prove in negativo nuove sul crate, su albero copiato fuori dal repository.
+
+### Trascrizione del giro 2
+
+```text
+=========== GATE-MEASURE-BINDS, col caso a latenza non nulla ===========
+band: interval 5000 ms/block, accepted 2500..=10000 ms/block,
+      numerator floor 100 blocks, denominator slack 300 000 ms
+
+-- i tre casi che la gate aveva, tutti a latenza zero --
+  IN BAND     1000 blocchi in 5 000 000 ms   WithinBand      client Ok / release Ok
+  OUT (fast)  1000 blocchi in 1 000 000 ms   FasterThanBand  client Err / release Err
+  OUT (slow)  1000 blocchi in 40 000 000 ms  SlowerThanBand  client Ok  / release Err
+  UNMEASURED    50 blocchi in   250 000 ms   Inconclusive    client Ok  / release Err
+
+-- il caso che la gate NON aveva: catena onesta a 5 000 ms/blocco,
+   checkpoint onesto su height 0 firmato L ms dopo la finalità --
+  L=  600 000 ms  tip= 180 blocchi  elapsed misurato= 300 000 ms
+     verdict        : WithinBand { blocks: 180, elapsed_ms: 300000, observed_ms_per_block: 1666 }
+     light client   : Ok("proceeds")      <-- prima del rimedio: Err(FasterThanBand)
+  L=  600 000 ms  tip= 120 blocchi  elapsed misurato=       0 ms
+     verdict        : WithinBand { blocks: 120, elapsed_ms: 0, observed_ms_per_block: 0 }
+     light client   : Ok("proceeds")      <-- l'istante peggiore, e regge
+  L=3 600 000 ms  tip= 720 blocchi  elapsed misurato=       0 ms
+     verdict        : FasterThanBand { blocks: 720, elapsed_ms: 0, observed_ms_per_block: 0 }
+     light client   : Err(Cadence(FasterThanBand { .. }))
+     ^ il residuo DICHIARATO: una latenza di un'ora eccede la tolleranza
+       dichiarata di cinque minuti, e la procedura di rilascio vieta di
+       firmare quel checkpoint. Il client non puo distinguerlo da una catena
+       veloce, e README.md lo scrive invece di lasciarlo scoprire.
+
+-- e la tolleranza non cancella la guardia --
+  genuinely fast: 1000 blocchi, 1 000 000 ms misurati, slack 300 000
+     verdict        : FasterThanBand { blocks: 1000, elapsed_ms: 1000000, .. }
+     light client   : Err(Cadence(FasterThanBand { .. }))
+
+============ le tre prove in negativo nuove, su albero copiato ============
+DEFECT E: il confronto veloce perde la slack (il codice pre-RF-001)
+  test an_honest_chain_behind_a_slow_release_process_is_not_reported_fast ... FAILED
+  test the_release_measurement_takes_no_slack_because_its_latency_cancels ... FAILED
+  test the_slack_does_not_disable_the_fast_side ... FAILED
+  test result: FAILED. 14 passed; 3 failed
+
+DEFECT F: la misura di rilascio riceve la slack del client (che non le serve)
+  test the_release_measurement_takes_no_slack_because_its_latency_cancels ... FAILED
+  test result: FAILED. 16 passed; 1 failed
+
+DEFECT G: CadenceVerdict perde #[must_use], e il verdetto si butta via
+  senza:  cargo clippy -- -D warnings   ->  Finished (nessun avviso)
+  con:    cargo clippy -- -D warnings   ->  error: unused
+          `coblox_core::cadence::CadenceVerdict` that must be used
+
+============================ GATE-ADR012 ============================
+$ python sim/tools/published_artifacts.py
+  C1-DOMAIN         40   C2-TAG            24   C3-FIXTURE-ID     16
+  C4-VALUE          51   C5-MIRROR         43   C7-COVERAGE       51
+  C8-ENCODING        1   C9-EXAMPLE         1   C5-DISCOVERED     57
+  C10-PROBE        103   C11-CLAIMDOC       8
+published-artifact inventory: PASS
+
+  prima esecuzione della chiusura, PRIMA di classificare e registrare:
+  FAIL C11-CLAIMDOC: AGENTS.md is a markdown document on disk and is in none of
+    meta.documents, meta.claim_documents or [[unswept]].
+  FAIL C11-CLAIMDOC: README.md is a markdown document on disk and is in none of ...
+  FAIL C5-MIRROR: core/coblox-core/tests/canonical_serialization.rs carries the
+    published digest 1df0a645... and is not recorded in that value's `mirrors`.
+    [... 15 trascrizioni non registrate in totale ...]
+  published-artifact inventory: FAIL (21 finding(s))
+
+$ python sim/tools/published_artifacts_negative.py
+=== control: the unmutated copy ===        published-artifact inventory: PASS
+=== C10-PROBE, every probe individually ===
+deleting each probe's own pinned passage from its own document, 103 case(s)
+  every one of the 103 probes was observed failing
+
+=== C11-CLAIMDOC ===  (RF-005, lo scenario esatto della review)
+defect reintroduced: a published markdown appears that is in none of the three
+classifications - in which a new SECURITY-OVERVIEW.md claims Sybil resistance
+  FAIL C11-CLAIMDOC: SECURITY-OVERVIEW.md is a markdown document on disk and is
+  in none of meta.documents, meta.claim_documents or [[unswept]].
+  exit=1 names C11-CLAIMDOC: True
+
+=== C11-CLAIMDOC ===  (il bypass del rimedio, chiuso)
+defect reintroduced: a document parked in the `unswept` bucket starts making a
+security claim, which is the way the closure check would be bypassed by
+reclassifying instead of by hiding
+  FAIL C11-CLAIMDOC: README.md is classified `unswept` on the grounds that it
+  carries no claim, and it now contains 'prevents'. Move it to
+  meta.claim_documents and pin what it asserts, or remove the claim.
+  exit=1 names C11-CLAIMDOC: True
+
+=== C5-MIRROR ===  (la stessa malattia sull'altra lista)
+defect reintroduced: a source file transcribes a published digest and no one
+records it as a mirror
+  FAIL C5-MIRROR: core/coblox-core/tests/election_degenerate.rs carries the
+  published digest 2eac8b0a... and is not recorded in that value's `mirrors`.
+  exit=1 names C5-MIRROR: True
+
+negative proof: PASS - 15 mutations across 11 defect classes, plus every probe
+individually, each observed failing
+
+============================ suite finale ============================
+$ cargo fmt --check                                             FMT OK
+$ cargo clippy --workspace --all-targets --all-features -- -D warnings
+    Finished `dev` profile
+$ cargo test --workspace --all-features
+TOTAL PASSED: 151   (failing suites: 0)
+$ python sim/tools/protocol_hashes.py
+every published value reproduced: PASS   (nessun valore mosso in questo giro)
+```
+
+### Un disaccordo che non ho, e uno che ho
+
+**Non ho** disaccordo su RF-001. L'argomento era mio, era falso, e la review lo
+mostra con l'aritmetica. La parte che mi interessa registrare è che la frase
+falsa era *deducibile dai documenti che avevo davanti*: `README.md` dice da
+sempre che `timestamp_ms` e `issued_at_ms` sono distinti e che il secondo è
+*«when the checkpoint itself was produced»*. È il tratto comune di
+`recurring-defects.md` — il difetto era già scritto e non guardato — applicato al
+mio lavoro, e la sede in cui è stato scritto era la sezione che stavo citando.
+
+**Ho** un rilievo minore sul rimedio proposto per RF-001, ed è quello sul nome del
+campo, argomentato sopra: `max_release_latency_ms` avrebbe vincolato un termine di
+una somma. Ho scelto il nome della somma e ho scritto la ragione accanto al campo,
+perché il prossimo lettore non lo restringa credendo di precisarlo.
 
 ### Handoff status
 - [x] Ready for Project Lead review

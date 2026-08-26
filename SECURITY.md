@@ -65,9 +65,24 @@ surprises. Each is documented in depth in the linked artifact.
 **The network is not cryptographically Sybil-resistant.** It is robust
 against *forgery* — balances, signatures, double spending — but it does not
 distinguish `N` emulated nodes on one host from `N` real devices. Sybil
-resistance is treated as an economic property governed by the fraction of
-emission that flows through the existence income, not as a cryptographic
-guarantee. See `ADR-007` in `.lmbrain/decisions/`. Three things are
+resistance is treated as an economic property, not as a cryptographic
+guarantee, and since `SPEC-009` one half of it is held by a rule rather than by
+a well-chosen value. **A fleet of `N` emulated nodes cannot enlarge what the
+network pays out in a reward epoch.** Existence income is a fund divided among
+eligible nodes, not an amount per node; the fund has a ceiling fixed in the
+genesis trust anchor and outside on-chain governance (`RewardBounds`); the one
+channel that would have paid per node without an aggregate ceiling is required
+by a validity rule to be zero, so a policy document that sets it positive is
+rejected on acceptance rather than discouraged. What a fleet buys is a larger
+**share** of a fixed fund — dilution of honest nodes, not inflation.
+
+**This bound is per reward epoch, and not per unit of real time.** The epoch
+index is paced by block height, so a validator quorum that compresses the real
+cadence multiplies real issuance whatever the fleet does; see *How fast the
+chain runs is measured, not enforced* below. The two limitations are adjacent
+and only one of them is held by a rule.
+
+See `ADR-007` and `ADR-010` in `.lmbrain/decisions/`. Three things are
 specifically not guaranteed: enrollment availability under sustained attack,
 cryptographic Sybil resistance, and independent verification of validator
 eligibility.
@@ -88,23 +103,41 @@ chain is written by the validators themselves, so no internal validity rule can
 bound real time — and a rule on the distance between consecutive block
 timestamps is rejected rather than merely absent, because it would oblige a set
 to *write* a cadence and not to *produce* one. Block timestamps are constrained
-only to increase and not to run ahead of the receiver's clock. A blocking third
-can therefore move the real production rate in either direction while the chain
-stays live and every block stays valid.
+only to increase and not to run ahead of the receiver's clock. A validator set
+can therefore move the real production rate while the chain stays live and every
+block stays valid.
 
-The two directions cost different things and do not substitute for each other.
-**Stretching** lengthens, in real time, everything the protocol denominates in
-blocks: validator incumbency, and the effective delay of a revocation.
-**Compressing** multiplies real issuance, because the reward-epoch index is
-derived from block height — an epoch that may be settled after a fixed number of
-blocks is settled sooner in real time when blocks arrive sooner.
+**The two directions cost different things, do not substitute for each other,
+and are not bought at the same price.** **Stretching** lengthens, in real time,
+everything the protocol denominates in blocks: validator incumbency, and the
+effective delay of a revocation. It requires only a **blocking third**, which
+simply withholds the quorum. **Compressing** multiplies real issuance, because
+the reward-epoch index is derived from block height — an epoch that may be
+settled after a fixed number of blocks is settled sooner in real time when
+blocks arrive sooner. But compressing requires a **quorum**, because every block
+carries a quorum certificate: no minority can make a block exist. The cheaper
+attack is the one on incumbency.
 
 What v0 has is a measurement, not a prohibition. The only external clock the
 protocol has is the signed weak-subjectivity checkpoint, whose `issued_at_ms` no
 validator writes; a light client and the checkpoint release process each compare
-the observed rate against a two-sided band fixed in the genesis distribution, and
-each fails closed where its own vantage point makes the reading sound. The
-manoeuvre is not prevented. It is made visible, against a threshold declared
+the observed rate against a two-sided band fixed in the genesis distribution.
+
+**The measurement has a declared error, and it is declared because getting this
+wrong once already cost a false positive on an honest chain.** A light client
+counts blocks from the checkpoint's height but counts time from the moment the
+checkpoint was *produced*, which is later — so blocks produced while the
+checkpoint was being released are counted without their time, and the reading is
+pushed toward "too fast" by something that is not the chain. A client clock that
+is behind, or a release clock that is ahead, does the same. The genesis band
+therefore carries an explicit tolerance for that shortfall, and the release
+process is bound by the same number. Past the tolerance a fast reading has no
+innocent explanation, since nothing honest makes blocks appear; a slow reading is
+indistinguishable from the client's own sync lag at any magnitude, which is why
+the client reports it rather than rejecting on it — and why the cheaper of the
+two attacks is the one this protocol only reports on.
+
+The manoeuvre is not prevented. It is made visible, against a threshold declared
 before anyone had a reason to argue about it — which for a defect whose severity
 is its invisibility is the part that counts, and is less than the word
 "prevented" would claim. The analysis is recorded as `DEBT-013`, and the

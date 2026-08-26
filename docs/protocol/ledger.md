@@ -159,9 +159,15 @@ an epoch is finalized after that epoch has ended and no rule can say how long
 after. A quorum may settle late, and may settle a backlog at once.
 
 **What the rule bounds, stated as narrowly as it is true.** Cumulative existence
-emission through height `h` is at most `floor(h / reward_epoch_blocks) * F`,
-since epoch `e` is unmintable below its floor and at most `F` is mintable within
-one epoch. That is a bound **per block**. It is **not** a bound per unit of real
+emission through height `h` is at most
+`floor(h / reward_epoch_blocks) * existence_fund_microtokens_per_epoch_max`,
+the ceiling fixed in [reward bounds](README.md#reward-bounds), since epoch `e`
+is unmintable below its floor and at most one epoch's fund is mintable within
+one epoch. The bound is stated against the genesis ceiling and not against `F`
+itself because `F` is a governed quantity: a policy document may move it between
+one epoch and the next, so `floor(h / reward_epoch_blocks) * F` holds only while
+the policy carrying that `F` is in force, and a bound that holds while nothing
+changes is not held by a rule. That is a bound **per block**. It is **not** a bound per unit of real
 time, and must not be read as one: how many real milliseconds a block takes is
 the gap of [block format](#block-format), which this protocol measures and does
 not constrain. The two halves are one closure — the index is paced by the chain,
@@ -709,20 +715,36 @@ ValidatorSet = {
 validator_set_hash = H("coblox-validator-set-v0\0" || JCS(ValidatorSet))
 ```
 
-**This preimage carries no `chain_id`, unlike every other preimage over a
-chain-specific consensus object referenced by hash, and the asymmetry is
-deliberate.** The set is already bound to its chain by its own bytes, three
-times over: `election.election_seed` and every `election_ticket` behind the
-derivation are computed through `chain_id_32`
-([the derivation](#the-derivation)), and every `key_binding_signature` in
-`validators` is taken over the global chain-bound signature procedure. The
-genesis set, which is the only set without an `election` record, still carries
-the key bindings. Two chains cannot share a `validator_set_hash` without also
-sharing all of those, and the seed's inputs are block IDs, which are chain-bound
-in turn. Binding `chain_id` here would restate a binding the bytes already
-carry, and would change every published value that depends on this hash. The
-full statement of the exception, with the six preimages that omit `chain_id` for
-other reasons, is in
+**This preimage carries no `chain_id`, unlike every other domain-separated
+preimage over a chain-specific consensus object referenced by hash, and the
+asymmetry is deliberate.** The word *domain-separated* is load-bearing: the
+tagged-tree preimages of this document — `node_leaf`, `eligible_leaf`,
+`revocation_leaf`, `candidate_leaf` and the rest — are separated by tag byte,
+carry no `chain_id` either, and are exempt for the same reason given next.
+
+The reason is that every object which names a set by hash is itself bound to its
+chain, and it holds separately on each of the three surfaces where a set is
+named. A **quorum certificate** carries signatures taken over
+`coblox-block-vote-v0` with `chain_id_32` ([what validators sign](#what-validators-sign)),
+so a replayed certificate fails on the signature before its set hash matters. A
+**weak subjectivity checkpoint** is itself a chain-bound preimage and is
+rejected outright when its `chain_id` is not the client's. A **set transition**
+is only ever seen through `next_validator_set_hash` in a `BlockHeader`, and
+`block_id` carries `chain_id_32`.
+
+A second binding exists in the set's own bytes — `election.election_seed` and
+every `election_ticket` are computed through `chain_id_32`
+([the derivation](#the-derivation)), and every `key_binding_signature` is taken
+over the global chain-bound signature procedure — and it is corroboration rather
+than the argument. On the **genesis** set, the only set without an `election`
+record, the first two do not exist and the third binds through `chain_id`, whose
+derivation at genesis is circular and is an open debt ([DEBT-020]). The argument
+above covers the genesis set without depending on it.
+
+Binding `chain_id` here would restate a binding that is already present, and
+would change every published value that depends on this hash. The full statement
+of the exception, with the six domain-separated preimages that omit `chain_id`
+for reasons of their own, is in
 [README.md](README.md#hash-preimage-registry).
 
 Validators are sorted by ID, unique, enrolled and unrevoked; voting power is
@@ -2457,23 +2479,46 @@ quorum certificate, and one `AccountProof`:
    `elapsed_ms = now - checkpoint.issued_at_ms`, and compare against the
    [cadence band](README.md#cadence-band) of the genesis trust anchor exactly:
    the chain is **faster than the band** when
-   `elapsed_ms < blocks * min_ms_per_block` and **slower** when
-   `elapsed_ms > blocks * max_ms_per_block`. Compute the comparison without
-   dividing; a client that divides first will report a chain just outside the
-   band as inside it. When `blocks < min_measured_blocks` the measurement is
-   **not made**, and that is reported as its own outcome and never as a pass.
+   `elapsed_ms + max_external_clock_slack_ms < blocks * min_ms_per_block` and
+   **slower** when `elapsed_ms > blocks * max_ms_per_block`. Compute the
+   comparison without dividing; a client that divides first will report a chain
+   just outside the band as inside it. When `blocks < min_measured_blocks` the
+   measurement is **not made**, and that is reported as its own outcome and
+   never as a pass.
 
    The client MUST fail closed when the chain is faster than the band, and MUST
-   report — not reject — when it is slower. The asymmetry is the point of the
-   step. Both readings use only clocks outside the chain: `issued_at_ms` is
-   signed by a release key that belongs to no validator, and `now` is the
-   client's own, the same one step 1 already uses. But a client that has not
-   caught up counts fewer blocks than the chain produced, so its reading is
-   biased downwards and only downwards: a slow reading may be the client's own
-   lag and is not soundly attributable to the chain, while a fast reading cannot
-   be manufactured by lag. Rejecting on the reading a client's own lag produces
+   report — not reject — when it is slower.
+
+   **Why the slack is on the fast comparison and only there.** Both readings use
+   only clocks outside the chain: `issued_at_ms` is signed by a release key that
+   belongs to no validator, and `now` is the client's own. But both ends of the
+   ratio are biased, and they push it in **opposite** directions. A client that
+   has not caught up counts fewer blocks than the chain produced, which drags
+   the reading slow. And `issued_at_ms` is when the checkpoint was *produced*,
+   not when the height it names was finalized
+   ([README.md](README.md#weak-subjectivity-checkpoint) states this), so blocks
+   produced during release latency are counted **without their time**, which
+   drags the reading fast — as does a client clock that is behind, or a release
+   clock that is ahead. Neither verdict is attributable to the chain on its own,
+   and an earlier revision of this step said otherwise.
+
+   What separates the two directions is what lies past the tolerance. Nothing
+   honest makes blocks appear, so a fast reading beyond
+   `max_external_clock_slack_ms` has no innocent explanation. A slow reading is
+   indistinguishable from the client's own lag **at any magnitude**, and no
+   tolerance would change that — which is why the slow side is reported rather
+   than tolerated. Rejecting on a reading the client's own position produces
    would be a guard that cries wolf, and a guard nobody believes is a guard
    nobody runs.
+
+   **To whom the client reports, because a report with no recipient is a word.**
+   The slow verdict MUST be surfaced to whoever asked the client for the balance
+   — carried out of the verification routine and displayed or logged alongside
+   the result, not discarded inside it. An implementation whose verification
+   function computes the verdict and drops it has not performed this step. The
+   chain is not rejected: the answer is delivered together with the observation
+   that the chain is producing more slowly than its declared band, which is the
+   whole of what the observation is worth.
 
    `timestamp_ms` is **not** an input to this step and MUST NOT be used in it,
    here or in any implementation of it. It is written by the same validators

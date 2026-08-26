@@ -39,6 +39,10 @@ fn band() -> CadenceBand {
         min_ms_per_block: 2_500,
         max_ms_per_block: 10_000,
         min_measured_blocks: 100,
+        // Five minutes of shortfall tolerated on the fast side: checkpoint
+        // release latency plus clock error. A test input, not a launch
+        // value; the launch value is an operator decision.
+        max_external_clock_slack_ms: 300_000,
     }
 }
 
@@ -172,6 +176,154 @@ fn a_client_whose_clock_or_tip_regresses_gets_an_error_and_not_a_verdict() {
         measure_cadence_from_checkpoint(&chain(), 4_000, 3_000_000, 5_000, 2_000_000, &b),
         Err(Error::Cadence(CadenceError::ClockRegression))
     ));
+}
+
+/// [REVIEW-027] RF-001, as the reviewer constructed it: an honest chain, an
+/// honest checkpoint, and a release process that is not instantaneous.
+///
+/// `issued_at_ms` is when the checkpoint was *produced*, not when the height it
+/// names was finalized, so the blocks produced during release latency are
+/// counted without their time. Before the genesis slack existed this returned
+/// `FasterThanBand` and `check_cadence_light_client` returned `Err` — a chain
+/// that had done nothing wrong, denied verification by a checkpoint that was
+/// signed correctly and served honestly.
+#[test]
+fn an_honest_chain_behind_a_slow_release_process_is_not_reported_fast() {
+    let b = band();
+    // The reviewer's exact case: chain at exactly 5 000 ms/block, checkpoint on
+    // height 0 signed ten minutes late, client measuring five minutes after
+    // that. 180 blocks exist; only 300 000 ms of their time is visible.
+    let verdict = measure_cadence_from_checkpoint(&chain(), 0, 600_000, 180, 900_000, &b).unwrap();
+    assert!(
+        matches!(verdict, CadenceVerdict::WithinBand { .. }),
+        "an honest chain was reported {verdict:?}"
+    );
+    // The verdict must be bound, not dropped: `CadenceVerdict` is `#[must_use]`
+    // precisely so that the reporting half of this rule cannot be discarded
+    // with a `?` ([REVIEW-027] RF-006). This very line failed to compile under
+    // `-D warnings` until it was written this way.
+    let reported = check_cadence_light_client(verdict).unwrap();
+    assert!(reported.is_within_band());
+
+    // The worst instant, which is the one the reviewer's threshold formula
+    // names: the client measures the moment it receives the checkpoint, so the
+    // whole release latency is counted and none of its time is. With
+    // `L = 600 000` an honest chain has produced 120 blocks and shows zero
+    // elapsed time.
+    let worst = measure_cadence_from_checkpoint(&chain(), 0, 600_000, 120, 600_000, &b).unwrap();
+    assert!(
+        matches!(
+            worst,
+            CadenceVerdict::Inconclusive { .. } | CadenceVerdict::WithinBand { .. }
+        ),
+        "the worst instant of an honest chain was reported {worst:?}"
+    );
+    let reported_worst = check_cadence_light_client(worst).unwrap();
+    assert!(!matches!(
+        reported_worst,
+        CadenceVerdict::FasterThanBand { .. }
+    ));
+}
+
+/// The tolerance must not swallow the guard: past it, a genuinely fast chain is
+/// still reported fast and the client still fails closed.
+///
+/// This is the other half of the previous test and the reason the slack is a
+/// bounded genesis quantity rather than a shrug. A tolerance that no chain can
+/// exceed is not a tolerance, it is the fast side deleted.
+#[test]
+fn the_slack_does_not_disable_the_fast_side() {
+    let b = band();
+    // A chain producing at 1 000 ms/block — four times the declared interval
+    // and well past the band — measured over a window far longer than the
+    // slack. 1 000 blocks in 1 000 000 ms, tolerance 300 000 ms:
+    // 1 300 000 < 1 000 * 2 500 still holds.
+    let verdict =
+        measure_cadence_from_checkpoint(&chain(), 4_000, 1_000_000, 5_000, 2_000_000, &b).unwrap();
+    assert!(
+        matches!(verdict, CadenceVerdict::FasterThanBand { .. }),
+        "{verdict:?}"
+    );
+    assert!(check_cadence_light_client(verdict).is_err());
+
+    // And the boundary of the tolerance itself, from both sides. At 100 blocks
+    // the fast side fires when `elapsed + 300 000 < 250 000`, which no
+    // non-negative elapsed satisfies, so 100 blocks can never be called fast:
+    // that is the relational rule of `CadenceBand` doing its work, and it is
+    // why the rule couples the slack to the measured window.
+    let at_the_floor = measure_cadence_from_checkpoint(&chain(), 0, 0, 100, 0, &b).unwrap();
+    assert!(
+        matches!(at_the_floor, CadenceVerdict::WithinBand { .. }),
+        "{at_the_floor:?}"
+    );
+    // Two hundred blocks in zero time is past it and is reported.
+    let past_it = measure_cadence_from_checkpoint(&chain(), 0, 0, 200, 0, &b).unwrap();
+    assert!(
+        matches!(past_it, CadenceVerdict::FasterThanBand { .. }),
+        "{past_it:?}"
+    );
+}
+
+/// The release measurement is **not** touched by RF-001, and the test says so
+/// because a finding about one measurement invites doubt about its neighbour.
+///
+/// Both endpoints are `issued_at_ms` values signed by the same process, so the
+/// release latency appears in both and cancels. It therefore takes no slack,
+/// and a chain at the fast edge is still refused a checkpoint.
+#[test]
+fn the_release_measurement_takes_no_slack_because_its_latency_cancels() {
+    let b = band();
+    // Two checkpoints ten minutes apart in issue time, 300 blocks between them:
+    // 2 000 ms per block, genuinely fast. The client-side measure would forgive
+    // 300 000 ms of this; the release process forgives none.
+    let verdict =
+        measure_cadence_between_checkpoints(&chain(), 1_000, 600_000, 1_300, 1_200_000, &b)
+            .unwrap();
+    assert!(
+        matches!(verdict, CadenceVerdict::FasterThanBand { .. }),
+        "{verdict:?}"
+    );
+    assert!(check_cadence_release(verdict).is_err());
+
+    // The same numbers through the client's measure are forgiven, and the
+    // difference between the two lines is the whole of the asymmetry.
+    let client =
+        measure_cadence_from_checkpoint(&chain(), 1_000, 600_000, 1_300, 1_200_000, &b).unwrap();
+    assert!(
+        matches!(client, CadenceVerdict::WithinBand { .. }),
+        "{client:?}"
+    );
+}
+
+/// A band whose tolerance is larger than the window it qualifies is refused,
+/// and so is one with no tolerance at all.
+#[test]
+fn a_band_whose_slack_swallows_its_own_window_is_rejected() {
+    // Zero slack is the pre-[REVIEW-027] behaviour, and it is now a refusal
+    // rather than a default: a deployment that wants it must argue for it in a
+    // different field, not obtain it by leaving one at zero.
+    let none = CadenceBand {
+        max_external_clock_slack_ms: 0,
+        ..band()
+    };
+    assert!(matches!(
+        none.validate(&chain()),
+        Err(Error::Parameter(ParameterError::Bounds { .. }))
+    ));
+
+    // 100 blocks at 5 000 ms is a 500 000 ms window; a 500 000 ms tolerance
+    // covers all of it.
+    let swallows = CadenceBand {
+        max_external_clock_slack_ms: 500_000,
+        ..band()
+    };
+    assert!(swallows.validate(&chain()).is_err());
+    // One millisecond under, and it is a tolerance again.
+    let fits = CadenceBand {
+        max_external_clock_slack_ms: 499_999,
+        ..band()
+    };
+    fits.validate(&chain()).unwrap();
 }
 
 // --- the trust anchor -------------------------------------------------------

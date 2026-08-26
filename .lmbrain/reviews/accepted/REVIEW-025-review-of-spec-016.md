@@ -2,7 +2,7 @@
 id: REVIEW-025
 # Note: Quote the title if it contains a colon
 title: "Review of SPEC-016"
-status: changes-requested
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-016
 reviewer: AGENT-LEAD
@@ -45,6 +45,16 @@ review_events:
     evidence_refs: ["SPEC-016", "ADR-012"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-025-EVENT-004"
+    timestamp: "2026-08-26T02:29:39.520187900+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Accettata dopo che la remediation di RF-001 e' stata verificata e dopo che GATE-SECREVIEW e' stata soddisfatta con REVIEW-027. RF-002 e' stato applicato dal Lead sul debito.\n\nVa registrato a carico di questa review che la parte che lodava di piu' - l'asimmetria fuori banda - era l'unica che non aveva attaccato, ed e' quella su cui REVIEW-027 ha trovato un finding high. Una review che loda senza attaccare non ha verificato: e' lo stesso errore di misura che questa review contestava alla gate, commesso dalla review."
+    evidence_refs: ["SPEC-016", "REVIEW-027"]
+    implementation_agent: "AGENT-002"
 links: []
 created: 2026-08-26
 updated: 2026-08-26
@@ -58,6 +68,8 @@ activity:
     action: "recorded review remediation"
   - date: 2026-08-26
     action: "recorded review remediation-verification"
+  - date: 2026-08-26
+    action: "transitioned changes-requested -> accepted"
 ---
 # Review
 

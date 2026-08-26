@@ -120,7 +120,37 @@ pub struct CadenceBand {
     /// Blocks an interval must span before a measurement over it is made at
     /// all. A ratio over a handful of blocks is noise, and a guard that
     /// pronounces on noise is one nobody keeps running.
+    ///
+    /// This is a floor on the **numerator**. The denominator has one of its
+    /// own, and it is the field below; [REVIEW-027] RF-001 exists because for
+    /// one revision there was only this one.
     pub min_measured_blocks: u64,
+    /// The largest amount of real time that may be **missing** from a light
+    /// client's measured interval.
+    ///
+    /// A light client counts blocks from the checkpoint's `height` but counts
+    /// time from its `issued_at_ms`, and `README.md#weak-subjectivity-checkpoint`
+    /// is explicit that the two are distinct: `issued_at_ms` is when the
+    /// checkpoint was *produced*, which is after the height it names was
+    /// finalized. Blocks produced in between are therefore counted **without
+    /// their time**, and the reading is pushed toward `FasterThanBand` — the
+    /// side on which the client fails closed — by something that is not the
+    /// chain.
+    ///
+    /// **Why one quantity and not three.** The same shortfall is produced by
+    /// checkpoint release latency, by a client clock that is behind, and by a
+    /// release clock that is ahead. They are indistinguishable inside the
+    /// measurement and they add, so a bound on any one of them would be a bound
+    /// on one term of a sum — the shape `recurring-defects.md` calls family 3.
+    /// The field is named for what it bounds, which is the sum.
+    ///
+    /// **How an operator sizes it.** On a chain producing at exactly
+    /// `block_interval_ms`, a slack of at least the worst-case shortfall makes
+    /// a fast verdict impossible, because the shortfall enters the comparison
+    /// scaled by `min_ms_per_block / block_interval_ms`, which is at most one.
+    /// Sizing it below the release process's real latency is a declared choice
+    /// to fail closed on that process's own delay.
+    pub max_external_clock_slack_ms: u64,
 }
 
 impl CadenceBand {
@@ -164,6 +194,36 @@ impl CadenceBand {
         if self.min_measured_blocks == 0 {
             return Err(ParameterError::Bounds {
                 rule: "min_measured_blocks MUST be positive",
+            }
+            .into());
+        }
+        if self.max_external_clock_slack_ms == 0 {
+            return Err(ParameterError::Bounds {
+                rule: "max_external_clock_slack_ms MUST be positive",
+            }
+            .into());
+        }
+        // The relational rule on the slack: the window a client measures must
+        // be longer than the shortfall the band tolerates inside it.
+        // `min_measured_blocks * block_interval_ms` is the real time an honest
+        // chain takes to produce the smallest measurable window; a tolerance at
+        // or above that is larger than the whole measurement it qualifies, so
+        // most of the blocks counted would be blocks the tolerance is there to
+        // excuse. The fix for a deployment that trips this is to raise
+        // `min_measured_blocks` until the window dominates the shortfall, which
+        // is the coupling that makes the two floors one rule instead of two.
+        //
+        // Note which product this is *not*: an earlier attempt used
+        // `min_measured_blocks * min_ms_per_block`, which forbids exactly the
+        // release latency the field exists to tolerate. The distinction matters
+        // because the shortfall enters the fast comparison scaled by
+        // `min_ms_per_block / block_interval_ms`, so a slack of `L * m / I`
+        // already covers a latency of `L`, and `L` itself covers it with room.
+        if u128::from(self.max_external_clock_slack_ms)
+            >= u128::from(self.min_measured_blocks) * u128::from(self.block_interval_ms)
+        {
+            return Err(ParameterError::Bounds {
+                rule: "max_external_clock_slack_ms < min_measured_blocks * block_interval_ms",
             }
             .into());
         }

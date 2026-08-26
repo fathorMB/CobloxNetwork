@@ -10,7 +10,15 @@ sweep is impossible until somebody knows what the published artifacts *are*:
      quell'inventario non era mai stato fatto."
 
 This file is the second half of that inventory. The first half is
-`published_artifacts.toml`, a hand-written manifest. A hand-written list ages
+`published_artifacts.toml`, a hand-written manifest.
+
+**Every list this tool consults has a disk side**, and that is a property of the
+tool rather than of any one class. A list checked only against another list is
+two declarations agreeing with each other, which is how `SECURITY.md` stayed
+outside this inventory for the tool's whole life ([REVIEW-027] RF-005). So the
+markdown set, the claim-document set and the mirror set are all enumerated from
+the filesystem and required to be classified, and an unclassified item **fails**
+rather than passing in silence. A hand-written list ages
 in silence exactly like the artefacts it is supposed to guard, so the manifest
 alone would be a declaration of intent with a file format. What makes it an
 inventory is that this tool **re-derives the candidate set mechanically from the
@@ -29,7 +37,11 @@ defect and the tool exits non-zero naming it.
     C4  VALUE          a published digest literal is not in the manifest, or is
                        in it with a different value or at a different document
     C5  MIRROR         a value the manifest records as transcribed into a test
-                       or tool no longer appears there
+                       or tool no longer appears there, **or** a source file
+                       transcribes a published value the manifest does not
+                       record. The second half is the discovery side: without
+                       it the class could only check the copies somebody had
+                       already thought to declare
     C6  ORPHAN         a manifest entry no longer occurs in the documents
     C7  COVERAGE       a preimage has no conformance fixture and no declared
                        reason for having none
@@ -38,9 +50,12 @@ defect and the tool exits non-zero naming it.
     C9  EXAMPLE        an inline example violates an equality the specification
                        states between its own fields
     C10 PROBE          a normative passage the manifest pins is no longer there
-    C11 CLAIMDOC       a claim document grew a mechanical artifact, so the
-                       probe-only treatment it is given has stopped being
-                       the right one
+    C11 CLAIMDOC       a markdown on disk is in none of the three
+                       classifications, a classification names a file that is
+                       not there, a document parked as `unswept` started making
+                       a security claim, or a claim document grew a mechanical
+                       artifact so the probe-only treatment it is given has
+                       stopped being the right one
 
 **What this tool does not cover**, stated because a guard whose limits are not
 written is read as covering everything (`meta.not_covered` in the manifest
@@ -85,20 +100,10 @@ REPO = pathlib.Path(
     os.environ.get("COBLOX_REPO") or pathlib.Path(__file__).resolve().parents[2]
 )
 DOCS = REPO / "docs" / "protocol"
-# Published documents that carry *claims* rather than artifacts. They live
-# outside docs/protocol/ and are swept for C10 probes only; see C11.
-CLAIM_DOCS = ("SECURITY.md",)
 MANIFEST = REPO / "sim" / "tools" / "published_artifacts.toml"
 
 MANIFEST_NOT_COVERED: list[str] = []
 
-MIRROR_FILES = (
-    "sim/tools/protocol_hashes.py",
-    "core/coblox-core/tests/conformance_registry.rs",
-    "core/coblox-core/tests/worked_example.rs",
-    "core/coblox-core/tests/canonical_serialization.rs",
-    "core/coblox-core/tests/light_client_perimeter.rs",
-)
 
 # --- mechanical discovery ---------------------------------------------------
 
@@ -127,8 +132,19 @@ def documents() -> dict[str, str]:
     return {p.name: p.read_text(encoding="utf-8") for p in sorted(DOCS.glob("*.md"))}
 
 
-def claim_documents() -> dict[str, str]:
-    return {name: (REPO / name).read_text(encoding="utf-8") for name in CLAIM_DOCS}
+def claim_documents(manifest: dict) -> dict[str, str]:
+    """The claim documents, read from the **manifest** and not from a constant.
+
+    A Python tuple beside a manifest list was the second declaration that
+    [REVIEW-027] RF-005 found agreeing with the first. There is now one list,
+    and `check_document_closure` is what holds it against the disk.
+    """
+    found = {}
+    for name in manifest["meta"].get("claim_documents", []):
+        path = REPO / name
+        if path.is_file():
+            found[name] = path.read_text(encoding="utf-8")
+    return found
 
 
 def discover(docs: dict[str, str]) -> dict[str, dict[str, set[str]]]:
@@ -306,12 +322,29 @@ def check_mirrors(manifest: dict, report: Report) -> None:
     reader, and one deliberate transcription that a machine now compares.
     """
     checked = 0
-    texts = {name: (REPO / name).read_text(encoding="utf-8") for name in MIRROR_FILES}
+    # Read the mirror sites the manifest names, not a list compiled into this
+    # file. `MIRROR_FILES` was the third declared list [REVIEW-027] RF-005
+    # applies to: with it, a value could name a mirror the tool would crash on,
+    # and `check_transcription_closure` could discover a transcription this
+    # function could not then read.
+    texts = {
+        name: (REPO / name).read_text(encoding="utf-8")
+        for row in entries(manifest, "value")
+        for name in row.get("mirrors", [])
+        if (REPO / name).is_file()
+    }
     for row in entries(manifest, "value"):
         if row["class"] != "registry":
             continue
         for name in row.get("mirrors", []):
             checked += 1
+            if name not in texts:
+                report.fail(
+                    "C5-MIRROR",
+                    f"registry digest {row['hex']} ({row['name']}) names "
+                    f"mirror site {name}, which is not on disk",
+                )
+                continue
             if row["hex"] not in texts[name]:
                 report.fail(
                     "C5-MIRROR",
@@ -439,6 +472,192 @@ def check_example_invariants(manifest: dict, docs: dict[str, str], report: Repor
     report.note("C9-EXAMPLE", checked)
 
 
+# --- inventory closure ------------------------------------------------------
+#
+# [REVIEW-027] RF-005. Every list this tool consults has to have a **disk
+# side**, or it is two declarations agreeing with each other. `C6-ORPHAN` has
+# one because `documents()` globs; `C11-CLAIMDOC` shipped without one, and
+# `MIRROR_FILES` never had one either. The defect is not that a particular list
+# was short — it is that a list can be short without anything saying so, which
+# is the shape `recurring-defects.md` records as a guard measuring the set it
+# was told about instead of the set that exists.
+#
+# These two checks are the general form. They enumerate from disk and require
+# every item found to be **classified**, with the default being failure rather
+# than silence, because it was silence that produced the finding.
+
+SOURCE_SCOPE: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("sim", (".py",)),
+    ("core", (".rs",)),
+)
+SKIP_PARTS = frozenset({"target", "__pycache__", ".git", "node_modules"})
+
+# The vocabulary of a security claim. Deliberately short and deliberately
+# over-eager: a false positive here costs one reclassification, and the defect
+# it exists to catch is a published document quietly asserting a property the
+# protocol does not have.
+CLAIM_VOCABULARY: tuple[str, ...] = (
+    r"\bsybil[- ]resistan\w*",
+    r"\bprevents?\b",
+    r"\bguarantees?\b",
+    r"\bcannot be (?:forged|attacked|captured)\b",
+    r"\btamper[- ]proof\b",
+    r"\bunbreakable\b",
+)
+
+
+def _classified_markdown() -> list[pathlib.Path]:
+    """Every markdown a reader could reach: repository root plus `docs/`."""
+    found = [p for p in sorted(REPO.glob("*.md")) if p.is_file()]
+    found += [p for p in sorted((REPO / "docs").rglob("*.md")) if p.is_file()]
+    return found
+
+
+def _source_files() -> list[pathlib.Path]:
+    files: list[pathlib.Path] = []
+    for root, suffixes in SOURCE_SCOPE:
+        base = REPO / root
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*")):
+            if not path.is_file() or path.suffix not in suffixes:
+                continue
+            if SKIP_PARTS.intersection(path.parts):
+                continue
+            files.append(path)
+    return files
+
+
+def check_document_closure(manifest: dict, report: Report) -> None:
+    """C11: every markdown on disk is classified, and every classification exists.
+
+    The three buckets are exhaustive by construction and the tool says so by
+    failing on anything outside them:
+
+      - `meta.documents` — protocol documents, swept by all five discovery
+        classes;
+      - `meta.claim_documents` — published documents that carry claims and no
+        mechanical artifacts, swept for C10 probes and the derived counts;
+      - `[[unswept]]` — everything else, each with a written reason.
+
+    A markdown that appears in none of the three fails. That is the whole of the
+    remedy: before it, a new published document simply was not seen, and
+    `SECURITY.md` was not seen for the whole life of this tool.
+    """
+    on_disk = {p.relative_to(REPO).as_posix() for p in _classified_markdown()}
+    protocol = {f"docs/protocol/{name}" for name in manifest["meta"]["documents"]}
+    claims = set(manifest["meta"].get("claim_documents", []))
+    unpublished = {row["path"] for row in entries(manifest, "unswept")}
+
+    for label, declared in (
+        ("meta.documents", protocol),
+        ("meta.claim_documents", claims),
+        ("[[unswept]]", unpublished),
+    ):
+        for missing in sorted(declared - on_disk):
+            report.fail(
+                "C11-CLAIMDOC",
+                f"{label} names {missing!r}, which is not on disk",
+            )
+
+    classified = protocol | claims | unpublished
+    for orphan in sorted(on_disk - classified):
+        report.fail(
+            "C11-CLAIMDOC",
+            f"{orphan} is a markdown document on disk and is in none of "
+            f"meta.documents, meta.claim_documents or [[unswept]]. Every "
+            f"markdown a reader can reach is classified or the sweep is "
+            f"measuring the set it was told about: classify it, with a reason "
+            f"if it is unpublished.",
+        )
+
+    overlaps = (protocol & claims) | (protocol & unpublished) | (claims & unpublished)
+    for both in sorted(overlaps):
+        report.fail(
+            "C11-CLAIMDOC",
+            f"{both} is classified in more than one of meta.documents, "
+            f"meta.claim_documents and [[unswept]]",
+        )
+    # An `unswept` entry asserts something about its document — that it carries
+    # no claim a reader could rely on — and an assertion nobody checks is how
+    # `SECURITY.md` stayed outside this inventory for the tool's whole life. The
+    # bucket is therefore not an escape hatch: a document parked in it that
+    # starts making security claims fails, and naming the vocabulary here is
+    # what stops the closure check from being bypassed by reclassification.
+    for row in entries(manifest, "unswept"):
+        path = REPO / row["path"]
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for word in CLAIM_VOCABULARY:
+            hit = re.search(word, text, re.IGNORECASE)
+            if hit is not None:
+                report.fail(
+                    "C11-CLAIMDOC",
+                    f"{row['path']} is classified `unswept` on the grounds that "
+                    f"it carries no claim, and it now contains {hit.group(0)!r}. "
+                    f"Move it to meta.claim_documents and pin what it asserts, "
+                    f"or remove the claim. Its recorded reason was: {row['why']}",
+                )
+                break
+    report.note("C11-CLAIMDOC", len(on_disk))
+
+
+def check_transcription_closure(manifest: dict, report: Report) -> None:
+    """C5: a published value transcribed into a source file is recorded as a mirror.
+
+    The other half of the same defect. `MIRROR_FILES` was a Python constant, so
+    the mirror class could only check the transcriptions somebody had already
+    thought to declare — a new test file copying a published digest was
+    invisible to it, exactly as a new published document was invisible to
+    `C11-CLAIMDOC`. This check runs the other way: it enumerates the source
+    files, finds the published digests in them, and requires each occurrence to
+    be declared.
+
+    `[[transcription_exempt]]` carries the files that legitimately hold every
+    published value — the inventory itself and its negative proof — each with a
+    reason, because an exemption without one is indistinguishable from an
+    oversight.
+    """
+    published = {row["hex"]: row for row in entries(manifest, "value")}
+    exempt = {row["path"] for row in entries(manifest, "transcription_exempt")}
+    declared: dict[str, set[str]] = {}
+    for row in entries(manifest, "value"):
+        for name in row.get("mirrors", []):
+            declared.setdefault(name, set()).add(row["hex"])
+
+    checked = 0
+    for path in _source_files():
+        name = path.relative_to(REPO).as_posix()
+        if name in exempt:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        present = {m.group(1) for m in RE_DIGEST.finditer(text)} & set(published)
+        for hexval in sorted(present - declared.get(name, set())):
+            checked += 1
+            report.fail(
+                "C5-MIRROR",
+                f"{name} carries the published digest {hexval} "
+                f"({published[hexval]['name']}, published in "
+                f"{published[hexval]['site']}) and is not recorded in that "
+                f"value's `mirrors`. A transcription the inventory does not "
+                f"know about is one it cannot check for drift.",
+            )
+        checked += len(present & declared.get(name, set()))
+
+    for name in sorted(set(declared) | exempt):
+        if not (REPO / name).is_file():
+            report.fail(
+                "C5-MIRROR",
+                f"{name} is declared as a mirror site or a transcription "
+                f"exemption but is not on disk",
+            )
+    report.note("C5-DISCOVERED", checked)
+
+
 def check_claim_documents(
     manifest: dict, claims: dict[str, str], report: Report
 ) -> None:
@@ -455,13 +674,6 @@ def check_claim_documents(
     has become an artifact document and the narrower treatment is exactly the
     defect this class exists to prevent: a guard measuring the smaller set.
     """
-    declared = set(manifest["meta"].get("claim_documents", []))
-    if declared != set(claims):
-        report.fail(
-            "C11-CLAIMDOC",
-            f"claim documents on disk {sorted(claims)} differ from the "
-            f"manifest's {sorted(declared)}",
-        )
     for name, text in claims.items():
         for label, pattern in (
             ("digest literal", RE_DIGEST),
@@ -478,7 +690,6 @@ def check_claim_documents(
                     f"meta.documents and to the five discovery classes, or "
                     f"remove the artifact.",
                 )
-    checked_claims = len(claims)
 
     # The derived counts. A number transcribed by hand into a published
     # document is the defect [SPEC-012] closed by extracting the table from the
@@ -521,7 +732,7 @@ def check_claim_documents(
                 f"but {row['source']} carries {actual} distinct "
                 f"{row['token']!r}. {row['why']}",
             )
-    report.note("C11-CLAIMDOC", checked_claims + len(entries(manifest, "claim_count")))
+
 
 
 def check_probes(manifest: dict, docs: dict[str, str], report: Report) -> None:
@@ -614,7 +825,7 @@ def main(argv: list[str] | None = None) -> int:
               f"differ from the manifest's {sorted(expected_docs)}")
         return 1
 
-    claims = claim_documents()
+    claims = claim_documents(manifest)
 
     found = discover(docs)
     report = Report()
@@ -623,8 +834,20 @@ def main(argv: list[str] | None = None) -> int:
     check_mirrors(manifest, report)
     check_preimages(manifest, docs, report)
     check_example_invariants(manifest, docs, report)
+    check_document_closure(manifest, report)
+    check_transcription_closure(manifest, report)
     check_claim_documents(manifest, claims, report)
-    check_probes(manifest, {**docs, **claims}, report)
+    collisions = sorted(set(docs) & set(claims))
+    for name in collisions:
+        report.fail(
+            "C11-CLAIMDOC",
+            f"claim document {name!r} has the same probe key as the protocol "
+            f"document of that name, so every probe naming it would silently "
+            f"read one document while meaning the other. Probe sites are keyed "
+            f"by name; a claim document whose basename collides with a "
+            f"protocol document cannot be swept until one of them is renamed.",
+        )
+    check_probes(manifest, {**docs, **claims} if not collisions else docs, report)
 
     for code in (
         "C1-DOMAIN",
@@ -635,6 +858,7 @@ def main(argv: list[str] | None = None) -> int:
         "C7-COVERAGE",
         "C8-ENCODING",
         "C9-EXAMPLE",
+        "C5-DISCOVERED",
         "C10-PROBE",
         "C11-CLAIMDOC",
     ):

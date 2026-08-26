@@ -47,7 +47,12 @@ COPIED = ("docs/protocol", "sim/tools", "core/coblox-core/tests")
 # Single files, copied alongside the trees above. `SECURITY.md` is a claim
 # document (C11) and `.lmbrain/knowledge/threat-model.md` is the source the
 # derived counts are recomputed from, so both must exist in the copy.
-COPIED_FILES = ("SECURITY.md", ".lmbrain/knowledge/threat-model.md")
+COPIED_FILES = (
+    "SECURITY.md",
+    "README.md",
+    "AGENTS.md",
+    ".lmbrain/knowledge/threat-model.md",
+)
 
 Mutation = tuple[str, str, str]  # code, description, target path relative to repo
 
@@ -191,13 +196,49 @@ MUTATIONS: list[tuple[str, str, callable]] = [
     ),
     (
         "C11-CLAIMDOC",
+        "a published markdown appears that is in none of the three "
+        "classifications - the [REVIEW-027] RF-005 scenario, in which a new "
+        "SECURITY-OVERVIEW.md claims Sybil resistance and the sweep stays green",
+        lambda root: (root / "SECURITY-OVERVIEW.md").write_text(
+            "# Overview\n\nCoblox is Sybil-resistant and prevents a validator "
+            "cartel from stretching the chain.\n",
+            encoding="utf-8",
+        ),
+    ),
+    (
+        "C11-CLAIMDOC",
+        "a document parked in the `unswept` bucket starts making a security "
+        "claim, which is the way the closure check above would be bypassed by "
+        "reclassifying instead of by hiding",
+        lambda root: _sub(
+            root,
+            "README.md",
+            "## Build",
+            "Coblox prevents Sybil attacks.\n\n## Build",
+        ),
+    ),
+    (
+        "C5-MIRROR",
+        "a source file transcribes a published digest and no one records it as "
+        "a mirror - the same defect as RF-005 on the other declared list",
+        lambda root: _sub(
+            root,
+            "core/coblox-core/tests/election_degenerate.rs",
+            "use coblox_core::",
+            "// sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697\n"
+            "use coblox_core::",
+        ),
+    ),
+    (
+        "C11-CLAIMDOC",
         "a count SECURITY.md transcribes from the threat model drifts away "
         "from it, which is how it came to claim 36 scenarios against 39",
         lambda root: _sub(
             root,
             ".lmbrain/knowledge/threat-model.md",
-            "TM-39",
-            "TM-41",
+            "## 10. Test di attacco",
+            "### TM-99 - uno scenario nuovo che nessuno ha ricontato\n\n"
+            "## 10. Test di attacco",
         ),
     ),
 ]
