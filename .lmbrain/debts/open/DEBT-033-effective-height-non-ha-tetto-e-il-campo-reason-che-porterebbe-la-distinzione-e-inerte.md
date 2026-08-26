@@ -51,6 +51,20 @@ Trovato da AGENT-007 in REVIEW-033 RF-001, riverificato dal Lead due volte.
 
 Il tetto: la ricerca su effective_height in ledger.md filtrata per vincoli superiori restituisce una sola riga, la 1037, e letta in contesto e' la clausola 8 della regola di contrazione del set. I MUST che lo nominano sono due, entrambi verso il basso o sul light client.
 
+> **Ritrattazione del 2026-08-26.** Le due frasi qui sopra sono conservate perche' sono state citate, e corrette qui sotto invece che riscritte in silenzio.
+>
+> **Il numero di riga e' sbagliato.** La clausola 8 sta a `ledger.md:1107`, non a 1037; alla 1037 c'e' il corpo della clausola 4. Il contenuto della caratterizzazione e' esatto: e' davvero la clausola 8 della regola di contrazione, e davvero non e' un tetto. Verificato dal Lead leggendo le righe 1018-1115.
+>
+> **«I MUST che lo nominano sono due» e' falso, e questo debito e' il secondo dei tre artefatti che lo ripetono.** L'errore nasce in [REVIEW-033] RF-001, passa di qui, ed e' stato ereditato dalla prima stesura di [ADR-017], che lo ha riverificato con lo stesso strumento che lo aveva prodotto e ha ottenuto la stessa risposta. Trovato da AGENT-007 in [REVIEW-036] E-01 e riverificato dal Lead.
+>
+> La causa: l'enumerazione e' fatta sul **token** `effective_height`, e la grandezza ha una **seconda grafia**. `ledger.md:785` recita *«The effective height MUST be later than the block proposing the revocation»*. E' un terzo MUST, ed e' la sola regola che impedisce a una revoca di mordere nel proprio blocco.
+>
+> **Non e' una sottigliezza di conteggio.** Quella riga vincola dal basso `effective_height` rispetto al proponente, quindi qualunque rimedio che derivi l'efficacia da `proponente + pavimento` deve garantire che il pavimento sia almeno `1`, altrimenti produce `effective_height = proponente` e viola la riga 785. Oggi nulla impone quel minimo: il parametro non e' nel blocco dei vincoli di magnitudine.
+>
+> **La forma vale oltre questo debito**, ed e' la stessa che [DEBT-034] registra da un altro lato: una dimostrazione per esaurimento e' conclusiva solo quanto il perimetro su cui e' fatta, e qui il perimetro era una stringa mentre l'oggetto era una grandezza.
+
+**Aggiornamento del 2026-08-26 sul rimedio.** La valutazione qui sotto scarta il tetto secco come *inefficace*. [REVIEW-036] ha stabilito che quella liquidazione e' **troppo netta**: un tetto converte un danno illimitato in un danno limitato, che non e' nulla. E' insufficiente da solo — non distingue le ragioni e lascia intatta la discrezione su `key_compromise` — ma non inutile. [ADR-017] lo contiene come caso particolare di una banda dipendente da `reason`.
+
 L'inerzia di reason: la ricerca di key_compromise, validator_misconduct e operator_request su docs/protocol/ e core/coblox-core/src/ restituisce due occorrenze in tutto il protocollo - la dichiarazione dello schema a ledger.md:778 e la fixture canonica a 793. Nessuna regola, nessun codice.
 
 L'implementatrice ha inoltre riverificato che light_client.rs confronti effective_height senza alcun vincolo sul valore.

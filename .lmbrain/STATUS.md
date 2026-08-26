@@ -2,14 +2,24 @@
 title: Project pulse
 status: active
 milestone: M-02
-updated: 2026-08-25
+updated: 2026-08-26
 ---
 
 # Project Pulse
 
 ## Current focus
 
-**Sessione del 26 agosto 2026: la coda delle spec di M-02 e' esaurita.** Ventuno spec redatte, ventuno `done`; `backlog`, `ready`, `working` e `review` sono vuote. Ventitre' commit, da `dfe44fe` a `2d3c6d7`.
+**Sessione del 26 agosto 2026, seconda parte: aperta la meccanica della revoca.** L'operatore ha scelto di chiudere i due `high` che si compongono, [DEBT-033] e [DEBT-034], invece di cominciare l'esito residuo di M-02. Ne e' nato **[ADR-017]**, `proposed` e **non ancora deciso**.
+
+**L'ADR e' stato sottoposto a critica avversariale prima della decisione, su richiesta dell'operatore**, e la critica ha morso: [REVIEW-036] di AGENT-007, **dieci finding e cinque errori fattuali**. La parte 1 e' sopravvissuta a ogni attacco; la parte 2 e' stata rifatta; la parte 3 e' stata **tolta** e la sua sostanza e' passata su [DEBT-034]. Ne e' nato anche **[DEBT-035]**.
+
+**La lezione della sessione sta in [REVIEW-036] E-01.** L'affermazione *«`effective_height` e' nominato da due soli MUST»* e' **falsa** ed e' stata ripetuta da **tre artefatti** - [REVIEW-033] RF-001, [DEBT-033], la prima stesura di [ADR-017] - perche' l'enumerazione era fatta sul **token** mentre l'oggetto era una **grandezza**, e la grandezza ha una seconda grafia: `ledger.md:785` dice `effective height` con lo spazio. Il Lead l'ha riverificata **con lo stesso strumento che l'aveva prodotta** e ha ottenuto la stessa risposta. Non e' un errore di conteggio: e' un errore di perimetro, la stessa forma che questa sessione ha gia' censito tre volte.
+
+**Due difetti di lato, entrambi della famiglia dell'insieme dichiarato.** SKILL-004 era `active` su disco e **assente dal registro** - quinta occorrenza, e come le altre quattro il membro mancante era l'ultimo arrivato; registrato come `KIT-NOTE-001` perche' la causa e' `skill_activate`, che sposta il file senza scrivere la riga. E i conteggi dei debiti in [HANDOFF-003] contavano le voci di directory invece dei debiti.
+
+---
+
+**Sessione del 26 agosto 2026, prima parte: la coda delle spec di M-02 e' esaurita.** Ventuno spec redatte, ventuno `done`; `backlog`, `ready`, `working` e `review` sono vuote. Ventitre' commit, da `dfe44fe` a `2d3c6d7`.
 
 **Sei spec chiuse e nove debiti risolti** in questa sessione, piu' il recupero dell'implementazione di [SPEC-014] che era accettata e non committata. **181 test**, gate di [ADR-012] `PASS` con **158 probe C10** e la prova in negativo su ciascuna individualmente.
 
@@ -25,7 +35,17 @@ updated: 2026-08-25
 
 ## Ready for handoff
 
-**Nessuna spec redatta.** Il prossimo blocco va deciso, e i candidati sono di due nature che non si sostituiscono.
+**Nessuna spec redatta**, e prima di redigerne una serve **la decisione dell'operatore su [ADR-017]**, che e' `proposed` nella sua seconda stesura. Decisa quella, la spec attuativa e' scrivibile e porta con se' la passata di [ADR-012] su quattro artefatti pubblicati che la parte 1 rende falsi - `AUTH-0` per primo, le cui righe `21` e `49` si ribaltano.
+
+**Dieci debiti aperti** - tre `high` ([DEBT-028], [DEBT-033], [DEBT-034]) e sette `medium` - piu' **uno deferred**. Contati sui file e non sulle voci di directory, che e' l'errore che [HANDOFF-003] aveva fatto dichiarandone dieci e due.
+
+**Tre decisioni di taratura aspettano l'operatore**, nessuna bloccante: `max_clock_drift_ms`, `D_max`/`S_max`, e ora `min_revocation_effective_delay_blocks`, che non ha valore di lancio, non e' nella lista DRAFT, e **non e' nel blocco dei vincoli di magnitudine** - quest'ultima e' la scoperta che ha rifatto la parte 2 di [ADR-017].
+
+**Il resto dei candidati, invariato.** L'esito residuo di M-02 che nessun debito tocca - devnet BFT, light client con prove Merkle, mint & burn - resta il lavoro che la milestone nomina e che non e' mai stato cominciato.
+
+---
+
+**Dalla prima parte della sessione.** Il prossimo blocco va deciso, e i candidati sono di due nature che non si sostituiscono.
 
 **I tre debiti `high`**, tutti M-02 e chiudibili prima della devnet: **[DEBT-033]** (`effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione esiste gia' ed e' inerte), **[DEBT-034]** (un verdetto locale del ricevente entra in catena attraverso una firma di quorum), **[DEBT-028]** (`election_epoch` dipende da un parametro governato senza che il documento dica quale versione valga). I primi due si compongono: la finestra che sfruttano e' la stessa.
 

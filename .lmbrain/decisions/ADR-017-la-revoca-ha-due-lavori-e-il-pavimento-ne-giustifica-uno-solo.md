@@ -1,7 +1,7 @@
 ---
 id: ADR-017
 # Note: Quote the title if it contains a colon
-title: "La revoca ha due lavori, e il pavimento ne giustifica uno solo"
+title: "La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo"
 status: proposed
 decision_date: 2026-08-26
 decider: AGENT-LEAD
@@ -19,9 +19,11 @@ activity:
   - date: 2026-08-26
     action: "created"
 ---
-# La revoca ha due lavori, e il pavimento ne giustifica uno solo
+# La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo
 
-> Proposta dal Lead il 2026-08-26 per chiudere [DEBT-033] e [DEBT-034]. **Non ancora decisa.**
+> Proposta dal Lead il 2026-08-26 per chiudere [DEBT-033]. **Non ancora decisa.**
+>
+> **Seconda stesura.** La prima è stata sottoposta a critica avversariale da AGENT-007 su richiesta dell'operatore, prima della decisione: [REVIEW-036], dieci finding e cinque errori fattuali. La parte 1 è sopravvissuta a ogni attacco ed è conservata. La parte 2 è stata **rifatta**. La parte 3, che aggiungeva un campo di altezza a `challenge_evidence`, è stata **tolta**: la critica ha stabilito che non chiude la superficie che diceva di chiudere, e la sua sostanza è passata su [DEBT-034]. Il titolo stesso è cambiato, perché la premessa della prima stesura era falsa.
 
 ## Context
 
@@ -33,95 +35,128 @@ Lo stesso documento nomina le tre domande rimaste aperte — quanto debba essere
 
 ### I fatti verificati, con il perimetro su cui valgono
 
-Verificati dal Lead sull'albero a `3f1bef7`, non ereditati dagli artefatti che li affermano:
+Verificati sull'albero a `3f1bef7`. **Tre di questi sono correzioni a errori della prima stesura**, trovati da [REVIEW-036] e riverificati dal Lead in modo indipendente.
 
-- **`effective_height` è nominato da esattamente due MUST.** Verificato **contando**: `effective_height` compare **trenta volte** in `ledger.md`, di cui tre su righe che portano `MUST`. Una delle tre — *«satisfies every MUST of this document»* — è prosa **su** i MUST e non è un MUST. Restano la clausola 4 della regola di transizione forzata, che è un **pavimento** (`min_revocation_effective_delay_blocks` sopra il blocco proponente), e la regola del light client. **Nessun altro MUST lo nomina**, per esaurimento delle trenta.
-- **Un solo riferimento lo limita verso l'alto, ed è la clausola 8** della regola di contrazione del set. Verificato **enumerando** le trenta occorrenze e classificandole: le clausole 1, 2 e 6 confrontano `effective_height` con un'altra altezza, ma lo usano come **soglia da cui** un set o un blocco diventa invalido, cioè non lo limitano affatto; la clausola 8 è **la sola** che lo pone *sotto* un'altra grandezza (`is at most that activation_height`). E non è un tetto: dice che una revoca non può giustificare una contrazione più alta della propria efficacia. Una revoca con `effective_height` assurdo resta valida.
-- **`reason` è inerte.** Quattro occorrenze in tutto l'albero: la dichiarazione dello schema, la fixture canonica, la copia della fixture in un test di serializzazione, e la probe dell'inventario di [ADR-012]. **Nessuna regola lo legge, nessun codice lo ramifica.** È però già impegnato nell'ID della transazione, quindi renderlo letto **non cambia il formato**.
-- **`ChallengeEvidenceBody` porta `completed_at_ms` e nessun campo di altezza.** Questo è il fatto che nessuno dei due debiti riporta, e capovolge il costo del rimedio di [DEBT-034]: far portare all'evidenza l'altezza a cui l'auditor ha giudicato **non è rendere letto un campo esistente, è aggiungerne uno**. È l'opposto di [DEBT-033], dove il campo c'è già.
-- **`min_revocation_effective_delay_blocks` è un parametro governato senza valore di lancio.** Verificato **contando**, sul perimetro `docs/` + `core/` + `sim/` e non sul brain: **diciassette occorrenze** — sei di prosa e regole in `ledger.md`, una nello schema di `README.md`, quattro in `params.rs` che lo dichiarano e lo leggono senza vincolarlo, quattro in `tests/common/mod.rs`, una in `protocol_hashes.py`, una nella probe di `published_artifacts.toml`. **Tre soltanto gli assegnano un valore** — `mod.rs:242`, `mod.rs:516`, `protocol_hashes.py:142` — e tutte e tre assegnano `1`, e tutte e tre sono fixture. Non compare nemmeno nella lista DRAFT dei parametri di lancio, che quindi non lo dichiara aperto.
+- **`effective_height` è nominato da tre MUST, non da due.** La prima stesura diceva due, e l'errore era ereditato da [DEBT-033] e prima ancora da [REVIEW-033] RF-001: **tre artefatti che ripetevano lo stesso conto**. La ragione è che l'enumerazione era fatta sul **token** `effective_height`, mentre la grandezza ha una seconda grafia. Contando entrambe le grafie: `ledger.md:1033` (clausola 4, un **pavimento**), `ledger.md:1064` (light client), e **`ledger.md:785`** — *«The effective height MUST be later than the block proposing the revocation»* — che è la regola che impedisce a una revoca di mordere nel proprio blocco, cioè la riga che questo ADR tocca più da vicino. *Perimetro: `docs/protocol/`; trenta occorrenze del token in `ledger.md`, di cui tre su righe con `MUST` e una di quelle è prosa sui MUST, più due righe che usano la grafia a spazio.*
+- **Un riferimento lo limita verso l'alto, ed è la clausola 8** della regola di contrazione del set (`ledger.md:1107`, `is at most that activation_height`). La prima stesura scriveva *«la sola»* e l'enumerazione portata non lo sosteneva: `ledger.md:107`, la clausola 2 della definizione di [SPEC-019], ha la stessa forma sintattica (`carries an effective_height at most h`). La conclusione non cambia — **nessuna delle due è un tetto sul campo**, perché entrambe condizionano la validità di *altro* e lasciano valida una revoca con efficacia assurda — ma il superlativo è stato tolto.
+- **`reason` è inerte.** Quattro occorrenze fuori dal brain: lo schema a `ledger.md:778`, la fixture canonica a `793`, la sua copia in `canonical_serialization.rs`, la probe dell'inventario di [ADR-012]. **Nessuna regola lo legge, nessun codice lo ramifica.** È però già impegnato nell'ID della transazione, quindi renderlo letto non cambia il formato. *Enumerazione rieseguita in modo indipendente da [REVIEW-036] e confermata.*
+- **`min_revocation_effective_delay_blocks` è governato, senza valore di lancio e senza limite di genesi.** Diciassette occorrenze su `docs/` + `core/` + `sim/` escludendo gli artefatti di build, di cui **tre soltanto gli assegnano un valore** (`tests/common/mod.rs:242`, `:516`, `protocol_hashes.py:142`), tutte e tre a `1`, tutte e tre fixture. Non è nella lista DRAFT dei parametri di lancio. E — questo è il fatto che ha rifatto la parte 2 — **non è nel blocco dei vincoli di magnitudine** di `ledger.md#magnitudes-not-only-relations`, né in `ElectionBounds`. Quel blocco esiste proprio per impedire a un set seduto di camminare un parametro governato fino a un valore assurdo, e questo parametro ne è fuori. *Verificato leggendo il blocco per intero.*
+- **L'ordine di esecuzione dentro un blocco è già deciso.** `ledger.md:2819` mette `revoke_identity` in **classe 0** e `burn`/`fund_app` in **classe 1**. La prima stesura dichiarava aperta la scelta fra mordere a `h` o a `h+1`: era chiusa. Sul percorso del saldo una revoca inclusa in `h` esegue prima di ogni spesa dello stesso blocco, per ogni verificatore.
 
 ### Il fatto che governa la decisione
 
-**Il pavimento ha una giustificazione, e quella giustificazione esiste su un percorso solo.**
+**Il pavimento ha due lavori, contati, e nessuno dei due riguarda il saldo.**
 
-`min_revocation_effective_delay_blocks` esiste per dare ai validatori superstiti una finestra dichiarata in cui impegnare un set successore conforme, così che la catena non si fermi. È una ragione di **liveness del set**.
+La prima stesura diceva *«ha una giustificazione, e quella esiste su un percorso solo»*. Era falso, e [REVIEW-036] lo ha stabilito enumerando:
 
-Su un saldo quella ragione non esiste. **Un saldo non ha bisogno di una finestra per essere protetto: ne ha bisogno il set.** Il pavimento è quindi giusto per un percorso e arbitrario per l'altro, ed è proprio sul percorso in cui è arbitrario che [SPEC-019] ha appena messo il peso.
+1. `ledger.md:1033-1036` — dare ai validatori superstiti una finestra dichiarata in cui impegnare un set successore conforme, così che la catena non si fermi. È **liveness del set**.
+2. `ledger.md:1075-1080` — fare da tetto a `max_weak_subjectivity_age_ms` per MUST, così che un checkpoint ancora accettato non sia mai più vecchio della finestra concessa. È **freschezza dell'ancora di fiducia del light client**.
 
-### La cosa che va guardata prima di scegliere, perché cambia il costo di un'opzione
+La premessa corretta è più debole della prima e basta lo stesso: **nessuno dei due lavori è una ragione per mettere un ritardo sul saldo.** Un saldo non ha bisogno di una finestra per essere protetto — ne ha bisogno il set, e ne ha bisogno il light client. Il pavimento è quindi giustificato su due percorsi e arbitrario su un terzo, ed è proprio sul terzo che [SPEC-019] ha appena messo il peso.
+
+### La cosa che va guardata prima di scegliere
 
 [DEBT-033] scarta la via *«far mordere la revoca sul percorso di spesa a `min(effective_height, proponente + pavimento)`»* perché *«reintrodurrebbe due significati di "revocata" alla stessa altezza, cioè esattamente ciò contro cui [SPEC-019] ha argomentato»*.
 
-**Quella lettura eredita la conclusione di [SPEC-019] senza il suo confine.** L'argomento di [SPEC-019] contro la seconda lettura aveva due parti, e solo una era fatale:
+**Quella lettura eredita la conclusione di [SPEC-019] senza il suo confine.** L'argomento aveva due parti, e solo una era fatale:
 
 1. la lettura era **dipendente dal verificatore** — due nodi con certificati diversi danno verdetti diversi. **Questa è la parte fatale**, ed è un fork.
-2. dava **due significati di *revocata* alla stessa altezza**. Questa è una parte di leggibilità, non di correttezza.
+2. dava **due significati di *revocata* alla stessa altezza**. Questa è leggibilità, non correttezza.
 
-`min(effective_height, proponente + pavimento)` innesca la **(2)** e non la **(1)**: entrambe le grandezze sono nel corpo della transazione, lette dagli stessi byte da ogni verificatore, e la funzione è totale sul blocco e i suoi antenati e monotona in `h`. Non è un fork.
+L'opzione innesca la **(2)** e non la **(1)**: entrambe le grandezze sono nel corpo della transazione, lette dagli stessi byte da ogni verificatore, e la funzione è totale sul blocco e i suoi antenati e monotona in `h`. Non è un fork. [REVIEW-036] ha attaccato questa affermazione da sei direzioni — riorganizzazioni, mempool, inclusione condizionale, non retroattività, revoche multiple, censura — e non l'ha rotta.
 
-E la **(2)** è già lo stato del protocollo, in forma più forte: `ledger.md` dichiara che dentro la finestra un nodo è **contemporaneamente** autorizzato a spendere, contato a piena potenza di voto, e **irraggiungibile da ogni peer conforme**. Sono già **tre** risposte diverse alla stessa altezza. Il peccato non è averne una in più: è averne una **non dichiarata**.
+E la **(2)** è già lo stato del protocollo, in forma più forte: `ledger.md:222` dichiara che dentro la finestra un nodo è **contemporaneamente** autorizzato a spendere, contato a piena potenza di voto, e irraggiungibile da ogni peer conforme. Sono già **tre** risposte diverse alla stessa altezza. Il peccato non è averne una in più: è averne una **non dichiarata**.
 
 ## Decision
 
-> **Da decidere dall'operatore.** Quanto segue è la proposta del Lead.
+> **Da decidere dall'operatore.** Quanto segue è la proposta del Lead, seconda stesura.
 
-La revoca fa due lavori — togliere una chiave dal set, e togliere a una chiave il potere di spendere — e questo ADR li separa lungo la linea su cui corre la giustificazione del pavimento.
+La revoca fa due lavori — togliere una chiave dal set, e togliere a una chiave il potere di spendere — e questo ADR li separa lungo la linea su cui corrono le giustificazioni del pavimento.
 
 ### 1. Il percorso di spesa non ha pavimento: la revoca morde all'inclusione
 
 Sul percorso di autorizzazione delle transazioni, una revoca qualifica la chiave a partire dall'**altezza del blocco che la include**, non da `effective_height`.
 
-È la **terza lettura** che `ledger.md` descrive e certifica: *«un fatto sul blocco e i suoi antenati, monotono in `h`, letto dagli stessi byte da ogni verificatore»*, e **chiude la finestra**. Il documento non l'ha adottata per un motivo solo — che adottarla significa ridefinire cos'è `effective_height`, cioè meccanica della revoca — e questo ADR è la sede in cui quella ridefinizione si fa.
+È la **terza lettura** che `ledger.md:186-193` descrive e certifica — *«un fatto sul blocco e i suoi antenati, monotono in `h`, letto dagli stessi byte da ogni verificatore»* — e **chiude la finestra**. Il documento non l'ha adottata perché adottarla significa ridefinire cos'è `effective_height`, cioè meccanica della revoca, e questo ADR è la sede in cui quella ridefinizione si fa.
 
-**Cosa chiude:** l'intera superficie di [DEBT-033] sul percorso di spesa. Non la limita, la toglie: non c'è più alcuna grandezza che il quorum sceglie e da cui dipende quanto una revoca protegga un saldo.
+**Morde a `h`, e non è una scelta di questo ADR**: `ledger.md:2819` la fa già, mettendo `revoke_identity` in classe 0 e la spesa in classe 1.
 
-### 2. Il percorso del set tiene il pavimento e guadagna un tetto, e il tetto dipende da `reason`
+**Cosa chiude:** l'intera superficie di [DEBT-033] sul percorso di spesa. Non la limita, la toglie.
 
-Sul percorso della transizione del set, `effective_height` conserva il significato che ha oggi e il pavimento resta, perché lì la sua ragione esiste. Guadagna un tetto, e **il tetto non è un parametro nuovo: è `reason`, reso letto**.
+**Cosa resta aperto, e va aperto come debito proprio invece che rinviato alla spec:** dentro la **classe 0** l'ordine è per raw transaction ID, e l'ID è l'hash di un corpo che porta `created_at_ms`. Il revocante può enumerare millisecondi finché il proprio ID ordina prima o dopo quello di una `validator_candidacy` bersaglio. È deterministico, quindi non è un fork — ma è una discrezione, ed è [REVIEW-036] RF-006. Non tocca il saldo, perché la classe 1 sta sempre dopo.
+
+### 2. Il percorso del set tiene il pavimento, e il tetto è una banda dichiarata dipendente da `reason`
+
+Sul percorso della transizione del set, `effective_height` conserva il significato che ha oggi e il pavimento resta, perché lì le sue ragioni esistono.
+
+**Il vincolo è una banda a due lati, non un'uguaglianza.** La prima stesura derivava `effective_height = proponente + F` esattamente su `key_compromise`. Era inapplicabile: **l'autore non conosce l'altezza di inclusione**, e un solo proponente ostile, per un solo turno, avrebbe invalidato la transazione — convertendo una censura di severità media in un **veto sulla revoca d'emergenza**, contro una transazione che porta `expires_at_ms`. È [REVIEW-036] RF-002, ed è il colpo che ha rifatto questa parte.
+
+Sia `F` = `min_revocation_effective_delay_blocks`, `p` = altezza del blocco proponente, `G` = `revocation_effective_grace_blocks` (nuovo), `P` = `max_planned_revocation_delay_blocks` (nuovo).
 
 | `reason` | Vincolo su `effective_height` | Perché |
 | --- | --- | --- |
-| `key_compromise` | **derivato**: `= proponente + pavimento`, esattamente | La chiave è in mano al nemico. Il set ha bisogno della sua finestra, e di nient'altro. **Nessuna discrezione.** |
-| `validator_misconduct` | `<= proponente + 2 × pavimento` | Cattiva condotta non implica chiave compromessa: un margine di programmazione è legittimo, il doppio non lo è. |
-| `operator_request` | `<= proponente + max_planned_revocation_delay_blocks` | Uscita volontaria e programmata. La latitudine è il punto, e va dichiarata come parametro invece che come assenza di regola. |
+| `key_compromise` | `p + F <= effective_height <= p + F + G` | La chiave è in mano al nemico. Il set ha bisogno della sua finestra, più un margine dichiarato per assorbire il ritardo di inclusione. Nient'altro. |
+| `validator_misconduct`, `operator_request` | `p + F <= effective_height <= p + P` | Uscita programmata o condotta da sanzionare senza urgenza crittografica. La latitudine è il punto, e va dichiarata come parametro invece che come assenza di regola. |
 
-Su `key_compromise` — **il caso per cui la revoca esiste** — il campo smette di essere scelto e diventa **calcolato**, quindi verificabile. È la forma che [DEBT-033] chiede: *togliere la discrezione invece di limitarla*.
+**Due righe e non tre**, ed è una correzione. La prima stesura dava a `validator_misconduct` un tetto di `2 × F`. Quel `2 ×` aveva **il denominatore sbagliato**: `F` è tarato su quanti blocchi servono ai superstiti per impegnare un set successore, e il margine legittimo di una cattiva condotta non ha relazione con quella durata. La conseguenza sarebbe stata un accoppiamento che nessuno sceglierebbe — alzare `F` per rendere lo stallo più raro **raddoppierebbe la latitudine sulla cattiva condotta**. È [REVIEW-036] RF-009.
 
-Un tetto sul percorso del set **non è famiglia 3**, e la distinzione va dichiarata perché è proprio la famiglia che [DEBT-033] avverte di non commettere. Famiglia 3 è vincolare la grandezza *nominata* invece di quella da cui la proprietà dipende. Qui la proprietà è *«la chiave compromessa smette di votare abbastanza presto»*, e quella proprietà dipende **esattamente** da `effective_height`. È la grandezza giusta.
+**I tre parametri entrano nel blocco dei vincoli di genesi**, ed è la parte che manca oggi:
 
-### 3. `challenge_evidence` porta l'altezza a cui l'auditor ha giudicato
+```text
+min_revocation_effective_delay_blocks >= 1
+revocation_effective_grace_blocks     >= 1
+max_planned_revocation_delay_blocks   >= min_revocation_effective_delay_blocks
+                                         + revocation_effective_grace_blocks
 
-`ChallengeEvidenceBody` guadagna un campo che registra l'altezza finalizzata contro cui l'auditor ha valutato la raggiungibilità del soggetto. Un verdetto smette di essere **asserito** e diventa **ricalcolabile**, che è la stessa forma con cui [SPEC-019] ha scelto fra le due letture di *unrevoked*.
+// limiti di magnitudine, presi dall'ancora di fiducia di genesi e mai dal
+// documento sotto valutazione:
+min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max
+revocation_effective_grace_blocks     <= revocation_effective_grace_blocks_max
+max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
+```
 
-**Cosa non fa, e va detto:** non toglie la divergenza. Due auditor a teste diverse continuano a raggiungere conclusioni opposte, e devono, perché la regola locale di `identity.md` è lì per proteggere il ricevente in tempo reale. Quello che cambia è che la divergenza diventa **visibile nell'oggetto**, quindi i validatori possono rifiutare un'evidenza il cui esito non è sostenuto dall'altezza dichiarata.
+Senza questo la parte 2 **non toglierebbe la discrezione: la sposterebbe**. Un quorum che vuole latitudine su un `key_compromise` non toccherebbe `effective_height` — la banda glielo stringe — ma pubblicherebbe un `consensus_parameters` con `F` enorme, soddisfacendo ogni vincolo relazionale esistente. Sarebbe la **famiglia 3** alla lettera: vincolata la grandezza nominata, non quella da cui la proprietà dipende. È [REVIEW-036] RF-001, ed è l'obbligo che [ADR-010] impone e che la prima stesura non aveva assolto pur citando quell'ADR.
 
-### 4. Quale versione del parametro governa
+Il pavimento a `>= 1` non è cosmetico: **è la riga che tiene insieme la parte 2 e `ledger.md:785`.** Con `F = 0` — oggi permesso — la banda ammetterebbe `effective_height = p`, che quella riga vieta, e ogni revoca per compromissione diventerebbe incostruibile.
+
+### 3. Quale versione del parametro governa
 
 Ogni vincolo di cui sopra si valuta contro i **parametri di consenso in vigore all'altezza del blocco che include la `revoke_identity`**.
 
-Questa clausola esiste per non aprire una terza porta sulla famiglia di [DEBT-012], [DEBT-020] e [DEBT-028] — una regola che dipende da un parametro governato senza dire quale versione valga. Sarebbe stata la quarta.
+Questa clausola esiste per non aprire una porta ulteriore sulla famiglia di [DEBT-012], [DEBT-020] e [DEBT-028] — una regola che dipende da un parametro governato senza dire quale versione valga.
+
+**[REVIEW-036] dichiara di avere letto questa clausola e di non averla attaccata**, annotando che è la parte dell'ADR che le è piaciuta di più e che ciò che si loda è precisamente ciò che si smette di verificare. **Resta quindi la parte meno provata di questa decisione, ed è scritto qui perché chi la citerà lo sappia.**
 
 ## Alternatives considered
 
-- **Solo `max_revocation_effective_delay_blocks`, un tetto secco.** È la prima cosa che verrà proposta, e [DEBT-033] la dichiara *inefficace* perché un quorum ostile sceglierebbe il massimo ammesso. **Quella liquidazione è troppo netta e va corretta**: un tetto converte un danno **illimitato** in un danno **limitato**, che non è nulla. Rifiutata non perché inutile, ma perché **insufficiente da sola** — lascia intatta la discrezione sul caso che conta, `key_compromise`, e non distingue fra ragioni che meritano latitudine diversa. La proposta sopra la contiene come caso particolare e la rende dipendente da `reason`.
-- **`min(effective_height, proponente + pavimento)` sul percorso di spesa.** Non è un fork, per la ragione scritta nel Context. Rifiutata perché conserva un pavimento sul percorso dove la sua giustificazione non esiste: sarebbe scegliere di proteggere un saldo *meno* di quanto si potrebbe, in cambio di nessuna proprietà. La parte 1 è questa opzione con il pavimento a zero, che è la stessa meccanica senza il residuo arbitrario.
-- **Allineare la regola locale di `identity.md` alla definizione di [SPEC-019].** Rifiutata, e [DEBT-034] lo dice già: renderebbe la raggiungibilità dipendente dagli antenati di un blocco che il ricevente potrebbe non avere ancora, cioè toglierebbe al ricevente la capacità di proteggersi in tempo reale. Sposterebbe il danno sul livello di trasporto.
-- **Non fare nulla e dichiarare la finestra.** È lo stato attuale, ed è onesto: `ledger.md` dichiara già l'esposizione. Rifiutata perché la dichiarazione descrive un danno di cui **l'ampiezza la sceglie l'avversario**, e una dichiarazione del genere non è un limite.
+- **`effective_height` derivato esattamente su `key_compromise`**, la forma della prima stesura. Rifiutata per RF-002: l'autore non conosce l'altezza di inclusione, e l'uguaglianza regala un veto a chi controlla un turno di proposta. La banda a due lati conserva l'intento — togliere la discrezione invece di limitarla — al prezzo di `G`, che è discrezione **dichiarata e limitata in genesi** invece che illimitata.
+- **Solo un tetto secco `max_revocation_effective_delay_blocks`.** [DEBT-033] la dichiara *inefficace* perché un quorum ostile sceglierebbe il massimo. **Quella liquidazione è troppo netta**: un tetto converte un danno illimitato in un danno limitato, che non è nulla. Rifiutata perché **insufficiente da sola** — non distingue le ragioni e lascia intatta la discrezione sul caso che conta. La banda sopra la contiene e la rende dipendente da `reason`.
+- **`min(effective_height, proponente + pavimento)` sul percorso di spesa.** Non è un fork. Rifiutata perché conserva un pavimento dove nessuno dei suoi due lavori si applica: proteggerebbe il saldo *meno* di quanto si potrebbe, in cambio di nessuna proprietà. La parte 1 è questa opzione con il pavimento a zero, ed è la stessa meccanica senza il residuo arbitrario — l'equivalenza è verificata, perché `ledger.md:785` impone che l'efficacia superi l'inclusione, quindi il `min` vale sempre l'inclusione.
+- **Aggiungere a `challenge_evidence` l'altezza a cui l'auditor ha giudicato**, la parte 3 della prima stesura. **Tolta.** [REVIEW-036] RF-004 ha stabilito che `ChallengeEvidenceBody` porta `auditor_signatures` come **lista** e `outcome` come **scalare**: un campo di altezza singolo su N firmatari non rende il verdetto ricalcolabile, costringe N−1 auditor a firmare un'altezza che non è la loro, e **cancella la divergenza invece di renderla visibile**. RF-003 ha aggiunto che il controllo, se reso MUST, richiederebbe a un validatore di ricostruire le revoche *finalizzate* — cosa che `ledger.md:139-148` dichiara impossibile dalla sola catena — reintroducendo la lettura verificatore-dipendente un livello più in basso. La sostanza passa su [DEBT-034], che va riscritto.
+- **Allineare la regola locale di `identity.md:814` alla definizione di [SPEC-019].** Rifiutata: renderebbe la raggiungibilità dipendente dagli antenati di un blocco che il ricevente potrebbe non avere ancora, togliendogli la capacità di proteggersi in tempo reale.
+- **Non fare nulla e dichiarare la finestra.** È lo stato attuale, ed è onesto. Rifiutata perché la dichiarazione descrive un danno di cui **l'ampiezza la sceglie l'avversario**, e una dichiarazione del genere non è un limite.
 
 ## Consequences
 
-- **`effective_height` cambia significato e resta un campo solo.** Governa la transizione del set; non governa più la spesa. È contenuto normativo nuovo su un campo pubblicato, quindi la gate di [ADR-012] si applica alla spec che lo scrive — non a questa decisione.
-- **`ChallengeEvidenceBody` cambia forma**, quindi cambiano l'ID della transazione, la fixture canonica e i digest pubblicati che la trascrivono. È il pezzo più caro della proposta, ed è caro perché il campo non c'era.
-- **La frase di `identity.md` sulla non retroattività va riscritta.** Dice che le firme storiche restano valide *«sotto l'altezza efficace»*; diventano due frasi, una per percorso. La non retroattività non viene tolta: viene detta rispetto all'altezza che governa ciascun percorso.
-- **Nasce `max_planned_revocation_delay_blocks`**, un parametro governato nuovo, e con esso l'obbligo di fissarlo. **Si porta dietro un debito che questa decisione non chiude**: `min_revocation_effective_delay_blocks` non ha oggi alcun valore di lancio, e non è nemmeno nella lista DRAFT. Fissare un tetto come multiplo di un pavimento non fissato lascia il prodotto indeterminato. **Il Lead lo segnala come questione da portare all'operatore insieme a `max_clock_drift_ms` e a `D_max`/`S_max`, non come parte di questo ADR.**
-- **Va deciso nella spec, non qui**, se una revoca inclusa nel blocco `h` morda per le transazioni **dello stesso blocco** `h` o dal successivo. Mordere a `h` è coerente con la forma *«una revoca morde *alla* propria altezza»* già scritta; mordere a `h+1` evita del tutto una regola di ordinamento intra-blocco. **La raccomandazione del Lead è `h`**, per non introdurre una seconda forma, ma la scelta ha conseguenze sull'ordinamento che l'implementatore deve guardare con il codice sotto mano.
-- **[DEBT-034] non viene chiuso interamente da questa decisione**, e dirlo è parte della decisione. La parte 3 rende il verdetto ricalcolabile; **non** impedisce a un soggetto irraggiungibile-ma-iscritto di accumulare `no_response` per tutta la durata della finestra. Quella metà si accorcia per composizione con la parte 2, non per un rimedio proprio.
+- **`effective_height` cambia significato e resta un campo solo.** Governa la transizione del set; non governa più la spesa.
+- **Quattro artefatti pubblicati diventano falsi, e la prima stesura non li nominava** — famiglia 1, la classe che questo progetto ha già subito sette volte. È [REVIEW-036] RF-008. La passata di [ADR-012] sulla spec attuativa deve enumerare almeno:
+  - **la fixture `AUTH-0`** (`ledger.md:242-283`), la cui revoca è finalizzata a `20` con efficacia `50`: sotto la parte 1 le righe `21` e `49` **si ribaltano** da `valid` a `invalid`, e sono precisamente le due righe che la fixture esiste per pinnare. Ha un test di conformità dedicato, `core/coblox-core/tests/authorization_unrevoked.rs`;
+  - **`ledger.md:785`**, la riga che la parte 2 vincola dal basso;
+  - **il commento di `RevocationRecord`** in `authorization.rs`, che dichiara l'altezza di inclusione *«deliberately absent: the predicate does not read it»*. Va **ritrattato**, non aggiornato in silenzio;
+  - **il checkpoint di soggettività debole**, che impegna `(node_id, effective_height)`: dopo la parte 1 porta la grandezza del percorso del set e **non** quella del saldo. È corretto per il light client e va detto, perché un consumatore futuro leggerebbe quel campo come *«da quando la chiave non spende»* e sbaglierebbe.
+- **La frase di `identity.md:839` sulla non retroattività va riscritta**, da una a due, una per percorso. La non retroattività non viene tolta: viene detta rispetto all'altezza che governa ciascun percorso. E non c'è un caso in cui si rompa, perché l'inclusione è sempre **precedente** all'efficacia: la parte 1 anticipa il morso, non lo retrodata.
+- **Nascono due parametri governati** — `revocation_effective_grace_blocks` e `max_planned_revocation_delay_blocks` — e con essi l'obbligo di fissarli **insieme a `F`, che oggi non ha valore di lancio** e non è nella lista DRAFT. Va portato all'operatore con `max_clock_drift_ms` e `D_max`/`S_max`.
+- **Il rischio residuo, dichiarato invece che taciuto.** `reason` **non è verificabile da nessuno**. Renderlo letto significa che un quorum che vuole latitudine su una chiave davvero compromessa può dichiarare `operator_request`. L'incentivo a farlo è proporzionale a `P − (F + G)`, quindi **è la taratura di `G` a comprarne la riduzione**, non una regola. Contro un quorum pienamente ostile la questione è vuota: chi ha i due terzi non revoca e basta. Contro un quorum onesto `reason` funziona. È [REVIEW-036] RF-005, ed è **la parte di quel finding che questa stesura riduce senza chiuderla**.
+- **La metà di [REVIEW-036] RF-005 che questa stesura non chiude**: se `F + G` non bastasse ai superstiti per impegnare un set conforme, la mossa razionale di un quorum onesto resterebbe **ritardare l'autorizzazione**, e durante quel ritardo la chiave compromessa spende ancora, perché la parte 1 morde all'inclusione. **La tenuta della parte 1 dipende dalla prontezza dell'autorizzazione.** Se `G` sia abbastanza è una domanda di taratura che oggi **nessuna misura risponde**: non esiste una simulazione del tempo di coordinamento di un set successore.
+- **La raggiungibilità resta saldata al pavimento**, ed è il terzo percorso che questo ADR non stacca ([REVIEW-036] RF-007). Per un nodo **non validatore** con `key_compromise` non esiste alcun set a cui dare una finestra, eppure resta irraggiungibile-ma-iscritto per `F` blocchi, con `F` tenuto lungo per progetto. Questo ADR dichiara che i percorsi sono **tre** e ne governa **due**.
+- **`min_revocation_effective_delay_blocks` acquista un limite di genesi**, quindi smette di essere una leva a due teste: oggi alzarlo **autorizza** ad allungare `max_weak_subjectivity_age_ms` per il MUST di `ledger.md:1079`, e senza il limite la parte 2 avrebbe saldato la finestra di revoca alla finestra di esposizione del light client.
 
 ## Review conditions
 
-Rivedere **la tabella di `reason`** se la devnet mostrasse che `validator_misconduct` viene usato per casi con l'urgenza di un `key_compromise`: sarebbe il segno che le tre ragioni sono due, e che il campo va ristretto invece che tarato.
+Rivedere **la banda di `key_compromise`** quando esisterà una misura del tempo di coordinamento di un set successore. È il numero che oggi manca e che decide se `G` è un margine o un alibi.
 
-Rivedere **la parte 3** quando esisterà una seconda implementazione del percorso di sfida: è lì che si vedrà se l'altezza dichiarata basta a rendere un verdetto contestabile, o se serve che l'evidenza porti anche cosa l'auditor ha osservato.
+Rivedere **la tabella di `reason`** se la devnet mostrasse `operator_request` usato per casi con l'urgenza di una compromissione: sarebbe la misura dell'incentivo dichiarato sopra, e direbbe che la banda larga va stretta.
 
-**Non rivedere** la parte 1 per riavvicinare i due percorsi. La loro asimmetria non è un difetto da sanare: è la conseguenza del fatto che il pavimento ha una ragione sola, e riallinearli significherebbe rimettere sul saldo un ritardo che nessuna proprietà chiede.
+Rivedere **la clausola 3** per prima in qualunque revisione futura, perché è la parte che la critica avversariale ha letto e non attaccato.
+
+**Non rivedere** la parte 1 per riavvicinare i due percorsi. La loro asimmetria non è un difetto da sanare: è la conseguenza del fatto che i due lavori del pavimento riguardano il set e il light client, e riallinearli rimetterebbe sul saldo un ritardo che nessuna proprietà chiede.
