@@ -5,7 +5,7 @@ title: "Cosa significa non revocata per autorizzare una spesa, e la riga che non
 status: backlog
 kind: bugfix
 priority: high
-area: core
+area: ledger
 milestone: M-02
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 recommended_agent: AGENT-002

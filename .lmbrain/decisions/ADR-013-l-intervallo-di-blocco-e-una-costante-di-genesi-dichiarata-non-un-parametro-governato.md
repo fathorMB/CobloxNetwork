@@ -104,6 +104,32 @@ checkpoint misurano la cadenza reale. La chiusura praticabile passa di li, e non
 difetto la cui gravita e tutta nell'invisibilita e la parte che conta, e dire
 «chiuso» direbbe piu di quanto sara scritto.
 
+> **Annotazione del 2026-08-26, a [SPEC-016] chiusa.** Questa parte 3 resta
+> vera e diventa **incompleta in una direzione che nessuno aveva guardato.**
+> Fino a [SPEC-016] il pericolo aveva un verso solo — il rallentamento — perche'
+> `reward_epoch` non era derivato da nulla. Chiudendo [DEBT-019] con la
+> derivazione da `height`, **accelerare la produzione moltiplica l'emissione
+> reale**, e il pericolo ne acquista un secondo. Le due conseguenze **non si
+> scambiano fra loro**: il lato lento e' l'incumbency e il ritardo effettivo di
+> revoca, il lato veloce e' l'emissione. E' la ragione per cui la banda di
+> cadenza introdotta da quella spec e' **a due lati**.
+>
+> Va registrato il modo in cui l'errore si e' prodotto, perche' nessuna gate lo
+> cerca: **una chiusura che falsifica la descrizione del problema che chiudeva**,
+> e che lascia la descrizione in piedi perche' nessuno pensa a rileggerla. La
+> frase falsa stava in [DEBT-013] ed e' stata corretta; questa annotazione e'
+> l'altra meta'.
+>
+> **Le due soglie non sono la stessa**, e la distinzione e' di AGENT-007 in
+> [REVIEW-027]: rallentare basta a un **terzo bloccante**, accelerare richiede un
+> **quorum**, perche' ogni blocco porta un certificato di quorum. Il guadagno sul
+> lato veloce e' inoltre *pro quota* e non esclusivo, non ha negabilita', ed e'
+> osservabile da chiunque senza banda. **Il movente dominante resta quindi il
+> rallentamento** — ed e' il lato su cui la chiusura si limita a **segnalare**,
+> mentre fallisce chiuso sul lato piu' caro da attaccare. E' la scelta giusta,
+> per la ragione che [SPEC-016] scrive, ma va saputa: il progetto fallisce chiuso
+> sul lato debole.
+
 **Le conseguenze, nella forma accertata e non in quella supposta.** Il set
 attivo determina la durata in tempo reale delle proprie epoche, quindi la
 propria incumbency, e la soglia non e il quorum ma un **terzo bloccante**, con

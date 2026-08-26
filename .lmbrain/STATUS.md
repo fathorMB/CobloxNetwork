@@ -9,6 +9,18 @@ updated: 2026-08-25
 
 ## Current focus
 
+**Sessione autonoma della notte fra il 25 e il 26 agosto 2026.** Mandato dell'operatore: portare avanti l'analisi sui debiti, lavorare le spec in `backlog` una alla volta con i giri di review sullo stesso sub-agent, e produrre l'handoff. L'operatore non era disponibile per approvazioni.
+
+**Esito: [SPEC-015], [SPEC-016] e [SPEC-018] chiuse; cinque debiti risolti; tre spec nuove redatte; quattro debiti nuovi aperti.**
+
+Tre cose vanno lette prima delle altre, perche' riguardano il **modo** in cui il progetto trova i propri difetti e non il loro contenuto.
+
+**La prima.** [REVIEW-025], del Lead, ha lodato l'asimmetria fuori banda di [SPEC-016] come «la parte migliore del lavoro». [REVIEW-027], di AGENT-007, vi ha trovato un finding **high**: l'argomento guardava un estremo solo, e la frase falsa era deducibile dalla stessa sezione di `README.md` che l'implementatrice stava citando mentre la scriveva. **Una review che loda senza attaccare non ha verificato.** E' la quinta volta che una misura risulta puntata sulla grandezza sbagliata, e la seconda dentro un lavoro gia' accettato dal Lead.
+
+**La seconda.** `GATE-MEASURE-BINDS` esercitava tre catene, **tutte a latenza zero**. Una gate che prova solo il regime nominale non ha mai visto lo scenario che la rompe. Vale come criterio generale per le gate future.
+
+**La terza, ed e' l'unica buona notizia delle tre.** La guardia `C11-CLAIMDOC`, costruita durante la notte, ha catturato **entro pochi minuti dall'esistere** una deriva reale prodotta da un altro agente sullo stesso albero. Il Lead non si e' ricordato di aggiornare il conteggio di `SECURITY.md`: gliel'ha chiesto la gate.
+
 **Sessione autonoma del Lead conclusa, notte del 2026-08-25.** Su mandato dell'operatore ("completare tutte le spec aperte, salvare i debiti, occuparti di dispatch e review"), il Lead ha operato senza attendere conferme.
 
 In quella sessione M-01 arrivò a tre spec su quattro `done` ([SPEC-001], [SPEC-002], [SPEC-004]), con la quarta ([SPEC-003]) accettata tecnicamente e ferma sul gate dell'operatore. Sette review prodotte, sette dispatch, [ADR-007] deciso su delega con la metrica di [[PROJECT]] riformulata, quattro debiti nuovi registrati, tre commit spinti su `main`.
@@ -53,25 +65,17 @@ Il criterio che ha ordinato tutto il lavoro finora, e che vale ancora per l'ulti
 
 ## Ready for handoff
 
-**Due spec redatte il 2026-08-26, in `backlog`, in attesa della tua approvazione.** Chiudono cinque debiti fra quelli che devono precedere la devnet, e sono divise per **agente e per superficie**, non per dimensione.
+**Tre spec in coda, nessuna dispacciata.** L'ordine e' **dipendenza e non estetica**, stabilito da AGENT-007.
 
-- **[SPEC-016] — Gli orologi della catena.** AGENT-002, `sol`/`extended`. Chiude [DEBT-013], [DEBT-019] e [DEBT-014]. Le prime due si chiudono nella stessa forma perché hanno la stessa causa: *nessuna regola interna alla catena può vincolare il tempo reale, perché ogni orologio della catena è scritto dai validatori.* La terza è due paragrafi ed è lì perché lavora sullo **stesso oggetto** — il checkpoint di soggettività debole — e chi scrive la prima deve conoscerne la conclusione per non riaprirla.
-- **[SPEC-017] — Il legame di catena dove oggi è ambiguo o assente.** AGENT-001, `sol`/`standard`. Chiude [DEBT-020] e [DEBT-021]: alla genesi `chain_id` è **ambiguo** perché la sua derivazione è circolare e nessuna regola dice come si rompe; nel verificatore è **assente**, perché `SigningPreimage` garantisce da dove vengono i byte e non quale contesto rappresentino.
+- **[SPEC-017] — Il legame di catena dove oggi e ambiguo o assente.** AGENT-001, `sol`/`standard`. Chiude [DEBT-020] e [DEBT-021]. **Stato anomalo da sapere: e in `working` senza che nessuno ci lavori.** Era stata dispacciata e l'agente ha fatto in tempo solo a chiamare `spec_start` prima che il Lead lo fermasse per rispettare il limite di una spec per volta. Chi la riprende deve **saltare `spec_start`**. La gate portante e `GATE-TWO-DERIVATIONS`: il `chain_id` di genesi derivato due volte per due strade che non condividono codice, e la seconda **dal documento**, perche rileggere il codice della prima e riscriverlo in un altro linguaggio non e una seconda strada.
+- **[SPEC-019] — Cosa significa non revocata per autorizzare una spesa.** AGENT-002, `sol`/`extended`, in `backlog`. Chiude [DEBT-022]. **Dipende da [SPEC-018]**, gia chiusa. La sostanza e l'ordine dei passi: `GATE-DEFINITION-FIRST` impone che `unrevoked` sia **definito prima** dell'allineamento della riga, perche l'allineamento da solo sposta la riga *dentro* l'ambiguita invece di toglierla.
+- **[SPEC-020] — L'orologio su cui si misura la scadenza di un'attestazione.** AGENT-001, `sol`/`extended`, in `backlog`. Chiude [DEBT-017]. **Dipende da [SPEC-016]**, gia chiusa, e `GATE-ONE-CLOCK` impone che usi lo **stesso oggetto** che quella spec ha costruito. Governata da una domanda sola: `GATE-DRIFT-ANSWERED-FIRST`.
 
-**Tre debiti non sono ancora scrivibili come spec** e sono di AGENT-007: [DEBT-022], [DEBT-017], [DEBT-018]. Scriverne una adesso significherebbe decidere prima di sapere — su [DEBT-022], per esempio, se l'omissione di *«unrevoked»* sia deliberata.
-
-
-**[SPEC-014]** — i due cambiamenti breaking dell'API di `coblox-core`. **`ready` dal 2026-08-25**, approvata dall'operatore, che la dispaccia lui. `sol`/`standard` → AGENT-001. Chiude [DEBT-016] e [DEBT-015] insieme perché sono due cambiamenti della stessa API, e **prima del primo chiamante del verificatore**: oggi non ne esiste alcuno, quindi non rompe nulla e non costerà mai meno di adesso.
-
-Il rischio dominante è nominato dentro la spec: **la scorciatoia che sembra la chiusura.** La suite `ed25519-speccheck` verifica firme su messaggi arbitrari, quindi una via ai byte grezzi deve restare — e il criterio non è che non esista, ma che **non sia utilizzabile per sbaglio su un percorso di consenso**. Un costruttore generico e senza nome soddisfa ogni criterio meccanico e non chiude niente.
-
-**Il lavoro che doveva precedere la devnet è completo**: le regole di consenso sono scritte, applicate e verificate; il verificatore di firme esiste ed è misurato contro un oracolo upstream; il legame fra identità e indirizzo non è più pubblicato né ricalcolabile.
-
-Il prossimo lavoro è M-02 nella sua parte residua — **devnet BFT, light client con prove Merkle, mint & burn** — più una spec piccola che raggruppi i due cambiamenti breaking dell'API di `coblox-core`, [DEBT-015] e [DEBT-016], **prima del primo chiamante del verificatore**.
+**Una decisione di prodotto attende l'operatore**, ed e la sola: i **valori della banda di cadenza** — `min_ms_per_block`, `max_ms_per_block`, `min_measured_blocks`, `max_external_clock_slack_ms`. Sono una scelta come `alpha`, e AGENT-002 ha fatto la cosa giusta a non prenderla. Sono istruiti nella lista DRAFT di `docs/protocol/README.md` con cosa comporta ciascun ordine di grandezza **sui due lati**, che non si scambiano fra loro: il lato lento e l'incumbency, il lato veloce e l'emissione.
 
 ## In progress
 
-Nessuna. **Tredici spec redatte, tredici `done`.**
+Nessuna. **Diciotto spec redatte, sedici `done`, due in coda oltre a [SPEC-017].**
 
 ## Done
 
