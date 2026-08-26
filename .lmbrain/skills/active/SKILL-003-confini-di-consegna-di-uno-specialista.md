@@ -50,7 +50,7 @@ Nessuna.
 
 - Testo rivolto al prodotto — `docs/`, `README`, `SECURITY.md`, l'interfaccia — in **inglese**.
 - Artefatti del cervello, sotto `.lmbrain/`, in **italiano**.
-- L'unità del token è `credits` / `cr`, **posposta**, con separatore delle migliaia U+202F. Il simbolo `◇` è **ritirato** e non va reintrodotto.
+- Le convenzioni sull'**unità del token** — nome, posizione, separatore, simboli ritirati — sono in [ADR-009] e si applicano al testo rivolto al prodotto. **Non sono ripetute qui**: questa skill si legge a ogni dispatch, e ogni riga che non riguarda chi la sta leggendo la fa scremare. Segnalato da AGENT-002 al primo impiego, su una spec di consenso a cui quelle convenzioni non si applicavano.
 
 ### Lifecycle
 

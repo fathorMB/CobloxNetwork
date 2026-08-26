@@ -70,6 +70,8 @@ Il passo 2 è quello che si salta quando si ha fretta, ed è quello che distingu
 - Per ogni valore pubblicato cambiato: la validazione del metodo sul valore invariato, **poi** il nuovo valore.
 - L'elenco esplicito dei valori pubblicati **non** cambiati, quando la spec avrebbe potuto cambiarli.
 
+**Se nessun valore e' cambiato, la passata si esegue lo stesso e l'evidenza si scrive lo stesso.** E' il caso che dimostra di averla fatta, ed e' quello in cui e' piu' facile saltarla: la riga «per ogni valore pubblicato cambiato...» qui sopra non ha soggetto, e un lettore frettoloso legge l'assenza di variati come assenza di obbligo. Cio' che va scritto in quel caso e': la trascrizione di `published_artifacts.py`, quella di `protocol_hashes.py`, e **la frase che dice che nessun valore e' cambiato e perche'** — di norma perche' la spec non introduce preimmagini ne' tocca fixture. Segnalato da AGENT-002 al primo impiego di questa skill.
+
 ## Failure handling
 
 **Se la passata trova un difetto in un artefatto che la spec non doveva toccare**, riportare al Lead: è un debito, non un fix da infilare qui.
