@@ -2,7 +2,7 @@
 id: REVIEW-039
 # Note: Quote the title if it contains a colon
 title: "Review di SPEC-022: il morso all'inclusione e la banda di reason"
-status: changes-requested
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-022
 reviewer: AGENT-LEAD
@@ -44,9 +44,19 @@ review_events:
     evidence_refs: ["SPEC-022", "REVIEW-039", "ADR-017", "ADR-012", "REVIEW-033"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-039-EVENT-004"
+    timestamp: "2026-08-27T00:06:20.063539700+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Remediation verificata dal Lead rieseguendo e riproducendo, non leggendo. Entrambi i finding chiusi, e RF-002 chiuso oltre il richiesto.\n\nRF-001 chiuso e la prova riprodotta dal Lead. La riga h=20 e' nella tabella AUTH-0, marcata invalid subito dopo la 19 valida, e il caso di conformita' the_revocation_bites_exactly_at_its_inclusion_height esiste. Il Lead ha applicato la mutazione da <= a < su authorization.rs e ha osservato la suite passare da 191 passati e 0 falliti a 190 passati e 1 fallito, con il test che fallisce esattamente quello aggiunto e nessun altro. File ripristinato e suite riverificata a 191 e 0. La stessa mutazione, prima della remediation, lasciava 190 test verdi: e' la differenza fra una frontiera dichiarata e una tenuta.\n\nDue cose fatte meglio del richiesto. La prosa sulle righe divergenti porta ora il proprio perimetro, distinguendo le tre righe divergenti di quella tabella dalle altezze divergenti, che sono l'intero intervallo 20..49 di cui le righe sono un campione. E sullo strumento l'implementatore ha trovato da se' una seconda riga col numero cablato che il finding non nominava, togliendola allo stesso modo: i numeri ora derivano da len() in tutte e tre le righe che li portano, e la docstring non afferma piu' conteggi.\n\nRF-002 chiuso anche nella parte di processo: la lista di passata di ADR-012 nomina ora entrambi gli artefatti e registra che la riga d'apertura dell'analisi era affidata alla remediation di SPEC-023, invece di tacere dove fosse finito il pezzo non fatto.\n\nVerificato dal Lead eseguendo: 191 test 0 falliti, C10 da 158 a 159 probe, published_artifacts e la sua negativa, consensus_parameters_closure e la sua negativa, lead_claims_check, tutte exit 0.\n\nPerimetro dichiarato di questa accettazione. Il Lead non ha riprodotto GATE-TWO-ORACLES: la seconda derivazione di AUTH-0 resta dichiarata dall'implementatore e non verificata indipendentemente. Non ha verificato la passata di ADR-012 in modo esaustivo, ma solo i quattro artefatti che REVIEW-036 RF-008 aveva enumerato piu' i due di RF-002. Non ha valutato la parte 2 contro un avversario: e' materia di GATE-SECREVIEW.\n\nAccettazione della sola review. SPEC-022 NON e' chiudibile: GATE-CI-GREEN e GATE-SECREVIEW sono before-done ed entrambe insoddisfatte, e la seconda e' AGENT-007 su una consegna che cambia il predicato di autorizzazione delle transazioni - la superficie su cui REVIEW-036 aveva prodotto dieci finding sulla sola decisione."
+    evidence_refs: ["SPEC-022", "ADR-017", "REVIEW-033", "REVIEW-036", "REVIEW-038", "ADR-012"]
+    implementation_agent: "AGENT-002"
 links: [DEBT-033, DEBT-034, DEBT-035, DEBT-036]
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [review, security, ledger]
 related_decisions: [ADR-017, ADR-012]
 activity:
@@ -56,6 +66,8 @@ activity:
     action: "transitioned pending -> changes-requested"
   - date: 2026-08-26
     action: "recorded review remediation"
+  - date: 2026-08-27
+    action: "transitioned changes-requested -> accepted"
 ---
 # Review
 
