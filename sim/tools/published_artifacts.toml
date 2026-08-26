@@ -432,6 +432,11 @@ site = "README.md"
 covers = "the challenge issuer commitment"
 
 [[fixture]]
+id = "DHT-0"
+site = "README.md"
+covers = "the Kademlia namespace key of the GEN-0 genesis block ID"
+
+[[fixture]]
 id = "ELEC-0"
 site = "README.md"
 covers = "the epoch-3 election entropy, seed and ticket"
@@ -440,6 +445,16 @@ covers = "the epoch-3 election entropy, seed and ticket"
 id = "ER-0"
 site = "README.md"
 covers = "the enrollment request of the registry"
+
+[[fixture]]
+id = "GEN-0"
+site = "README.md"
+covers = "the genesis material of the genesis-fixture network: the genesis consensus_parameters document, the height-0 header, the genesis block ID and the chain ID derived from it under the placeholder rule"
+
+[[fixture]]
+id = "GEN-1"
+site = "README.md"
+covers = "GEN-0 on a network name of a different byte length: the case without which no derivation fixture exercises u32be(len(network_id_utf8)), and without which the two roads of GATE-TWO-DERIVATIONS agree on one genesis only"
 
 [[fixture]]
 id = "HASH-0"
@@ -517,11 +532,32 @@ name = "candidate_node level 1 [0] | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
+hex = "084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5"
+class = "registry"
+site = "README.md"
+name = "empty_transactions_root H(0x03) | GEN-0"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
+
+[[value]]
+hex = "1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92"
+class = "registry"
+site = "README.md"
+name = "block_id | GEN-0 genesis header"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
+
+[[value]]
 hex = "154a73c742c2f580aafaf97401ef5633898862d761fc13ed230db7817b0111fd"
 class = "registry"
 site = "ledger.md"
 name = "candidate_leaf 05 | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
+
+[[value]]
+hex = "172fd2e8bbdffefecc8952c1e0b97b69275af0de9bc637c6735a09b872d5e033"
+class = "registry"
+site = "README.md"
+name = "chain_id | GEN-1"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
 hex = "19556b209c36de1940340bd3ada4a4c821fe70cde0fd3906af2b71f31445e4d5"
@@ -578,6 +614,13 @@ mirrors = ["core/coblox-core/tests/canonical_serialization.rs"]
 class = "illustrative"
 site = "ledger.md"
 name = "evidence tx_id placeholder in the existence-income mint example"
+
+[[value]]
+hex = "3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847"
+class = "registry"
+site = "README.md"
+name = "chain_id | GEN-0"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
 hex = "3d56e5dd5104a2ad5c733fa4f0b6d8f35de2f68509e9c10a3d473128eaec0b21"
@@ -647,7 +690,7 @@ hex = "87dc1d92edcd94d5efe3837af9157a4bda604dbd7a658f509bd6fb864f86ada5"
 class = "registry"
 site = "README.md"
 name = "consensus_parameters_hash | consensus PD-0"
-mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/light_client_perimeter.rs"]
+mirrors = ["core/coblox-core/tests/conformance_registry.rs", "core/coblox-core/tests/light_client_perimeter.rs", "core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
 hex = "66810b0847d6694ce6ac99a10db2f7339b89b10d3ed7817f6d27af832a6462c9"
@@ -655,6 +698,20 @@ class = "registry"
 site = "README.md"
 name = "input_hash | bytes 00 01 02"
 mirrors = ["core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "6b62539240dcbc9aedf3e47e32edef91d302cf0687865dad8904326d8f49c53d"
+class = "registry"
+site = "README.md"
+name = "block_id | GEN-1 genesis header"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
+
+[[value]]
+hex = "6ba582b42339763c4b79e7a41ff7d75f6283800a5a4b4d97176f318cb5f63c0d"
+class = "registry"
+site = "README.md"
+name = "consensus_parameters_hash | GEN-1 genesis document"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
 hex = "77a1d5d603f675f8b8a3f63ac94d14f9ea04c86d5e216ac4f0e1bd5ebac0ecf8"
@@ -683,6 +740,20 @@ class = "registry"
 site = "README.md"
 name = "revocation_leaf | REVL-0"
 mirrors = ["sim/tools/protocol_hashes.py", "core/coblox-core/tests/conformance_registry.rs"]
+
+[[value]]
+hex = "80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26"
+class = "registry"
+site = "README.md"
+name = "dht_namespace_key | DHT-0"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
+
+[[value]]
+hex = "bec637279b6dceb786a0758c8a48de508d6d08bff5878c0b71f844e48da0f275"
+class = "registry"
+site = "README.md"
+name = "consensus_parameters_hash | GEN-0 genesis document"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
 
 [[value]]
 hex = "89da35fbb8f0ba3c9ebffc0e3c5987045a005aaa7414356ef16a978a92025c48"
@@ -837,6 +908,13 @@ name = "candidate_empty H(0x42) | worked example"
 mirrors = ["core/coblox-core/tests/worked_example.rs"]
 
 [[value]]
+hex = "e8ceaa4c9095078ae2347bb111484ed532e5c494e49341aba2f5b57312d72c7b"
+class = "registry"
+site = "README.md"
+name = "dht_namespace_key | GEN-1"
+mirrors = ["core/coblox-core/tests/genesis_derivation.rs"]
+
+[[value]]
 hex = "fa67b77e3e686a4b3a2022fbe81edecd3e70a43a98d7e5aee2b76fdbdbe8a78c"
 class = "registry"
 site = "README.md"
@@ -931,10 +1009,10 @@ name = "the transport fixture public key of identity.md, TKA-0"
 [[preimage]]
 id = "chain_id"
 site = "README.md"
-coverage = "uncovered"
-fixture = ""
-expected = ""
-uncovered_reason = "Derived from a network_id and a genesis block ID, neither of which v0 fixes: a fixture would have to invent a genesis and would then be the only place in the documents asserting one. Covered indirectly, since every registry row binds the all-zero chain_id of HASH-0."
+coverage = "fixture"
+fixture = "GEN-0"
+expected = "sha256:3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847"
+uncovered_reason = ""
 
 [[preimage]]
 id = "node_id"
@@ -1120,10 +1198,10 @@ uncovered_reason = "JCS over a full unsigned transaction. The seven canonical tr
 [[preimage]]
 id = "block_id"
 site = "ledger.md"
-coverage = "uncovered"
-fixture = ""
-expected = ""
-uncovered_reason = "JCS over a block header. The canonical header example fixes the JCS form; no published value is its digest."
+coverage = "fixture"
+fixture = "GEN-0"
+expected = "sha256:1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92"
+uncovered_reason = ""
 
 [[preimage]]
 id = "validator_set_hash"
@@ -1152,10 +1230,10 @@ uncovered_reason = "JCS over an envelope without message_id and signature. The c
 [[preimage]]
 id = "dht_namespace_key"
 site = "wire.md"
-coverage = "uncovered"
-fixture = ""
-expected = ""
-uncovered_reason = "Derived from a genesis block ID, which v0 does not fix, for the same reason as chain_id. It is a discovery namespace, not a consensus commitment."
+coverage = "fixture"
+fixture = "DHT-0"
+expected = "sha256:80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26"
+uncovered_reason = ""
 
 [[preimage]]
 id = "tx_leaf"
@@ -1184,10 +1262,10 @@ uncovered_reason = "H(0x02), the transaction-tree padding leaf. No published val
 [[preimage]]
 id = "empty_transactions_root"
 site = "ledger.md"
-coverage = "uncovered"
+coverage = "fixture-elsewhere"
 fixture = ""
 expected = ""
-uncovered_reason = "H(0x03), the empty-block transactions root. No published value, although its revocation-tree counterpart H(0x33) has one."
+uncovered_reason = "H(0x03), the empty-block transactions root. Its digest is now published in README.md as the transactions_root of the GEN-0 genesis header, which carries no transactions; the row is in the README table rather than beside the formula in ledger.md, which is why this is fixture-elsewhere."
 
 [[preimage]]
 id = "node_leaf"
@@ -2198,6 +2276,97 @@ site = "SECURITY.md"
 pattern = 'Three things are\s+specifically not guaranteed'
 count = 1
 why = "The enumeration that stops the anti-Sybil paragraph from reading as a generic admission: it names which three properties are absent, so a reader can check them rather than guess at the scope. Deleting it left the gate green."
+
+[[probe]]
+id = "genesis-placeholder-is-thirty-two-zero-bytes"
+site = "README.md"
+pattern = '\*\*The rule\.\*\* The \*\*genesis placeholder chain ID\*\* is 32 zero bytes\.'
+count = 1
+why = "The rule that breaks the circularity of chain_id at genesis is one sentence and it fixes a value. [DEBT-020] existed because the value was in a fixture and not in a rule; a document that loses this sentence is back where it started."
+
+[[probe]]
+id = "genesis-placeholder-scope"
+site = "README.md"
+pattern = 'is computed with the placeholder in place of `chain_id_32` and in place'
+count = 1
+why = "The scope clause is what makes the rule mechanical rather than a matter of taste: it names the test — is this value an input to genesis_block_id — instead of listing objects that would age."
+
+[[probe]]
+id = "gen1-exists-to-vary-the-network-length"
+site = "README.md"
+pattern = '\*\*A derivation fixture that fixes one network name never'
+count = 1
+why = "GEN-1 differs from GEN-0 in one field and looks redundant, so the reason it exists has to stay next to it or the next reader who tidies will delete the only case that exercises the length prefix and the only second genesis the two roads both meet. [REVIEW-028] RF-001."
+
+[[probe]]
+id = "genesis-block-carries-no-transactions"
+site = "README.md"
+pattern = '\*\*The height-0 block MUST carry no transactions\*\*'
+count = 1
+why = "Without this rule the enumeration is not closed in the derived direction: a height-0 burn naming a pricing_hash would make that document an input to genesis_block_id, which the criterion puts on the placeholder side and the enumeration on the derived side. Two conformant implementations, two chain IDs. [REVIEW-029] RF-005."
+
+[[probe]]
+id = "genesis-block-carries-no-transactions-ledger"
+site = "ledger.md"
+pattern = 'carries \*\*no transactions\*\*, so its `transactions_root`'
+count = 1
+why = "The same rule where an implementer of the block format reads, which is not where the genesis derivation is described. GEN-0 and GEN-1 already assumed it; a fixture is not a rule."
+
+[[probe]]
+id = "key-binding-carries-network-id"
+site = "ledger.md"
+pattern = '\*\*`network_id` is in that object, and it is the only signed payload of this'
+count = 1
+why = "The genesis set signs under the placeholder, identical on every network, so without network_id in the payload a published genesis key binding replays onto another network and seats a validator in a genesis it never consented to. [REVIEW-029] RF-002."
+
+[[probe]]
+id = "genesis-residual-is-the-network-name"
+site = "README.md"
+pattern = '\*\*Nothing available before `genesis_block_id` exists could do better\*\*'
+count = 1
+why = "The residual of the genesis rule is attribution at the level of the network name, and the sentence that says why that is a ceiling rather than an omission is what keeps a reader from reading the residual as an oversight and closing it with a second placeholder spelling. It replaces a paragraph that stated the residual through a premise that could not happen. [REVIEW-029] RF-003."
+
+[[probe]]
+id = "genesis-one-network-id"
+site = "README.md"
+pattern = 'the `network_id` field of the height-0 header, byte for byte after UTF-8'
+count = 1
+why = "The chain_id formula names network_id_utf8 and several objects carry a field of that name. Without this sentence chain_id stays underdetermined for the same reason the circularity left it underdetermined, which is a second door into [DEBT-020]."
+
+[[probe]]
+id = "genesis-checkpoint-is-never-genesis-material"
+site = "README.md"
+pattern = '\*\*including one issued'
+count = 1
+why = "A weak subjectivity checkpoint at height 0 is the case that looks like genesis material and is not. Without this clause an implementation would hash WSC objects under the placeholder and diverge from every other client."
+
+[[probe]]
+id = "genesis-placeholder-what-it-does-not-buy"
+site = "README.md"
+pattern = 'replayable onto another chain exactly when its \*\*signed payload\*\* is'
+count = 1
+why = "The residual of the genesis rule, stated as a condition on the signed payload alone. The sentence this replaces stated it through a premise that cannot happen -- two networks differing only in network_id sharing a genesis_block_id -- which GEN-0 and GEN-1 in the same document disprove. [REVIEW-029] RF-003."
+
+[[probe]]
+id = "genesis-network-derived-placeholder-rejected"
+site = "README.md"
+pattern = 'ceiling twice\*\*\. Against that it adds a second spelling of'
+count = 1
+why = "The alternative placeholder is the obvious improvement, so the reason it was declined has to stay next to the rule or it will be adopted by someone who did not know it had been considered. The reason is now stated against the true perimeter -- every genesis payload already carries the network name in its own bytes -- instead of against the narrower one it was first written against. [REVIEW-029] RF-003."
+
+[[probe]]
+id = "gen0-key-binding-clause-has-no-fixture"
+site = "README.md"
+pattern = '\*\*The consequence is that no published value exercises the `key_binding_signature`'
+count = 1
+why = "Family 4 of recurring-defects.md: a normative clause no oracle exercises. GEN-0 covers the header and the document clauses and not this one, and the gap is declared rather than left for a reader to discover from a green suite."
+
+[[probe]]
+id = "genesis-previous-block-id-not-configurable"
+site = "ledger.md"
+pattern = 'fixed by this sentence and is not configurable: it is an input to'
+count = 1
+why = "previous_block_id of the height-0 header is an input to genesis_block_id and therefore to chain_id. The earlier wording, 'the configured all-zero previous ID', admitted a reading in which a distribution could choose it, which would leave chain_id underdetermined by another door."
 
 # --- markdown outside the sweep, each with its reason ------------------------
 #

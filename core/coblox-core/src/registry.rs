@@ -313,12 +313,59 @@ pub fn message_id(chain_id: &ChainId, envelope_without_id_or_signature: &JsonObj
         .finish()
 }
 
+/// The genesis derivation: the height-0 `block_id`, and the `chain_id` it fixes.
+///
+/// `README.md#genesis-derivation-and-the-placeholder-chain-id`. The height-0
+/// header is hashed under [`ChainId::GENESIS_PLACEHOLDER`], because its own
+/// bytes are what `chain_id` is derived from; the returned `chain_id` is then
+/// the one every later value of the chain uses.
+///
+/// It returns both values rather than only the chain ID, because a caller that
+/// had to recompute the genesis block ID to obtain it would be the caller who
+/// hashes the header under the wrong chain ID once.
+pub fn genesis_derivation(
+    network_id: &str,
+    genesis_header: &JsonObject,
+) -> Result<(Digest32, ChainId)> {
+    let genesis_block_id = block_id(&ChainId::GENESIS_PLACEHOLDER, genesis_header);
+    let chain_id = ChainId::derive(network_id, &genesis_block_id)?;
+    Ok((genesis_block_id, chain_id))
+}
+
 /// The Kademlia DHT namespace key.
 #[must_use]
 pub fn dht_namespace_key(genesis_block_id: &Digest32) -> Digest32 {
     PreimageWriter::new(Domain::DHT)
         .raw32(genesis_block_id)
         .finish()
+}
+
+/// The context a signature preimage was built for: its domain and its chain.
+///
+/// `signing_preimage` writes both into the bytes and, before [SPEC-017], the
+/// type then forgot them. A caller who built a preimage with the wrong domain,
+/// or with the `chain_id` of another chain, obtained a well-typed and
+/// semantically false value that the verifier accepted; the whole purpose of
+/// domain separation is that a signature valid in one context is not valid in
+/// another ([DEBT-021]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PreimageContext {
+    domain: Domain,
+    chain_id: ChainId,
+}
+
+impl PreimageContext {
+    /// The domain the preimage was built for.
+    #[must_use]
+    pub const fn domain(&self) -> Domain {
+        self.domain
+    }
+
+    /// The chain the preimage was built for.
+    #[must_use]
+    pub const fn chain_id(&self) -> &ChainId {
+        &self.chain_id
+    }
 }
 
 /// An assembled signature preimage.
@@ -352,14 +399,72 @@ pub fn dht_namespace_key(genesis_block_id: &Digest32) -> Digest32 {
 /// The wrapped `Vec<u8>` is private, not `pub(crate)`: no module of this crate
 /// can build a preimage around the constructors below, nor mutate one that has
 /// already been built. [REVIEW-023] RF-003.
+///
+/// # The context it carries, and why in this shape
+///
+/// A preimage built by [`signing_preimage`] remembers the [`PreimageContext`]
+/// it was built for, and [`SigningPreimage::binds`] compares that context
+/// against what a caller expects. The checked verification entry point is
+/// [`crate::verifier::verify_in_context`]. Two other shapes were considered and
+/// the reasons they lost are ergonomic ones, because the callers of this type do
+/// not exist yet and a binding that makes the correct case awkward is a binding
+/// the first caller in a hurry routes around.
+///
+/// - **A type parameter on the domain**, `SigningPreimage<BlockVote>`. It moves
+///   half the check to compilation and leaves the other half where it was: a
+///   chain ID is a value, not a type, so this buys a compile-time guarantee
+///   against the mistake that is easy to see — a wrong domain, at a call site
+///   whose function name names the domain — and none against the mistake that
+///   is hard to see, which is the right domain and another chain's ID. It also
+///   makes [`crate::SignatureVerifier`] generic, so a verifier can no longer be
+///   held as `dyn SignatureVerifier`, and any consensus caller that holds
+///   preimages of several domains at once — a block pipeline holds votes and
+///   transaction authorizations together — needs an enum to put them in one
+///   collection. The correct case becomes the awkward one.
+/// - **Comparing the carried fields inside `verify`.** It adds nothing at any
+///   call site, which is exactly why it is tempting and exactly why it is
+///   empty: `verify` knows what the preimage *says* and not what the caller
+///   *expected*, and a value compared against itself accepts everything. The
+///   expectation has to be supplied, and only the caller has it.
+///
+/// So the context is carried and the expectation is a parameter. The correct
+/// case stays one call, and it is one call that says out loud which chain and
+/// which domain the caller believed it was verifying under.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SigningPreimage(Vec<u8>);
+pub struct SigningPreimage {
+    context: Option<PreimageContext>,
+    bytes: Vec<u8>,
+}
 
 impl SigningPreimage {
     /// Returns the underlying preimage bytes as a slice.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
-        &self.0
+        &self.bytes
+    }
+
+    /// The context this preimage was built for, if it has one.
+    ///
+    /// `None` for a preimage built by
+    /// [`SigningPreimage::from_raw_bytes_non_consensus`], which is the honest
+    /// answer: those bytes carry no `domain || 0x00 || chain_id` prefix, so
+    /// there is no context to report rather than a context to guess.
+    #[must_use]
+    pub const fn context(&self) -> Option<&PreimageContext> {
+        self.context.as_ref()
+    }
+
+    /// Whether this preimage was built for exactly `domain` and `chain_id`.
+    ///
+    /// A preimage with no context binds nothing and this returns `false`, which
+    /// is the direction that fails closed: a non-consensus preimage reaching a
+    /// consensus verification is the misuse
+    /// [`SigningPreimage::from_raw_bytes_non_consensus`] is fenced against, and
+    /// answering `true` here would unfence it.
+    #[must_use]
+    pub fn binds(&self, domain: Domain, chain_id: &ChainId) -> bool {
+        self.context
+            .is_some_and(|context| context.domain == domain && context.chain_id == *chain_id)
     }
 
     /// Explicitly creates a `SigningPreimage` from raw bytes for non-consensus
@@ -380,7 +485,10 @@ impl SigningPreimage {
     #[cfg(feature = "conformance-testing")]
     #[must_use]
     pub fn from_raw_bytes_non_consensus(bytes: &[u8]) -> Self {
-        Self(bytes.to_vec())
+        Self {
+            context: None,
+            bytes: bytes.to_vec(),
+        }
     }
 }
 
@@ -398,7 +506,13 @@ pub fn signing_preimage(domain: Domain, chain_id: &ChainId, payload: &[u8]) -> S
     out.push(0);
     out.extend_from_slice(chain_id.as_digest().as_bytes());
     out.extend_from_slice(payload);
-    SigningPreimage(out)
+    SigningPreimage {
+        context: Some(PreimageContext {
+            domain,
+            chain_id: *chain_id,
+        }),
+        bytes: out,
+    }
 }
 
 /// The exact bytes a finality vote signs.

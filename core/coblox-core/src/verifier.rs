@@ -46,7 +46,66 @@ use curve25519_dalek::{
 use sha2::Sha512;
 
 use crate::SignatureVerifier;
+use crate::hash::{ChainId, Domain};
 use crate::registry::SigningPreimage;
+
+/// Verifies `signature` **and** that `preimage` was built for `domain` and
+/// `chain_id`.
+///
+/// This is the entry point a consensus caller should use.
+/// [`SignatureVerifier::verify`] answers "were these bytes signed by this key",
+/// which is a different question from "were these the right bytes to sign": a
+/// preimage built with the wrong domain, or with another chain's `chain_id`, is
+/// a well-typed value that `verify` accepts, and domain separation exists
+/// precisely so that a signature valid in one context is not valid in another
+/// ([DEBT-021]).
+///
+/// It is a free function rather than a method on [`SignatureVerifier`] on
+/// purpose: a defaulted trait method can be overridden, and an implementor who
+/// overrode this one would remove the check while keeping its name. Nothing an
+/// implementor writes can weaken this function.
+///
+/// The context check runs **before** the signature check, so a wrong-context
+/// preimage costs no curve arithmetic. The verification logic itself is
+/// untouched — this function calls it and does not reimplement it.
+///
+/// # Nothing makes a caller come through here, and that is not yet closed
+///
+/// Using this function is a **convention**, not a boundary. Two public paths
+/// reach signature verification without any context check:
+/// [`SignatureVerifier::verify`], which this function itself calls, and
+/// [`verify_consensus_ed25519`], re-exported at the crate root. Neither is
+/// behind a feature gate or a versioned lint.
+///
+/// That is the shape [REVIEW-022] found in `pub(crate)`: a guarantee held by a
+/// name. It is sharper here because **the sibling escape hatch in this crate has
+/// two fences and this one has none** — the raw-bytes constructor on
+/// [`SigningPreimage`], the one this file must not name, is behind the
+/// non-default `conformance-testing` feature *and* behind a versioned lint in
+/// `sim/tools/`. The two are twins: one lets bytes in without a context, the
+/// other lets a verification out without one.
+///
+/// *That the sentence above cannot name it is itself the demonstration.* The
+/// first draft did name it, and the lint failed the build — a guard doing
+/// exactly what it was written to do. Loosening it so that a doc comment could
+/// spell the name would have traded a working fence for a nicer paragraph.
+///
+/// It is named and not closed, deliberately. `light_client` documents that this
+/// crate ships no verifier of its own, so there is no consensus caller to fence
+/// today, and the right fence depends on how the first one is built — which is
+/// another spec's work ([REVIEW-029] RF-001, tracked as [DEBT-029]). A convention its own file does not state is not a convention, so it is
+/// stated here.
+#[must_use]
+pub fn verify_in_context<V: SignatureVerifier + ?Sized>(
+    verifier: &V,
+    domain: Domain,
+    chain_id: &ChainId,
+    public_key: &[u8; 32],
+    preimage: &SigningPreimage,
+    signature: &[u8; 64],
+) -> bool {
+    preimage.binds(domain, chain_id) && verifier.verify(public_key, preimage, signature)
+}
 
 /// The canonical consensus-critical Ed25519 signature verifier.
 ///

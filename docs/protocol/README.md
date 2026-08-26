@@ -135,6 +135,146 @@ signature verification, so a logical object has one signing representation.
 The uniqueness of `network_id` is an operational convention, not a replay
 control; `chain_id` is the cryptographic chain binding.
 
+### Genesis derivation and the placeholder chain ID
+
+`chain_id` is derived from `genesis_block_id`; `genesis_block_id` is the
+`block_id` of the height-0 header; and the `block_id` preimage carries
+`chain_id_32`. The derivation is circular at genesis, and until this section
+existed no rule said how the circle is broken. Two implementations given the
+same genesis material could therefore derive two different `chain_id` values,
+and since almost every preimage of this protocol binds `chain_id`, they would
+agree on nothing afterwards.
+
+**The rule.** The **genesis placeholder chain ID** is 32 zero bytes. A value
+that is an input to `genesis_block_id`, and any signature taken over such a
+value, is computed with the placeholder in place of `chain_id_32` and in place
+of any `chain_id` field. Every other value of the chain is computed with the
+derived `chain_id`.
+
+The boundary of that sentence is mechanical rather than a matter of taste: *is
+this value an input to `genesis_block_id`, directly or through a hash the
+height-0 header carries?* For v0 it enumerates as follows, and the enumeration
+is normative.
+
+Computed with the placeholder:
+
+- the `block_id` preimage of the height-0 header;
+- the `consensus_parameters` document that header names through
+  `consensus_parameters_hash` — its `chain_id` field, its
+  `consensus_parameters_hash` preimage, and the `coblox-protocol-document-v0`
+  signatures over that hash;
+- every `key_binding_signature` of the genesis validator set, and of any set the
+  header names through `next_validator_set_hash`, because `validator_set_hash`
+  is a header field and those signatures are bytes of the set;
+- the finality votes of the height-0 quorum certificate, if the block carries
+  one.
+
+**The height-0 block MUST carry no transactions**, so its `transactions_root` is
+the empty-block root `H(0x03)`. That is a rule and not a fixture convention, and
+it is what closes the enumeration below. `transactions_root` **is** a header
+field, and some transaction bodies name a signed protocol document by hash — a
+`burn` carries `pricing_hash`, which is a `hosting_rate_card_hash`. A height-0
+transaction naming one would make that document an input to `genesis_block_id`,
+which puts it on the placeholder side under the test above and on the derived
+side under the enumeration below: two conformant implementations, two chain IDs,
+which is the whole defect this section closes. Two of the transaction kinds were
+already impossible at height 0 — a `mint` cannot satisfy the settlement floor
+`(e + 1) * reward_epoch_blocks <= h` at `h = 0`, and a `validator_candidacy`
+needs an entropy window of earlier blocks — but `burn` and the two challenge
+kinds were not, and a rule that holds for three kinds out of five is not a rule.
+Genesis balances are declared by the distribution through `state_root`, so
+nothing needs a genesis transaction. [REVIEW-029] RF-005.
+
+Computed with the derived `chain_id`:
+
+- the other three signed protocol documents of the genesis distribution. No
+  header field names them, and no height-0 transaction can name them because
+  there are none, so nothing requires them to exist before `chain_id` does and a
+  genesis distribution MUST issue them after it;
+- `ElectionBounds`, `RewardBounds` and `CadenceBand`, which are configuration of
+  the distribution and enter no preimage the header carries;
+- the weak subjectivity checkpoint of the distribution, **including one issued
+  at height 0**. A checkpoint is issued after the chain exists and is never
+  genesis material, so the `chain_id` a client compares against its own
+  configuration is always the derived one.
+
+**One `network_id`, and which one.** The `network_id` hashed into `chain_id` is
+the `network_id` field of the height-0 header, byte for byte after UTF-8
+validation. Every object of the chain that carries a `network_id` — headers,
+transactions, signed protocol documents, `ElectionBounds`, `RewardBounds`,
+`CadenceBand`, wire envelopes — MUST carry that same byte string. This is
+written because the formula above names `network_id_utf8` without saying which
+of the several fields spelled `network_id` it means, and two implementations
+that resolved that differently would derive two chain IDs from one genesis
+distribution — the same defect as the circularity, arriving through a second
+door. Text is compared by Unicode scalar value and is never normalized (see
+[Common representation](#common-representation)), so two spellings that display
+identically are two different networks and not one network spelled two ways.
+
+**What the placeholder does not buy.** The placeholder is the same 32 zero bytes
+on every network, so inside the genesis window the `chain_id_32` prefix
+separates **domains and not chains**. A genesis signature is therefore
+replayable onto another chain exactly when its **signed payload** is
+byte-identical there — the condition is on the payload alone, and nothing about
+the rest of the genesis material enters it.
+
+An earlier draft of this paragraph stated the condition as *two networks whose
+genesis material is identical and which differ only in `network_id`*. That is
+**false in both directions** and the correction is recorded rather than quietly
+made, because this is the paragraph that declares a security residual. It is
+false because it cannot happen: `network_id` is a field of the height-0 header,
+so two networks differing in it have different genesis material and different
+`genesis_block_id` — `GEN-0` and `GEN-1` below differ in exactly that one field
+and their genesis block IDs are `sha256:1334f536…` and `sha256:6b625392…`. And
+it is false because the real condition is **wider**: one signed payload
+coinciding is enough, and no coincidence of the surrounding material is needed.
+
+**So the requirement is on every payload, and it is enumerated.** Each of the
+twelve signature domains either can never be genesis material, or carries
+network-distinguishing bytes inside its own signed payload:
+
+- `coblox-block-vote-v0` signs a `block_id`, over a header carrying `network_id`;
+- `coblox-protocol-document-v0` signs a document hash, over a document carrying
+  `network_id`;
+- `coblox-consensus-key-binding-v0` signs a JCS object that **now carries
+  `network_id`**; it was the only one of the twelve whose payload carried
+  neither `network_id` nor anything derived from it, and the count is by
+  enumerating all twelve and not by impression ([REVIEW-029] RF-002);
+- `coblox-ledger-transaction-v0`, `coblox-challenge-request-v0`,
+  `coblox-challenge-response-v0` and `coblox-challenge-evidence-v0` sign values
+  reached through a transaction, and the height-0 block carries none;
+- `coblox-enrollment-request-v0`, `coblox-enrollment-certificate-v0`,
+  `coblox-transport-key-attestation-v0` and `coblox-wire-envelope-v0` sign
+  objects that carry `network_id` as a field, and none of them is named by the
+  height-0 header;
+- `coblox-weak-subjectivity-signature-v0` is never genesis material, per the
+  enumeration above.
+
+**The residual, stated for what it is.** What a genesis payload can bind to is
+the network **name**, and the uniqueness of `network_id` is an operational
+convention rather than a replay control. So two chains that share a
+`network_id` share every genesis-window payload, and a `key_binding_signature`
+from a genesis set is evidence of the network it was made for and not of the
+chain. **Nothing available before `genesis_block_id` exists could do better**,
+which is what makes this a ceiling and not an omission: every candidate binding
+would have to be either the chain ID, which is what is being derived, or another
+operator-chosen name. From height 1 onward the derived `chain_id` is in every
+preimage and the binding is cryptographic. The genesis set is in any case a
+trust anchor obtained through an authenticated release channel
+([Trust anchors](#trust-anchors)).
+
+A placeholder derived from the network — `H("coblox-chain-id-v0\0" ||
+u32be(len(network_id_utf8)) || network_id_utf8 || 32 zero bytes)`, say — is
+**not** adopted, and the reason is re-stated here against the perimeter above
+rather than against the narrower one it was first written against. It would bind
+each genesis payload to the network name; the enumeration shows every genesis
+payload now carries the network name in its own bytes, so it buys **the same
+ceiling twice**. Against that it adds a second spelling of *there is no such
+value yet* inside one object, next to `previous_block_id`, and the cost of the
+second spelling is an implementation that derives the placeholder correctly for
+the header and incorrectly for the set. A binding that already exists is not
+worth a second way to get it wrong.
+
 ### Consensus-critical Ed25519 verification
 
 All implementations MUST apply one identical ZIP-215-derived rule. Given
@@ -363,12 +503,15 @@ share a `validator_set_hash` without those coinciding too.
 
 **Why it is corroboration and not the argument.** On the **genesis** set — the
 only set without an `election` record — two of those three bindings do not
-exist, and the remaining one, `key_binding_signature`, binds through `chain_id`,
-whose derivation at genesis is circular and is recorded as an open debt
-([DEBT-020]). The bytes argument is therefore complete on every set except the
-one where it would have to stand alone. The three surfaces above cover the
-genesis set without depending on that derivation, which is why they are stated
-first.
+exist, and the remaining one, `key_binding_signature`, is taken over the
+**placeholder** chain ID and not over the derived one, because the set's bytes
+are an input to `genesis_block_id`
+([Genesis derivation](#genesis-derivation-and-the-placeholder-chain-id)). What
+it does bind on the genesis set is the `network_id` its object carries, which is
+the network name and not the chain. The
+bytes argument is therefore complete on every set except the one where it would
+have to stand alone. The three surfaces above cover the genesis set without
+depending on that derivation, which is why they are stated first.
 
 Adding `chain_id_32` to this preimage would restate a binding that is already
 there, at the cost of recomputing every published value that depends on it.
@@ -478,6 +621,63 @@ is the gap this fixture exists to close. Its `account_key` row is the app-side
 derivation, `H("coblox-account-key-v0\0" || 0x01 || app_id_32)`. These
 definitions are exact after JCS; no omitted/default fields are implied.
 
+`GEN-0` is the genesis material of the network `genesis-fixture`, and it is what
+exercises
+[Genesis derivation and the placeholder chain ID](#genesis-derivation-and-the-placeholder-chain-id).
+It is deliberately **not** on the `fixture` network of the rows above, and the
+reason is worth a sentence because the two look composable and are not.
+`HASH-0` fixes `chain_id` to 32 zero bytes **by declaration**, for rows that
+need some chain ID and do not care which; the genesis placeholder is 32 zero
+bytes **by rule**. The values coincide and the meanings do not, and reading the
+registry rows as one chain's genesis would make `WSC-0` inadmissible — a weak
+subjectivity checkpoint is never genesis material and always carries the derived
+`chain_id`.
+
+`GEN-0` has three parts. Its **genesis `consensus_parameters` document** has
+`schema_version:"0.1"`, `document_kind:"consensus_parameters"`,
+`network_id:"genesis-fixture"`, `chain_id` the 32 zero bytes of the placeholder,
+`sequence:"1"`, `activation_height:"0"`, and the body of the consensus `PD-0`
+unchanged. Unchanged on purpose: that body is already published as one the
+election constraint block accepts, and a second admissible body invented here
+would be a second parameter set in the documents that nothing checks.
+
+Its **genesis header** has `schema_version:"0.1"`, `protocol_version:"0.1"`,
+`network_id:"genesis-fixture"`, `height:"0"`, `round:"0"`, `timestamp_ms:"1"`,
+`previous_block_id` 32 zero bytes, `transactions_root` `H(0x03)` — the
+empty-block root of [ledger.md](ledger.md#hashing-primitives), since `GEN-0`
+carries no transactions — `state_root` `ee` repeated 32 bytes,
+`validator_set_hash` and `next_validator_set_hash` both `dd` repeated 32 bytes,
+and `consensus_parameters_hash` the hash of the document above. The two set
+hashes are declared literals rather than the hash of a published `ValidatorSet`,
+because publishing a `ValidatorSet` here would publish a genesis cohort, whose
+size, stagger and term limits the election constraint block governs, and a
+cohort that satisfied all of them is a larger artifact than this fixture needs.
+**The consequence is that no published value exercises the `key_binding_signature`
+clause of the rule**, which is stated here rather than left for a reader to
+notice. It is no longer normative on the strength of its text alone — the clause
+is now expressed where the bytes are built, and a conformance test asserts that a
+genesis binding is taken under the placeholder and moves with `network_id`
+([REVIEW-029] RF-004) — but no *published* value asserts it, and a suite that
+reads only this table will not check it.
+
+Its **`chain_id`** is derived from `network_id` `genesis-fixture` — 15 bytes, so
+the length prefix is `u32be(15)` — and the `genesis_block_id` above. `DHT-0` is
+the Kademlia namespace key of that same genesis block ID, and it is published
+here because it had no fixture for want of a genesis block ID and now has one.
+
+`GEN-1` is `GEN-0` with one field changed: `network_id` is `genesis-fixture-b`,
+seventeen bytes instead of fifteen. It changes no other value and introduces no
+shape `GEN-0` does not already show, and it is published for one reason, stated
+because a second fixture that looked redundant would be deleted by the next
+reader who tidied. **A derivation fixture that fixes one network name never
+exercises `u32be(len(network_id_utf8))`, and never shows that a name enters the
+height-0 header as well as the `chain_id` preimage.** With `GEN-1` both are
+exercised: every derived value of `GEN-1` differs from its `GEN-0` counterpart,
+and the two differ in the length of the one field that changed. Its
+`consensus_parameters` document, its header and its `dht_namespace_key` are
+those of `GEN-0` with that substitution and nothing else.
+
+
 | Hash | Fixture | Expected value |
 | --- | --- | --- |
 | `enrollment_request_hash` | `ER-0` | `sha256:52118f65908736ec7fd837a4d6c1b8c2b3ba28e2f0127cea6e282b311e401e58` |
@@ -498,6 +698,15 @@ definitions are exact after JCS; no omitted/default fields are implied.
 | `weak_subjectivity_checkpoint_hash` | `WSC-0` | `sha256:2bc543a3f8e4df60735e6431a6c1fb7293ed53047e98fe2e5bc1a879f200c71e` |
 | `account_key` (app) | `APP-0` | `sha256:a881e2e0907aa86b225aaa2a2e1898afda1ce4733bd6d9cb390475ded4737e9d` |
 | `app_leaf` | `APP-0` | `sha256:2eac8b0a7955a70543eddf975843fb8e4ddf377daef08b61c7b8cde469515697` |
+| `empty_transactions_root` | `GEN-0` | `sha256:084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5` |
+| `consensus_parameters_hash` (genesis) | `GEN-0` document | `sha256:bec637279b6dceb786a0758c8a48de508d6d08bff5878c0b71f844e48da0f275` |
+| `block_id` (genesis) | `GEN-0` header | `sha256:1334f5368141f78f23528624bf91973cb4cdf316c1e3452cb0e5470ff7145f92` |
+| `chain_id` | `GEN-0` | `sha256:3004d71cffe8ea2cc07b254abcc65494c112c13b20a305910476860b6cc62847` |
+| `dht_namespace_key` | `DHT-0` | `sha256:80c13c86cb480fe927e4aafe885b687d5fd2900a2d53e46de0460ee48f943b26` |
+| `consensus_parameters_hash` (genesis, `GEN-1`) | `GEN-1` document | `sha256:6ba582b42339763c4b79e7a41ff7d75f6283800a5a4b4d97176f318cb5f63c0d` |
+| `block_id` (genesis, `GEN-1`) | `GEN-1` header | `sha256:6b62539240dcbc9aedf3e47e32edef91d302cf0687865dad8904326d8f49c53d` |
+| `chain_id` (`GEN-1`) | `GEN-1` | `sha256:172fd2e8bbdffefecc8952c1e0b97b69275af0de9bc637c6735a09b872d5e033` |
+| `dht_namespace_key` (`GEN-1`) | `GEN-1` | `sha256:e8ceaa4c9095078ae2347bb111484ed532e5c494e49341aba2f5b57312d72c7b` |
 
 `challenge_randomness` is carried on the wire as the unpadded base64url of those
 32 bytes, which for `RND-0` is `jOvkrYkL1B6MN7h62XatkrjvNaoyhMRB2GaRz9qtiNc`.

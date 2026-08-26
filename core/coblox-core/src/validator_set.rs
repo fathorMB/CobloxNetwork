@@ -80,8 +80,9 @@ impl ValidatorEntry {
     }
 
     /// The object a `key_binding_signature` is computed over.
-    pub fn binding_object(&self, activation_height: u64) -> Result<JsonObject> {
+    pub fn binding_object(&self, network_id: &str, activation_height: u64) -> Result<JsonObject> {
         consensus_key_binding_object(
+            network_id,
             activation_height,
             &self.consensus_public_key,
             &self.node_id,
@@ -91,7 +92,12 @@ impl ValidatorEntry {
 }
 
 /// The JCS object of the consensus key binding proof of possession.
+///
+/// `network_id` is in the object and not only in the preimage's `chain_id_32`
+/// prefix, and the reason is the genesis window. See
+/// [`consensus_key_binding_preimage`].
 pub fn consensus_key_binding_object(
+    network_id: &str,
     activation_height: u64,
     consensus_public_key: &[u8; 32],
     node_id: &str,
@@ -100,6 +106,7 @@ pub fn consensus_key_binding_object(
     JsonObject::builder()
         .uint("activation_height", activation_height)
         .bytes("consensus_public_key", consensus_public_key)
+        .str("network_id", network_id)
         .str("node_id", node_id)
         .str("validator_id", validator_id)
         .build()
@@ -111,14 +118,45 @@ pub fn consensus_key_binding_object(
 /// identity public key from the finalized enrollment certificate — the
 /// specification's wording — so the caller supplies both; this function only
 /// builds the message.
+///
+/// # The genesis set signs under the placeholder, and that is why `network_id`
+/// # is in the object
+///
+/// A `ValidatorSet`'s bytes are an input to `validator_set_hash`, which is a
+/// field of the height-0 header, so a genesis binding cannot be signed under a
+/// `chain_id` that does not exist yet: `chain_id` here is
+/// [`ChainId::GENESIS_PLACEHOLDER`], per
+/// `README.md#genesis-derivation-and-the-placeholder-chain-id`. **A caller
+/// building a genesis set and passing a derived `chain_id` reopens the
+/// circularity**, and the symptom is not a digest a conformance suite catches:
+/// it is a different `genesis_block_id`, so the two implementations simply
+/// disagree about which chain they are on.
+///
+/// The placeholder is the same 32 zero bytes on every network, so inside that
+/// window the prefix separates domains and not chains. Without `network_id` in
+/// the object, a genesis entry signed on one network would produce a
+/// **byte-identical** preimage on another, and the published signature could be
+/// replayed to seat that validator in a genesis it never consented to — the one
+/// thing this signature exists to prove ([REVIEW-029] RF-002). `network_id` is
+/// in the object at every height rather than only at genesis, because a shape
+/// that changes at one height is a shape to get wrong; after genesis it is
+/// redundant with `chain_id_32` and harmless.
+///
+/// What it buys is bounded and the bound is stated in the document: attribution
+/// at the level of the **network name**, which is an operational convention and
+/// not a replay control. Two chains that share a `network_id` still share this
+/// preimage inside the genesis window, and nothing available before
+/// `genesis_block_id` exists could do better.
 pub fn consensus_key_binding_preimage(
     chain_id: &ChainId,
+    network_id: &str,
     activation_height: u64,
     consensus_public_key: &[u8; 32],
     node_id: &str,
     validator_id: &str,
 ) -> Result<registry::SigningPreimage> {
     let object = consensus_key_binding_object(
+        network_id,
         activation_height,
         consensus_public_key,
         node_id,

@@ -61,6 +61,17 @@ jobs:
         run: python3 sim/tools/protocol_hashes.py
       - name: Reward and election rule checks
         run: python3 sim/tools/reward_rules.py
+      # The second road of `GATE-TWO-DERIVATIONS`. `chain_id` is derived from
+      # `genesis_block_id`, whose preimage carries `chain_id_32`, so the
+      # derivation is circular at genesis and the rule that breaks it cannot be
+      # checked by one implementation: one implementation is internally
+      # consistent by construction, which is why [DEBT-012] stayed invisible
+      # until [SPEC-010]. This tool was written from the document and shares no
+      # code with `coblox-core`; `tests/genesis_derivation.rs` is the other
+      # road. It also watches each clause of the rule fail on every run rather
+      # than once in a transcript.
+      - name: Genesis chain-ID derivation, second road
+        run: python3 sim/tools/genesis_chain_id.py
       # An independent re-derivation of the published Ed25519 outcome table,
       # sharing no code with core/coblox-core. The conformance suite compares
       # the document with the implementation; this compares the document with a

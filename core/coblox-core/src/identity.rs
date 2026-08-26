@@ -224,7 +224,19 @@ impl TransportKeyAttestation {
             chain_id,
             &unsigned.to_jcs(),
         );
-        if !verifier.verify(enrolled_identity_public_key, &preimage, &self.signature) {
+        // The checked entry point rather than `verify`: this call site builds
+        // the preimage two lines above and so cannot get the context wrong
+        // today, and that is the reason to write it this way now. The shape a
+        // reader copies is the shape the next call site will have, and the next
+        // one will receive its preimage from somewhere else.
+        if !crate::verifier::verify_in_context(
+            verifier,
+            Domain::SIG_TRANSPORT_KEY_ATTESTATION,
+            chain_id,
+            enrolled_identity_public_key,
+            &preimage,
+            &self.signature,
+        ) {
             return Err(AttestationError::InvalidSignature.into());
         }
 

@@ -276,6 +276,32 @@ fn finalize_32(hasher: Sha256) -> [u8; 32] {
 pub struct ChainId(Digest32);
 
 impl ChainId {
+    /// The genesis placeholder chain ID: 32 zero bytes.
+    ///
+    /// `README.md#genesis-derivation-and-the-placeholder-chain-id`. The
+    /// derivation of `chain_id` is circular at genesis — `chain_id` comes from
+    /// `genesis_block_id`, whose preimage carries `chain_id_32` — and the rule
+    /// that breaks the circle is that a value which is an input to
+    /// `genesis_block_id`, or a signature over such a value, uses this
+    /// placeholder in place of `chain_id_32` and in place of any `chain_id`
+    /// field. Everything else on the chain uses the derived ID.
+    ///
+    /// **Nothing at the type level distinguishes this from a derived chain ID**,
+    /// and the sentence that used to stand here — *"a constant and not a
+    /// `ChainId` a caller may keep"* — was prose contradicted by the type, since
+    /// `ChainId` is `Copy` and this is a `pub const` ([REVIEW-029] RF-002, the
+    /// shape [REVIEW-023] already found once on `SigningPreimage`). A caller can
+    /// keep it, and the compiler will not object.
+    ///
+    /// What holds instead is written where it can be checked: the placeholder is
+    /// the same 32 zero bytes on every network, so a preimage built with it
+    /// separates **domains and not chains**. Every payload signed inside the
+    /// genesis window therefore carries network-distinguishing bytes of its own
+    /// — the enumeration is in the document — and
+    /// [`crate::validator_set::consensus_key_binding_preimage`] is the one that
+    /// had to be changed to make that true.
+    pub const GENESIS_PLACEHOLDER: Self = Self(Digest32::from_bytes([0u8; 32]));
+
     /// Wraps an already-derived chain ID, as a client loads it from its signed
     /// network distribution.
     #[must_use]

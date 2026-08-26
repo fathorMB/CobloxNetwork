@@ -618,7 +618,14 @@ Block = {
 }
 ```
 
-Genesis has height 0 and uses the configured all-zero previous ID. Timestamps
+Genesis has height 0, carries **no transactions**, so its `transactions_root`
+is the empty-block root `H(0x03)`, and its `previous_block_id` is 32 zero bytes. That value is
+fixed by this sentence and is not configurable: it is an input to
+`genesis_block_id` and therefore to `chain_id`, so a distribution free to choose
+it would leave `chain_id` underdetermined, which is the defect
+[Genesis derivation and the placeholder chain ID](README.md#genesis-derivation-and-the-placeholder-chain-id)
+exists to close. The earlier wording — *the configured all-zero previous ID* —
+admitted both readings. Timestamps
 MUST be greater than the median of the previous 11 finalized blocks and no more
 than the active maximum clock drift after the proposal is received.
 
@@ -737,9 +744,13 @@ every `election_ticket` are computed through `chain_id_32`
 ([the derivation](#the-derivation)), and every `key_binding_signature` is taken
 over the global chain-bound signature procedure — and it is corroboration rather
 than the argument. On the **genesis** set, the only set without an `election`
-record, the first two do not exist and the third binds through `chain_id`, whose
-derivation at genesis is circular and is an open debt ([DEBT-020]). The argument
-above covers the genesis set without depending on it.
+record, the first two do not exist and the third is taken over the
+**placeholder** chain ID rather than the derived one, because the set's bytes
+are an input to `genesis_block_id`
+([genesis derivation](README.md#genesis-derivation-and-the-placeholder-chain-id));
+on the genesis set it binds the `network_id` its object carries, which is the
+network name and not the chain.
+The argument above covers the genesis set without depending on it.
 
 Binding `chain_id` here would restate a binding that is already present, and
 would change every published value that depends on this hash. The full statement
@@ -765,7 +776,22 @@ and **staggered** `term_expiry_epoch` values, for the reason given in
 For each entry, the identity public key from the finalized enrollment
 certificate MUST verify `key_binding_signature` over the global chain-bound
 domain `coblox-consensus-key-binding-v0` and JCS of
-`{"activation_height":...,"consensus_public_key":...,"node_id":...,"validator_id":...}`.
+`{"activation_height":...,"consensus_public_key":...,"network_id":...,"node_id":...,"validator_id":...}`.
+
+**`network_id` is in that object, and it is the only signed payload of this
+protocol that needed adding to.** The genesis set's bytes are an input to
+`validator_set_hash`, a field of the height-0 header, so a genesis binding is
+signed under the
+[placeholder chain ID](README.md#genesis-derivation-and-the-placeholder-chain-id)
+— the same 32 zero bytes on every network. Without `network_id` the signed
+payload of a genesis entry would be byte-identical across two networks, and the
+signature published in one distribution would seat that validator in another
+genesis it never consented to, which is the one thing this signature exists to
+prove. It is present at every height and not only at genesis, because a shape
+that changes at one height is a shape to get wrong; above genesis it is
+redundant with `chain_id_32` and harmless. `network_id` is **not** a field of the
+`ValidatorSet`: a verifier takes it from the same trust anchor it takes
+`chain_id` from. [REVIEW-029] RF-002.
 The consensus key MUST differ from the identity key and is never independently
 enrolled. Full nodes and light clients verify every binding before accepting a
 set or any vote from it. On leaving the active set, operators MUST destroy or
