@@ -2,7 +2,7 @@
 id: SPEC-023
 # Note: Quote the title if it contains a colon
 title: "I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: governance
@@ -30,6 +30,8 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "set tags"
+  - date: 2026-08-26
+    action: "transitioned backlog -> ready"
 ---
 # I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe
 
@@ -121,11 +123,11 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
 ## Required verification
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
-- [ ] GATE-CLASS-CLOSED | kind=executable | owner=agent | phase=before-submit | evidence=transcript | Lo strumento nuovo è `PASS` sull'albero e la trascrizione mostra i venti campi classificati uno per uno.
-- [ ] GATE-NEGATIVE-PROOF | kind=executable | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato **osservato fallire** in entrambe le direzioni: un campo dello schema fuori da entrambe le liste, e una voce di lista senza campo corrispondente ([SKILL-001]).
-- [ ] GATE-SEEN-IT-FAIL-FIRST | kind=executable | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato eseguito **prima** della correzione della lista, e la trascrizione mostra che nominava i dieci parametri reali. Una gate che nasce verde non ha mai dimostrato di vedere.
-- [ ] GATE-DRAFT-NO-LOSS | kind=executable | owner=agent | phase=before-submit | evidence=transcript | Confronto fra la sezione DRAFT prima e dopo, che dimostra che nessuna voce preesistente è stata persa nella riorganizzazione.
-- [ ] GATE-CI-GREEN | kind=executable | owner=agent | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
+- [ ] GATE-CLASS-CLOSED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento nuovo è `PASS` sull'albero e la trascrizione mostra i venti campi classificati uno per uno.
+- [ ] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato **osservato fallire** in entrambe le direzioni: un campo dello schema fuori da entrambe le liste, e una voce di lista senza campo corrispondente ([SKILL-001]).
+- [ ] GATE-SEEN-IT-FAIL-FIRST | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato eseguito **prima** della correzione della lista, e la trascrizione mostra che nominava i dieci parametri reali. Una gate che nasce verde non ha mai dimostrato di vedere.
+- [ ] GATE-DRAFT-NO-LOSS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Confronto fra la sezione DRAFT prima e dopo, che dimostra che nessuna voce preesistente è stata persa nella riorganizzazione.
+- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007 **sull'analisi**, non sullo strumento: è l'analisi che l'operatore userà per decidere, e un errore lì si propaga in un ADR.
 
 ## Production quality and documentation

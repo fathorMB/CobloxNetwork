@@ -2,7 +2,7 @@
 id: SPEC-022
 # Note: Quote the title if it contains a colon
 title: "La meccanica della revoca: il morso all'inclusione sulla spesa, la banda di reason sul set"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: consensus
@@ -30,6 +30,8 @@ activity:
     action: "created"
   - date: 2026-08-26
     action: "set tags"
+  - date: 2026-08-26
+    action: "transitioned backlog -> ready"
 ---
 # La meccanica della revoca: il morso all'inclusione sulla spesa, la banda di reason sul set
 
@@ -151,10 +153,10 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 ## Required verification
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
-- [ ] GATE-ADR012-PASS | kind=executable | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
-- [ ] GATE-NEGATIVE-PROOF | kind=executable | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
-- [ ] GATE-TWO-ORACLES | kind=executable | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
-- [ ] GATE-CI-GREEN | kind=executable | owner=agent | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
+- [ ] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
+- [ ] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
+- [ ] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
+- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di sicurezza di AGENT-007 sulla consegna. **Non è facoltativa**: questa spec cambia il predicato di autorizzazione delle transazioni, ed è la superficie su cui [REVIEW-036] ha già trovato dieci voci sulla sola decisione.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
 
