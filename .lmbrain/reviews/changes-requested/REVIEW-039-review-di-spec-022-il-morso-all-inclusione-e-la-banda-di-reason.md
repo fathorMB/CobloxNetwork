@@ -2,7 +2,7 @@
 id: REVIEW-039
 # Note: Quote the title if it contains a colon
 title: "Review di SPEC-022: il morso all'inclusione e la banda di reason"
-status: pending
+status: changes-requested
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-022
 reviewer: AGENT-LEAD
@@ -22,6 +22,17 @@ review_events:
     actor_role: "project-lead"
     reason: "review artifact created"
     implementation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-039-EVENT-002"
+    timestamp: "2026-08-26T23:29:07.536465800+02:00"
+    action: "verdict"
+    from_status: "pending"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Due finding, una high e una medium. L'attuazione di ADR-017 e' corretta nella sostanza: parte 1 e parte 2 sono nei documenti e nel crate, i tre vincoli di genesi ci sono, 190 test contro i 181 di prima, tutte le gate escono 0. Otto criteri su quattordici rieseguiti dal Lead, sette reggono.\n\nRF-001 high, trovata mutando e non leggendo. ledger.md scrive che la riga 21 di AUTH-0 e' la frontiera della clausola 2, \"so clause 2 is <= and not <\". La riga 21 non distingue le due letture: con la revoca inclusa a 20, sia 20 <= 21 sia 20 < 21 sono veri. I due predicati differiscono esattamente dove 20 == h, cioe' sul singoletto {20}, ottenuto per esaurimento e non per campione. Quella riga non c'e' ne' nella tabella ne' nel test: le tre asserzioni di authorization_unrevoked.rs sono a 19, 21 e 49.\n\nDimostrato eseguendo: sostituito <= con < in authorization.rs, cioe' fatto mordere la revoca dal blocco successivo al proprio invece che dal proprio, e la suite resta a 190 passati e 0 falliti. File ripristinato e suite riverificata a 190. Un'implementazione conforme a ogni test di questo progetto puo' quindi divergere sull'altezza 20, che e' l'altezza che la regola nuova esiste per definire: due nodi conformi, verdetti opposti, su un burn.\n\nE' la stessa forma di REVIEW-033 RF-004, dove la frontiera della clausola 1 non era pinnata e la mutazione lasciava 176 test verdi. Quella remediation aggiunse la riga 5, che oggi c'e' ed e' corretta: la clausola nuova ha ereditato la lacuna che la vecchia aveva gia' chiuso. Il documento contiene inoltre, tre righe sotto, la frase che condanna il proprio difetto.\n\nRF-002 medium: e' RF-009 di REVIEW-038 che si materializza. La passata di ADR-012 non nomina ne' l'analisi dei dieci parametri ne' consensus_parameters_closure.py, e ConsensusParametersBody passa da venti a ventidue campi. Peggio del previsto: lo strumento conta 22 e stampa \"Classification of all 20 fields\", col venti cablato nella riga di stampa. La chiusura sostanziale regge e l'exit e' 0, quindi lo strumento passa mentendo - famiglia 1 nella forma peggiore, non un artefatto che fallisce ma uno che afferma il falso restando verde.\n\nLa chiusura di RF-001 va provata come il difetto: mutare <= in < deve far fallire la suite. Per RF-002 conviene togliere il numero cablato invece che aggiornarlo, cosi' che il difetto non torni al ventitreesimo campo.\n\nDichiarato come non guardato dal Lead: GATE-TWO-ORACLES resta dichiarata dall'implementatore e non riprodotta, e se quella seconda derivazione di AUTH-0 non fosse davvero indipendente RF-001 sarebbe il sintomo e non la causa. Vale la pena che AGENT-007 la guardi durante GATE-SECREVIEW, che resta da soddisfare insieme a GATE-CI-GREEN."
+    evidence_refs: ["SPEC-022", "ADR-017", "REVIEW-033", "REVIEW-038", "DEBT-036", "ADR-012"]
+    implementation_agent: "AGENT-002"
+    remediation_agent: "AGENT-002"
 links: [DEBT-033, DEBT-034, DEBT-035, DEBT-036]
 created: 2026-08-26
 updated: 2026-08-26
@@ -30,6 +41,8 @@ related_decisions: [ADR-017, ADR-012]
 activity:
   - date: 2026-08-26
     action: "created"
+  - date: 2026-08-26
+    action: "transitioned pending -> changes-requested"
 ---
 # Review
 
