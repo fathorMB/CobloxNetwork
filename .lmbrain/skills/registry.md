@@ -10,5 +10,6 @@ updated: 2026-08-26
 | SKILL-001 | Provare una gate in negativo, e verificare che i suoi casi varino | active | verification | low | AGENT-001, AGENT-002, AGENT-006, AGENT-007, AGENT-008 | `skills/active/SKILL-001-provare-una-gate-in-negativo.md` |
 | SKILL-002 | La passata di ADR-012, e il ricalcolo di un valore pubblicato | active | verification | low | AGENT-001, AGENT-002, AGENT-006, AGENT-008 | `skills/active/SKILL-002-la-passata-di-adr-012-e-il-ricalcolo-dei-valori-pubblicati.md` |
 | SKILL-003 | Confini di consegna di uno specialista su Coblox | active | process | low | AGENT-001, AGENT-002, AGENT-006, AGENT-007, AGENT-008 | `skills/active/SKILL-003-confini-di-consegna-di-uno-specialista.md` |
+| SKILL-004 | Far convergere due derivazioni indipendenti senza farle copiare l'una dall'altra | active | verification | low | AGENT-001, AGENT-002, AGENT-008 | `skills/active/SKILL-004-far-convergere-due-derivazioni-indipendenti.md` |
 
 Record only reusable project procedures that are worth sharing across agent handoffs. Put drafts in `proposed/`, approved procedures in `active/`, and obsolete procedures in `retired/`.
