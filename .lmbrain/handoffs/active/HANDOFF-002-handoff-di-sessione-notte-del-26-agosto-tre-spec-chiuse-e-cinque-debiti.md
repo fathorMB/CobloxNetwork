@@ -75,7 +75,7 @@ Tre spec, in ordine di **dipendenza e non di preferenza**:
 
 Nulla in attesa di review. Tutte le review di questa sessione sono `accepted`.
 
-**Una decisione attende l'operatore, ed è la sola:** i valori della banda di cadenza — `min_ms_per_block`, `max_ms_per_block`, `min_measured_blocks`, `max_external_clock_slack_ms`. Sono una scelta di prodotto come `alpha`, e AGENT-002 ha fatto la cosa giusta a non prenderla. Istruiti nella lista DRAFT di `docs/protocol/README.md`, **coi due lati che non si scambiano fra loro**: il lato lento è l'incumbency, il lato veloce è l'emissione.
+**Due cose attendono l'operatore**, verificate enumerando i gate con `owner=operator` aperti e le decisioni in stato `proposed`: l'accettazione di [ADR-016], e la pubblicazione della guida che [DEBT-023] blocca — quest'ultima senza urgenza finché la guida resta interna. La prima riguarda: i valori della banda di cadenza — `min_ms_per_block`, `max_ms_per_block`, `min_measured_blocks`, `max_external_clock_slack_ms`. Sono una scelta di prodotto come `alpha`, e AGENT-002 ha fatto la cosa giusta a non prenderla. Istruiti nella lista DRAFT di `docs/protocol/README.md`, **coi due lati che non si scambiano fra loro**: il lato lento è l'incumbency, il lato veloce è l'emissione.
 
 ## Decisions, assumptions, and constraints
 
@@ -107,7 +107,7 @@ Nulla in attesa di review. Tutte le review di questa sessione sono `accepted`.
 
 ## Recommended next actions
 
-1. **Decidere i valori della banda di cadenza.** È l'unica cosa che aspetta l'operatore, e [SPEC-020] li userà.
+1. **Accettare [ADR-016]**, che registra i valori della banda di cadenza decisi dall'operatore e resta in `proposed`. [SPEC-020] li userà, e i valori non sono ancora nei documenti di protocollo: scriverli è contenuto normativo nuovo e fa scattare la gate di [ADR-012], quindi appartiene a una spec.
 2. **Riprendere [SPEC-017]**, saltando `spec_start`.
 3. Poi **[SPEC-019]**, che è il rischio più alto fra i tre.
 4. Poi **[SPEC-020]**.
