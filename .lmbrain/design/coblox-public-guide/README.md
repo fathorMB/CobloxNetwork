@@ -59,7 +59,9 @@ coblox-public-guide/
   used-pairs.json gli accostamenti di colore impegnati, sottoinsieme dichiarato
                   di ../coblox-design-system/tokens/contrast-pairs.json
   tools/
-    check-guide-pairs.mjs   sei verifiche di forma, vedi sotto
+    check-guide-pairs.mjs          sei verifiche di forma, vedi sotto
+    check-guide-pairs-negative.mjs la prova in negativo di G6: ogni
+                                   affermazione osservata fallire da sola
 ```
 
 Il pacchetto **non contiene copie** di token, CSS o strumenti del design system:
@@ -72,8 +74,8 @@ doppio clic.
 L'ancoraggio è una cerniera fra la pagina e le regole, e va tenuto in tutte e
 due le direzioni. Ciascuna è coperta da uno strumento diverso.
 
-**Regola → pagina.** `sim/tools/published_artifacts.toml` porta 76 probe con
-prefisso `guide-`, una per ogni affermazione di proprietà della pagina. Se la
+**Regola → pagina.** `sim/tools/published_artifacts.toml` porta 84 probe con
+prefisso `guide-`, che tengono 86 affermazioni di proprietà della pagina. Se la
 regola cambia o sparisce, `sim/tools/published_artifacts.py` esce diverso da
 zero **nominando la frase della guida** che restava indietro. Gira in CI a ogni
 push, nel job *Protocol document guards*.
@@ -84,8 +86,20 @@ python sim/tools/published_artifacts.py
 
 **Pagina → regola.** Il verso che il manifesto da solo non copre: se la *frase*
 cambia, la probe resta a difendere qualcosa che non è più scritto. Ogni probe
-`guide-*` porta perciò il campo `claims` con la frase che sostiene, e questo
-controllo fallisce se la frase non è più nella pagina.
+`guide-*` porta perciò il campo `claims` con le frasi che sostiene, e questo
+controllo fallisce se una di quelle frasi non è più nella pagina.
+
+**`claims` è una lista, e le probe restano una per regola.** La pagina afferma
+alcune cose due volte — la promessa anti-confisca sta in §03 e in §07 — e con una
+stringa sola la seconda occorrenza restava indifesa comunque la si scegliesse.
+L'alternativa era due probe sulla stessa regola: scartata perché la lista
+mantiene la corrispondenza **regola → probe uno-a-uno**, che è ciò che servirà a
+[DEBT-032] per camminare le regole e verificare che non si siano mosse. Una
+stringa nuda resta valida e si legge come lista di uno; nel file non ne resta
+nessuna. `published_artifacts.py` verifica la **forma** del campo e rifiuta due
+probe che rivendichino la stessa frase, perché il lettore minimo di
+`check-guide-pairs.mjs` salterebbe in silenzio una voce malformata, e un'ancora
+saltata è indistinguibile da un'ancora che tiene.
 
 ```bash
 node .lmbrain/design/coblox-public-guide/tools/check-guide-pairs.mjs
@@ -108,6 +122,27 @@ automatizzabile del tutto è che **la clausola che eccede non è ancorabile
 proprio in quanto eccede**: non c'è una regola a cui agganciarla, quindi cade
 fuori dall'ancoraggio per costruzione. Lo strumento può misurare se una `claims`
 copre la sua frase fino in fondo; non può decidere se la frase dica il vero.
+
+**La prova in negativo di G6, e perché non basta un caso solo.** Provare che
+*una* affermazione fallisce non dice nulla sulle altre ottantacinque: un'ancora
+scritta contro un testo poi riscritto continua a essere letta e a passare, ha
+solo smesso di ancorare qualcosa ([SKILL-001]). `check-guide-pairs-negative.mjs`
+cancella dalla pagina, una alla volta, ogni frase rivendicata da una probe e
+pretende che la gate esca non-zero **nominando quella probe**; poi ripristina e
+riverifica il verde. Aggiunge quattro casi sulla *forma* introdotta dallo
+schema — lista vuota, voce vuota, campo assente, e il numero del colophon
+disallineato — che la cancellazione di una frase non esercita.
+
+```bash
+node .lmbrain/design/coblox-public-guide/tools/check-guide-pairs-negative.mjs
+```
+
+Le due prove in negativo coprono **una direzione ciascuna**, ed è la ragione per
+cui servono entrambe: `sim/tools/published_artifacts_negative.py` cancella la
+*regola* dal documento e pretende che C10 nomini la probe; questa cancella la
+*frase* dalla pagina e pretende che G6 nomini la probe. Nessuna delle due
+sorveglia la direzione di [DEBT-032] — la regola che si sposta restando
+presente — e quel debito resta aperto.
 
 Lo stesso strumento verifica altre cinque cose che nessun altro guarda: nessun
 colore letterale, nessun token inventato, nessun accostamento fuori dall'elenco

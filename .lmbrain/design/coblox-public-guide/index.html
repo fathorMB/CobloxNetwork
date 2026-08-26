@@ -601,6 +601,13 @@
                 signature.
               </p>
               <p>
+                Nor does a revocation take effect at the moment it is agreed. The quorum that
+                revokes writes into the revocation the height from which it bites, and until that
+                height the revoked key still authorises everything it authorised before, a payment
+                out of its own balance included. No rule caps how far ahead that height may be set,
+                so how much a revocation protects is chosen by the quorum that revokes.
+              </p>
+              <p>
                 This is the reason the statement about subscriptions has to arrive before you
                 subscribe rather than after. On a register that cannot be edited, telling you
                 afterwards is describing data that has already been published.
@@ -666,8 +673,10 @@
                 Too fast, and the phone stops: nothing honest makes blocks appear. Too slow, and it
                 reports rather than refuses, because a reading that looks slow is indistinguishable
                 from a device that has not caught up. This is the one defence on this page you can
-                exercise entirely on your own hardware, without trusting anybody to tell you the
-                truth.
+                exercise on your own hardware without asking a peer or a validator for anything.
+                It is not free of trust, and this page will not say that it is: the moment it
+                counts from is the one stamped on your checkpoint, signed by a release key that
+                belongs to no validator &mdash; but belongs to somebody.
               </p>
             </div>
           </details>
@@ -677,7 +686,7 @@
       <footer class="colophon">
         <p class="cbx-label">About this page</p>
         <p>
-          There are 76 statements of property on this page, and each one is tied to the rule in the
+          There are 86 statements of property on this page, and each one is tied to the rule in the
           protocol specification that holds it, by an automated check that runs on every change. If
           a rule is changed or removed, the check fails and names this page. The count is written
           out instead of the word <em>every</em> because each tie is written by hand, one sentence

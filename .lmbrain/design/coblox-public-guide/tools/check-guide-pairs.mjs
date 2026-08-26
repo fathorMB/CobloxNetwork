@@ -16,9 +16,10 @@
  *                          migliaia e U+202F, e il glifo ritirato non compare
  *   G5 SELF-CONTAINED      la pagina non carica nulla dalla rete e non ha script
  *   G6 CLAIM-STILL-MADE    ogni probe `guide-*` di published_artifacts.toml
- *                          ancora una frase che la pagina dice ancora, e il
- *                          numero che il colophon dichiara al lettore e il
- *                          numero di quelle probe
+ *                          ancora una o piu frasi che la pagina dice ancora, e
+ *                          il numero che il colophon dichiara al lettore e il
+ *                          numero di quelle frasi — non di quelle probe, da
+ *                          quando `claims` e una lista
  *
  * G6 e il verso che il manifesto delle probe non copre da solo: le probe
  * proteggono la guida dal cambiamento delle regole, questo controllo protegge
@@ -203,31 +204,50 @@ const COLOUR_LITERALS = [
   const probes = readProbeTable(read(MANIFEST));
   const prose = visibleText(html);
   let checked = 0;
+  let anchored = 0;
   for (const probe of probes) {
     if (!probe.id?.startsWith('guide-')) continue;
-    checked += 1;
-    const claim = (probe.claims || '').replace(/\s+/g, ' ').trim();
-    if (!claim) {
+    anchored += 1;
+    /* `claims` e una LISTA dal 2026-08-26. La pagina afferma alcune cose due
+       volte — la promessa anti-confisca sta in §03 e in §07 — e con una stringa
+       sola la seconda occorrenza restava indifesa comunque la si scegliesse.
+       L'alternativa era due probe sulla stessa regola: scartata perche la lista
+       mantiene la corrispondenza REGOLA -> PROBE uno-a-uno, che e cio' che
+       servira' a [DEBT-032] per camminare le regole e verificare che non si
+       siano mosse. Una stringa nuda resta valida e si legge come lista di uno. */
+    const claims = probe.claims;
+    if (!Array.isArray(claims) || claims.length === 0) {
       fail('G6-CLAIM-STILL-MADE', `probe ${probe.id} pins a rule for the guide but does not record which sentence it holds`);
       continue;
     }
-    if (!prose.includes(claim)) {
-      fail(
-        'G6-CLAIM-STILL-MADE',
-        `probe ${probe.id} claims to anchor ${JSON.stringify(claim)}, which the guide no longer says. ` +
-          `Either the sentence was edited and its anchor was left behind, or the sentence was dropped ` +
-          `and the probe now defends nothing.`
-      );
+    for (const entry of claims) {
+      const claim = String(entry).replace(/\s+/g, ' ').trim();
+      if (!claim) {
+        fail('G6-CLAIM-STILL-MADE', `probe ${probe.id} carries a blank entry in its claims list`);
+        continue;
+      }
+      checked += 1;
+      if (!prose.includes(claim)) {
+        fail(
+          'G6-CLAIM-STILL-MADE',
+          `probe ${probe.id} claims to anchor ${JSON.stringify(claim)}, which the guide no longer says. ` +
+            `Either the sentence was edited and its anchor was left behind, or the sentence was dropped ` +
+            `and the probe now defends nothing.`
+        );
+      }
     }
   }
-  if (checked === 0) {
+  if (anchored === 0) {
     fail('G6-CLAIM-STILL-MADE', 'no guide-* probe exists in published_artifacts.toml; the guide is unanchored');
   }
   /* Il colophon dichiarava «every sentence», che e un superlativo universale non
-     enumerato (REVIEW-031 RF-009): il meccanismo e 76 ancore scelte a mano, non
-     ogni frase. Sostituito con il numero, che e vero e piu impressionante — ma
-     un numero pubblicato senza guardia e un numero che divergera. Questa e la
-     guardia: la pagina deve dichiarare esattamente le probe che esistono. */
+     enumerato (REVIEW-031 RF-009): il meccanismo e un numero di ancore scelte a
+     mano, non ogni frase. Sostituito con il numero, che e vero e piu
+     impressionante — ma un numero pubblicato senza guardia e un numero che
+     divergera. Questa e la guardia: la pagina deve dichiarare esattamente le
+     AFFERMAZIONI ancorate, che da quando `claims` e una lista non sono piu lo
+     stesso numero delle probe — una probe puo tenere la stessa frase detta due
+     volte in due sezioni, e il lettore conta frasi, non probe. */
   const stated = /There are (\d+) statements of property on this page/.exec(prose);
   if (!stated) {
     fail(
@@ -240,7 +260,8 @@ const COLOUR_LITERALS = [
     fail(
       'G6-CLAIM-STILL-MADE',
       `the colophon tells the reader ${stated[1]} statements of property are anchored, and ` +
-        `${checked} guide-* probes exist. The page is promising the reader a count it does not have.`
+        `${checked} claim(s) are recorded across ${anchored} guide-* probes. The page is ` +
+        `promising the reader a count it does not have.`
     );
   }
   note('G6-CLAIM-STILL-MADE', checked);
@@ -307,23 +328,41 @@ function decode(text) {
 }
 
 /** Lettore volutamente minimo di published_artifacts.toml: legge le sole
-    tabelle [[probe]] e le sole chiavi con valore stringa su una riga, che e la
-    forma che quel file usa. Non e un parser TOML e non pretende di esserlo;
-    una voce scritta in un'altra forma verrebbe ignorata, quindi il file resta
-    la fonte e questo strumento il consumatore. */
+    tabelle [[probe]], le chiavi con valore stringa su una riga e gli array di
+    stringhe su una riga, che sono le due forme che quel file usa. Non e un
+    parser TOML e non pretende di esserlo; una voce scritta in un'altra forma
+    verrebbe ignorata, quindi il file resta la fonte e questo strumento il
+    consumatore.
+
+    Il rischio di ignorare in silenzio non e teorico ed e per questo che
+    published_artifacts.py — che quel file lo legge con tomllib, cioe' per
+    intero — verifica la FORMA di `claims` e fallisce in C10-PROBE su una voce
+    che questo lettore salterebbe. Le due meta' si tengono: la sorgente controlla
+    la forma, il consumatore controlla il contenuto.
+
+    `claims` e' normalizzato ad array in entrambe le forme, cosi che una stringa
+    nuda resti valida come lista di uno. */
 function readProbeTable(toml) {
   const rows = [];
   let current = null;
+  const unescape = (s) => s.replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c));
   for (const line of toml.split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (trimmed.startsWith('[')) {
+    if (trimmed.startsWith('[[') || /^\[[A-Za-z_]/.test(trimmed)) {
       if (current) rows.push(current);
       current = trimmed === '[[probe]]' ? {} : null;
       continue;
     }
     if (!current) continue;
+    const arr = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\[(.*)\]\s*$/.exec(trimmed);
+    if (arr) {
+      const items = [];
+      for (const m of arr[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)) items.push(unescape(m[1]));
+      current[arr[1]] = items;
+      continue;
+    }
     const m = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"((?:[^"\\]|\\.)*)"\s*$/.exec(trimmed);
-    if (m) current[m[1]] = m[2].replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c));
+    if (m) current[m[1]] = m[1] === 'claims' ? [unescape(m[2])] : unescape(m[2]);
   }
   if (current) rows.push(current);
   return rows;

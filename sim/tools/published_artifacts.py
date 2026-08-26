@@ -735,8 +735,34 @@ def check_claim_documents(
 
 
 
+def probe_claims(row: dict) -> list[str]:
+    """The `claims` field, read as a list whatever shape it was written in.
+
+    The field became a **list** on 2026-08-26. The page states some properties
+    twice — the anti-confiscation promise is in section 03 and again in section
+    07 — and with one string per probe the second occurrence was undefended
+    whichever of the two was chosen. The alternative was two probes against the
+    same rule; the list was preferred because it keeps the correspondence
+    **rule -> probe one-to-one**, which is what [DEBT-032] will need in order to
+    walk the rules and check that they have not moved. Two probes on one rule
+    would have worked today and moved the cost to where it will matter more.
+
+    A bare string is still accepted and read as a list of one, so a hand-written
+    entry in the older shape does not silently stop being checked. Every entry
+    in the file was migrated, so nobody learns the older shape by copying a
+    neighbour.
+    """
+    value = row.get("claims")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return list(value)
+
+
 def check_probes(manifest: dict, docs: dict[str, str], report: Report) -> None:
     """C10: hand-pinned normative passages that carry no mechanical token."""
+    seen: dict[str, str] = {}
     for row in entries(manifest, "probe"):
         text = docs.get(row["site"])
         if text is None:
@@ -749,6 +775,46 @@ def check_probes(manifest: dict, docs: dict[str, str], report: Report) -> None:
                 f"probe {row['id']!r} expected {row['count']} match(es) of "
                 f"{row['pattern']!r} in {row['site']}, found {hits}. {row['why']}",
             )
+        # The shape of `claims`, checked here because this file is the source
+        # and check-guide-pairs.mjs is one of its consumers. A consumer that
+        # reads a malformed field quietly skips it, and a skipped anchor is
+        # indistinguishable from an anchor that holds.
+        raw = row.get("claims")
+        if raw is not None and not isinstance(raw, (str, list)):
+            report.fail(
+                "C10-PROBE",
+                f"probe {row['id']!r} carries a `claims` field that is neither a "
+                f"string nor a list of strings. A consumer that cannot read it "
+                f"skips the anchor, and a skipped anchor looks exactly like one "
+                f"that holds.",
+            )
+            continue
+        claims = probe_claims(row)
+        if isinstance(raw, list) and not claims:
+            report.fail(
+                "C10-PROBE",
+                f"probe {row['id']!r} carries an empty `claims` list. An empty "
+                f"list is not 'no claim recorded', it is a claim list that every "
+                f"consumer iterates zero times.",
+            )
+        for claim in claims:
+            if not isinstance(claim, str) or not claim.strip():
+                report.fail(
+                    "C10-PROBE",
+                    f"probe {row['id']!r} carries a blank or non-string entry in "
+                    f"its `claims` list",
+                )
+                continue
+            key = " ".join(claim.split())
+            if key in seen and seen[key] != row["id"]:
+                report.fail(
+                    "C10-PROBE",
+                    f"probe {row['id']!r} claims {claim!r}, which probe "
+                    f"{seen[key]!r} already claims. The correspondence rule -> "
+                    f"probe is one-to-one on purpose: two probes on one sentence "
+                    f"is the shape the list exists to avoid.",
+                )
+            seen.setdefault(key, row["id"])
     report.note("C10-PROBE", len(entries(manifest, "probe")))
 
 

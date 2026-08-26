@@ -230,6 +230,33 @@ MUTATIONS: list[tuple[str, str, callable]] = [
         ),
     ),
     (
+        "C10-PROBE",
+        "a probe's `claims` field is written in a shape no consumer can read, "
+        "which is worse than a wrong claim: check-guide-pairs.mjs reads this "
+        "file with a deliberately minimal reader and would SKIP the entry, and "
+        "a skipped anchor is indistinguishable from one that holds",
+        lambda root: _sub(
+            root,
+            "sim/tools/published_artifacts.toml",
+            'claims = ["there is no fee"]',
+            "claims = 1",
+        ),
+    ),
+    (
+        "C10-PROBE",
+        "two probes claim the same sentence of the guide, which is the shape "
+        "the `claims` list exists to avoid - one rule per probe is what "
+        "[DEBT-032] will walk, and two probes on one sentence puts the cost "
+        "back where it will matter more",
+        lambda root: _sub(
+            root,
+            "sim/tools/published_artifacts.toml",
+            'claims = ["there is no fee"]',
+            'claims = ["there is no fee", "The register has a closed list of '
+            'entry types and none of them confiscates."]',
+        ),
+    ),
+    (
         "C11-CLAIMDOC",
         "a count SECURITY.md transcribes from the threat model drifts away "
         "from it, which is how it came to claim 36 scenarios against 39",
