@@ -299,15 +299,26 @@ fn validator_crash_and_restart_recovers_without_equivocation() {
             println!("All 4 validators including restarted node finalized height 8!");
             break;
         }
-        // La scadenza e' tarata sulla macchina, non sul protocollo: cio' che
-        // questo test asserisce e' che i quattro nodi ci arrivino, non che ci
-        // arrivino entro un numero di secondi. Su un runner Linux condiviso due
-        // esecuzioni consecutive sono finite a 21,49s contro i 20 di allora (le scadenze qui sono ora 45s),
-        // sempre a **un blocco** dal traguardo e con un nodo diverso in ritardo
-        // ogni volta — [8, 8, 8, 3] e poi [8, 8, 7, 8] — che e' la firma di una
-        // macchina lenta e non di un difetto. Il margine e' generoso di
-        // proposito: una scadenza stretta trasforma questo test in un
-        // misuratore di carico del runner.
+        // ATTENZIONE, questo test fallisce in CI su Linux e la scadenza non
+        // e' la causa. Il Lead ha sbagliato la diagnosi due volte prima di
+        // arrivarci, e le tre esecuzioni sono qui perche' la prossima persona
+        // non le rifaccia: [8, 8, 8, 3] a 20s, poi [8, 8, 7, 8] a 20s, poi
+        // [8, 8, 8, 5] a 45s. Il terzo dato e' quello che decide: con piu' del
+        // doppio del tempo il nodo riavviato e' passato da 3 a 5, non a 8.
+        //
+        // Il meccanismo: i nodi sono avviati con `--target-height`, e un nodo
+        // che raggiunge il bersaglio **esce** (`node.rs`, il ramo che
+        // restituisce `Ok(true)`). I tre sani arrivano a 8 e terminano, e il
+        // nodo riavviato resta senza alcun pari da cui sincronizzare. Col
+        // throttle introdotto da [REVIEW-049] RF-006 — otto blocchi per
+        // risposta, una risposta al secondo per richiedente — il recupero
+        // richiede piu' secondi di **presenza dei pari** di quanti il bersaglio
+        // gliene conceda. Allungare la scadenza peggiora le cose, perche' i
+        // pari escono comunque e il ritardatario resta solo piu' a lungo.
+        //
+        // Registrato come debito. Il rimedio non e' qui dentro: o i pari
+        // restano vivi finche' il ritardatario ha recuperato, o il recupero non
+        // dipende da un throttle tarato sull'abuso.
         assert!(
             start3.elapsed() <= Duration::from_secs(45),
             "Timeout waiting for all nodes to reach height 8. Counts: {counts:?}"

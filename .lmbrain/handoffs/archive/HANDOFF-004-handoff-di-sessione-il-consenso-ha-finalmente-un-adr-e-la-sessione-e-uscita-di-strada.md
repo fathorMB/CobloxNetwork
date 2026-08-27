@@ -1,7 +1,7 @@
 ---
 id: HANDOFF-004
 title: "Handoff di sessione — il consenso ha finalmente un ADR, e la sessione è uscita di strada"
-status: ready
+status: archived
 from_role: AGENT-LEAD
 to_role: AGENT-LEAD
 created: 2026-08-27
@@ -14,6 +14,8 @@ tags: [session-handoff]
 activity:
   - date: 2026-08-27
     action: "created"
+  - date: 2026-08-27
+    action: "transitioned ready -> archived"
 ---
 # Project Lead session handoff
 
