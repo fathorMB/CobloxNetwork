@@ -156,59 +156,90 @@ comunque, e questo parametro non e' piu' la difesa giusta. Cosi' il numero non v
 scelto oggi contro la misura che la sezione *Revisit* dichiara mancante: arriva
 con la taratura di `validator_min_set_size_min`.
 
-> **SECONDA CORREZIONE, del 2026-08-27 — BOZZA, non ancora approvata.**
-> [REVIEW-044] RF-001 e RF-002, due `high`, entrambi contro l'argomento della
-> prima correzione e non contro la sua attuazione.
+> **SECONDA CORREZIONE, del 2026-08-27 — BOZZA v2, non ancora approvata.**
+> La v1 di questa bozza e' stata attaccata da [REVIEW-045] prima di diventare
+> normativa, ed e' caduta: sei `high`. Questa v2 nasce da quella caduta.
 
-**L'argomento della rotazione e' ritirato. Era falso su tre gambe su quattro.**
+**1. L'argomento della rotazione e' ritirato, ma per una ragione sola.**
 
-1. **Nessuna regola assegna un proponente.** Lo scrive [ADR-018] punto 7,
-   redatta dal Lead lo stesso giorno di questa correzione: *«Nessuna regola dice
-   chi propone»*. L'argomento presupponeva il contrario di un fatto gia' firmato.
-2. **La sola regola esistente e' a sorteggio pesato, non a rotazione per teste**
-   ([ADR-018] §3), e `voting_power = 1` e' imposto ai soli set **eletti**: il set
-   di genesi, cioe' la devnet di M-02, non e' vincolato. Percio' `k` altezze non
-   sono `k` turni distinti.
-3. **Censura e quorum non sono la stessa soglia.** Sotto il protocollo a due fasi
-   di [ADR-018], oltre **un terzo** del potere fa fallire ogni round trattenendo
-   i precommit; il quorum ne richiede **due terzi**. Sono i due lati della
-   scissione BFT, e l'argomento li dichiarava uguali. Ne segue che **nessuna
-   larghezza di finestra difende sopra un terzo**: il pavimento proteggeva dalla
-   minaccia sbagliata.
-4. Regge invece la quarta gamba, ed e' scritto perche' si sappia che fu chiesto:
-   `G >= G_min` e' imposto, quindi la relazione legava il caso peggiore.
+La v1 elencava tre gambe cadute. [REVIEW-045] ne ha salvate due e demolita la
+descrizione delle altre: la prima citava il punto 7 **di contesto** di [ADR-018]
+mentre la sua §3 assegna un proponente e [SPEC-025] lo portera' in
+`docs/protocol/` — un fatto **con scadenza programmata** usato per un ritiro
+permanente; la seconda chiamava «sorteggio» un round-robin pesato.
 
-Il vincolo era inoltre ancorato al **pavimento del pavimento**:
-`permissive_bounds()` porta `revocation_effective_grace_blocks_min` e
-`validator_min_set_size_min` entrambi a `1` con set massimo `1000`, quindi
-soddisfa la relazione con `G = 1` — la finestra di due blocchi da cui
-[REVIEW-042] era partita.
+Resta una gamba, permanente e sufficiente da sola: **censura e quorum non sono la
+stessa soglia.** Sotto il protocollo a due fasi di [ADR-018] oltre **un terzo**
+del potere fa fallire ogni round trattenendo i precommit, mentre il quorum ne
+richiede **due terzi**. Ne segue che nessuna larghezza di finestra difende sopra
+un terzo, e l'argomento della rotazione difendeva dalla minaccia sbagliata.
 
-**Decisione dell'operatore: il tetto della banda cade sul `reason`
-`key_compromise`.** Su quel `reason` un ritardo di inclusione torna a poter solo
-**rimandare** e mai **distruggere**, com'era nella clausola 4 preesistente. Le
-due gambe cadute smettono di essere portanti perche' non c'e' piu' una finestra
-da difendere sul caso urgente, e [REVIEW-044] RF-002 riottiene il rimedio che il
-tetto aveva tolto: diluire un lotto di `key_compromise` su piu' transizioni con
-`effective_height` distinti.
+**2. La rimozione del tetto e' RITIRATA. La premessa era falsa.**
 
-**Due questioni che questa decisione apre e che NON sono decise:**
+La v1 la motivava con «un ritardo di inclusione torna a poter solo rimandare».
+E' falso, e il Lead lo ha verificato eseguendo: con `F=10, G=5, e=100` l'estremo
+**superiore** della finestra di inclusione e' `p = 90` **identico con e senza
+tetto**, e a `p = 91` la revoca e' invalida in entrambi i casi per il **pavimento**
+`e >= p + F`, cioe' per la clausola 4 preesistente. Il tetto sposta solo
+l'estremo **inferiore**, verso il basso, dove non c'e' avversario.
 
-- **Che ne e' di `revocation_effective_grace_blocks_min`.** La sua unica
-  giustificazione era l'argomento ritirato. Va tolto, oppure tenuto come limite
-  dichiarato senza la storia della rotazione. Non lo decide il Lead da solo.
-- **Il tetto sui `reason` pianificati.** Resta, e con esso la possibilita' che un
-  ritardo di inclusione distrugga una revoca pianificata. E' lo stesso difetto a
-  severita' minore, o e' accettabile perche' su quei `reason` chi revoca sceglie
-  il momento? Non e' stato attaccato da nessuno.
+**Il tetto non e' il lato che la censura attraversa.** L'errore nasce in
+[REVIEW-042] RF-001 ed e' stato ripetuto dal Lead in due artefatti senza
+verificarne l'aritmetica.
 
-**Disciplina imposta da questa seconda correzione.** La prima e' diventata testo
-normativo in `ledger.md`, replicato in `README.md` e in `params.rs`, ed e' stata
-**pinnata da una probe**: `published_artifacts.py` era verde su un'affermazione
-di sicurezza falsa. Terza occorrenza della stessa forma nella sola [SPEC-022].
-Nessun argomento di questa correzione diventa normativo prima di essere stato
-attaccato da AGENT-007 come artefatto a se', invece che dopo, quando una gate lo
-tiene gia' fermo.
+Cadono con esso le due ragioni che sostenevano la rimozione: [REVIEW-045] RF-004
+accerta che il tetto **non** toglieva il rimedio della diluizione — servono dieci
+altezze di efficacia distinte nel caso peggiore a `V = 81`, e una sola altezza di
+inclusione ne ammette `G + 1`, cioe' diciotto con i bounds tarati — e che il
+rimedio mancava solo sotto `G = 1`, lo stato che il pavimento di genesi ha
+proibito. E RF-003 accerta che toglierlo **aprirebbe** una buca nuova: resterebbe
+il solo `e >= p + F`, e la chiave compromessa conserverebbe il pieno potere di
+voto per `e − p` blocchi, illimitati e scelti da chi firma.
+
+**3. Decisione dell'operatore: l'efficacia si deriva all'inclusione.**
+
+Proposta da AGENT-007 in [REVIEW-045] e scelta dall'operatore il 2026-08-27. Il
+limite non si toglie: si cambia cosa fa un ritardo.
+
+```text
+e_eff = min(max(e, p + F), p + F + G)
+```
+
+`e` resta il valore firmato e dichiarato dall'autore; `e_eff` e' l'altezza a cui
+la revoca diventa efficace, derivata al momento dell'inclusione. Un ritardo
+**sposta l'efficacia** invece di invalidare la transazione, quindi la censura
+torna a poter solo rimandare — questa volta sul lato giusto — e il tetto continua
+a limitare la discrezione del quorum, che e' il lavoro per cui la parte 2 esiste.
+
+**4. Cosa questa bozza NON stabilisce, e non deve stabilire da sola.**
+
+- **L'enumerazione degli artefatti resi falsi.** [REVIEW-045] RF-006 ne elencava
+  dodici *per la decisione ritirata*: quell'insieme non e' questo. L'insieme di
+  questa correzione va prodotto **eseguendo la passata di [ADR-012]** con lo
+  strumento versionato, non derivato a mano. Sono gia' noti e falsi comunque
+  vada: la frase della rotazione in `ledger.md`, la probe
+  `revocation-grace-floor-is-one-rotation-of-the-minimum-set` che la pinna, il
+  paragrafo *«What this floor does not fix»*, e la *Statement* di [DEBT-040].
+- **La sorte di `revocation_effective_grace_blocks_min`.** [REVIEW-045] accerta
+  che **non e' orfano**: ha cambiato mestiere e impone ora la larghezza minima
+  della banda pianificata via `P >= F + G`. La terza via che propone —
+  riderivarlo contro il numero di contrazioni `C(validator_max_set_size_max)` —
+  non e' stata attaccata da nessuno e resta aperta.
+- **Il tetto sui `reason` pianificati.** [REVIEW-045] accerta che **non** e' lo
+  stesso difetto a severita' minore: il censore naturale e' il bersaglio stesso
+  di `validator_misconduct`, gli basta un terzo bloccante, e «chi revoca sceglie
+  il momento» non difende, perche' il momento sposta la **posizione** della
+  finestra e non la sua **larghezza**. Resta aperto.
+
+**5. Disciplina, nella forma che [REVIEW-045] RF-008 ha imposto.**
+
+La v1 dichiarava che nessun argomento sarebbe diventato normativo prima di essere
+attaccato. RF-008 ha stabilito che quella regola non e' decidibile, non ha
+proprietario, vive in un ADR che nessuno strumento legge, ed e' scritta dalla
+parte che deve rispettarla. La sostituisce una forma verificabile: **ogni `[[probe]]`
+il cui `why` porti un argomento di sicurezza nomina l'ID della review che lo ha
+attaccato**, e lo strumento fallisce se manca. Sarebbe stata rossa sulla probe
+della rotazione il giorno in cui e' entrata.
 
 **Cosa questa correzione non chiude.** Il tetto della banda e' nuovo di
 [SPEC-022]: la clausola 4 preesistente aveva pavimento e nessun tetto, quindi un
