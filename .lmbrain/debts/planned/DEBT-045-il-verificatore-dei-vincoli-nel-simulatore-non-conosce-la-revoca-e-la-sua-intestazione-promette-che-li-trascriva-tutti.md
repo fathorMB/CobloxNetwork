@@ -1,7 +1,7 @@
 ---
 id: DEBT-045
 title: "Il verificatore dei vincoli nel simulatore non conosce la revoca, e la sua intestazione promette che li trascriva tutti"
-status: open
+status: planned
 category: "correctness"
 severity: "medium"
 origin_severity: null
@@ -13,7 +13,7 @@ origin_ref: null
 related_specs: ["SPEC-022","SPEC-007"]
 related_reviews: ["REVIEW-042"]
 related_decisions: ["ADR-017","ADR-010"]
-target_specs: []
+target_specs: ["SPEC-027"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
@@ -22,7 +22,9 @@ created: 2026-08-27
 updated: 2026-08-27
 tags: ["consensus","conformance","simulation"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Instradato su SPEC-027 e non lasciato senza casa, e l'argomento non e' la comodita': **SPEC-027 aggiunge limiti al blocco dei vincoli**, quindi lasciare il simulatore fuori lo farebbe divergere di piu' di quanto gia' diverge. Il debito nasce cosi' — la prima consegna di SPEC-022 porto' i tre parametri della revoca nel crate e nei documenti e non nel simulatore — e la sua remediation lo ha allargato aggiungendo un pavimento di genesi e portando l'elenco del rapporto di variazione da dieci a tredici nomi. Ogni modifica futura a quel blocco lo allarga ancora finche' resta aperto.\n\nChiuderlo dentro SPEC-027 costa una passata sullo stesso blocco che si sta gia' cambiando; chiuderlo dopo costa rifare il confronto da capo su uno stato diverso.\n\nAggiunto ai criteri anche cio' che il debito chiede e che si perde piu' facilmente: una prova in negativo che mostri il **simulatore rifiutare** un documento che il crate rifiuta. Allineare due implementazioni a vista non dimostra che concordino; il progetto ha gia' pagato questa distinzione con DEBT-012, rimasto invisibile finche' non e' esistita una seconda derivazione."
 debt_events:
   - schema_version: "1"
     id: "DEBT-045-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead perche' la scoperta e' fuori dal perimetro della spec che l'ha prodotta e AGENT-002 ha correttamente riportato invece di correggere, seguendo il precedente di DEBT-041 nella stessa sessione. E' un debito e non un rilievo locale perche' attraversa piu' consegne: nasce dalla prima SPEC-022, si allarga con la sua remediation, e ogni futura modifica al blocco dei vincoli lo allarghera' ancora finche' resta aperto. Appartiene alla famiglia gia' censita in knowledge/derivazioni-non-univoche.md."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-045-EVENT-002"
+    timestamp: "2026-08-27T15:38:27.668924100+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Instradato su SPEC-027 e non lasciato senza casa, e l'argomento non e' la comodita': **SPEC-027 aggiunge limiti al blocco dei vincoli**, quindi lasciare il simulatore fuori lo farebbe divergere di piu' di quanto gia' diverge. Il debito nasce cosi' — la prima consegna di SPEC-022 porto' i tre parametri della revoca nel crate e nei documenti e non nel simulatore — e la sua remediation lo ha allargato aggiungendo un pavimento di genesi e portando l'elenco del rapporto di variazione da dieci a tredici nomi. Ogni modifica futura a quel blocco lo allarga ancora finche' resta aperto.\n\nChiuderlo dentro SPEC-027 costa una passata sullo stesso blocco che si sta gia' cambiando; chiuderlo dopo costa rifare il confronto da capo su uno stato diverso.\n\nAggiunto ai criteri anche cio' che il debito chiede e che si perde piu' facilmente: una prova in negativo che mostri il **simulatore rifiutare** un documento che il crate rifiuta. Allineare due implementazioni a vista non dimostra che concordino; il progetto ha gia' pagato questa distinzione con DEBT-012, rimasto invisibile finche' non e' esistita una seconda derivazione."
+    evidence_refs: ["SPEC-027"]
 ---
 # Il verificatore dei vincoli nel simulatore non conosce la revoca, e la sua intestazione promette che li trascriva tutti
 

@@ -21,10 +21,12 @@ related_decisions: [ADR-004, ADR-006, ADR-012]
 links: []
 created: 2026-08-27
 updated: 2026-08-27
-tags: [compute, sandbox, threat-model]
+tags: [sandbox, threat-model]
 activity:
   - date: 2026-08-27
     action: "created"
+  - date: 2026-08-27
+    action: "set tags"
 ---
 # L'host di un ComputeAssignment si deriva, non si sceglie
 

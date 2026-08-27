@@ -77,11 +77,11 @@ aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 | Stato | N | Nota |
 | --- | --- | --- |
 | `planned` | 16 | Ognuno ha una spec bersaglio |
-| `open` | 1 | [DEBT-045], che non ha ancora una spec che lo copra |
+| `open` | 0 | La cartella e' vuota per la prima volta |
 | `deferred` | 2 | [DEBT-010] a M-07, [DEBT-027] a innesco |
 | `accepted-risk` | 1 | [DEBT-039], `glib` |
 | `resolved` | 18 | 9 il 25 agosto, 9 il 26, zero il 27 |
-| `superseded` | 3 | [DEBT-036], [DEBT-041] e uno precedente |
+| `superseded` | 2 | [DEBT-036] e [DEBT-041], entrambi per un conteggio o una diagnosi del Lead sbagliati |
 
 **Instradati:** [DEBT-033], [DEBT-035], [DEBT-040] su [SPEC-022] — [DEBT-029],
 [DEBT-034] su [SPEC-025] — [DEBT-028], [DEBT-037], [DEBT-043], [DEBT-044] su
@@ -93,8 +93,9 @@ scelta congiunta dell'host non e' deliberata, l'host si deriva — [SPEC-028].
 passa a tre guardie e da `terra` a `sol`. [DEBT-038]: il beacon di casualita'
 vive in M-03.
 
-**Resta `open` uno solo:** [DEBT-045], il verificatore dei vincoli nel
-simulatore, che non ha ancora una spec che lo copra.
+**Nessun debito e' `open`.** [DEBT-045] e' andato su [SPEC-027] perche' quella
+spec **aggiunge** limiti al blocco dei vincoli: lasciare fuori il simulatore lo
+farebbe divergere di piu' di quanto gia' diverge.
 
 **[DEBT-041] superseduto da [DEBT-046] il 2026-08-27.** Non descriveva una
 contraddizione: le due frasi stanno in sezioni diverse e parlano di due

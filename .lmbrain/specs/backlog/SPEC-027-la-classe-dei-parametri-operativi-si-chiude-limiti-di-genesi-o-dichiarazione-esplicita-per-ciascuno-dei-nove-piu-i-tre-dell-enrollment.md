@@ -84,6 +84,14 @@ hanno mai avuto un attacco nel merito.**
   `docs/protocol/ledger.md`, e nella lista DRAFT di `docs/protocol/README.md`.
 - La passata di [ADR-012] su tutti gli artefatti pubblicati, con lo strumento
   versionato.
+- **`sim/coblox_sim/params.py`, che e' la seconda implementazione dello stesso
+  blocco di vincoli** ([DEBT-045]). Non e' un'aggiunta di comodo: questa spec
+  **aggiunge** limiti al blocco, quindi lasciare fuori il simulatore lo farebbe
+  divergere di piu' di quanto gia' diverge. Oggi la stringa `revocation` non
+  compare in quel file mentre `ledger.md` porta tre parametri della revoca e un
+  pavimento di genesi, e l'elenco del rapporto di variazione e' fermo a dieci
+  nomi contro tredici. Chiuderlo qui costa una passata sullo stesso blocco che
+  si sta gia' cambiando; chiuderlo dopo costa rifare il confronto da capo.
 
 ### Excluded
 
@@ -109,7 +117,7 @@ hanno mai avuto un attacco nel merito.**
   superseduto da [DEBT-046].
 - La banda di `key_compromise` e tutto cio' che vive nella parte 2 di [ADR-017]:
   e' [SPEC-022], in revisione aperta.
-- `sim/coblox_sim/params.py`, che e' [DEBT-045] e non ha ancora una casa.
+*(niente altro: `sim/coblox_sim/params.py` e' rientrato nel perimetro, vedi sotto.)*
 
 ## Technical proposal
 
@@ -146,6 +154,15 @@ documento che lo viola.
 - [ ] La passata di [ADR-012] e' eseguita e la trascrizione allegata.
 - [ ] Nessun valore e' stato copiato dall'analisi come testo: per ciascuno la
       trascrizione nomina la grandezza da cui e' derivato.
+- [ ] `sim/coblox_sim/params.py` porta i tre parametri della revoca, i loro tetti
+      di genesi, `revocation_effective_grace_blocks_min` con la sua relazione, e
+      l'elenco del rapporto di variazione allineato — ciascuno con il testo esatto
+      che trascrive, come la sua intestazione promette. In alternativa
+      l'intestazione dichiara quale sottoinsieme il file copre, cosi' che la
+      promessa smetta di essere piu' ampia del contenuto. Chiude [DEBT-045].
+- [ ] Una prova in negativo mostra il **simulatore rifiutare** un documento che
+      il crate rifiuta. Le due implementazioni vanno confrontate, non solo
+      allineate a vista.
 
 ## Verification gates
 
