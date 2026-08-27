@@ -32,6 +32,7 @@ updated: 2026-08-27
 - `outcome`: I nodi rispondono a ping firmati con nonce; il reddito di esistenza viene accreditato solo su presenza dimostrata; test di attacco Sybil documentati; prima dashboard in tempo reale (desktop Tauri) di guadagni ed eventi.
 - `specs`: []
 - `risks`: [campionamento aggirabile, costo batteria/dati su mobile]
+- `nota`: **Il beacon di casualita' dedicato vive qui.** Assegna emittente e soggetto delle sfide, quindi il suo consumatore e' l'esito di questa milestone. Il lavoro senza proprietario e' la **quantizzazione di `timestamp_ms` allo slot di consenso**: l'altra riduzione che `ledger.md` elencava come non presa — derivare il materiale dai `block_id` di `K` blocchi consecutivi — **e' gia' presa** dal seme dell'elezione via `election_entropy_blocks`. Collocato qui il 2026-08-27 su decisione dell'operatore, per chiudere [DEBT-038]: il rimando di `ledger.md` puntava a [DEBT-005], che e' risolto e non aveva quell'oggetto, quindi indicava il vuoto.
 
 ### M-04 — Nodi ovunque: shell desktop, Android e headless complete
 

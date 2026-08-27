@@ -1,7 +1,7 @@
 ---
 id: DEBT-041
 title: "ledger.md si contraddice sull'aggregazione su K blocchi: dichiarata non presa in v0 in una sezione e presa in un'altra"
-status: open
+status: superseded
 category: "correctness"
 severity: "medium"
 origin_severity: null
@@ -16,13 +16,15 @@ related_decisions: ["ADR-012"]
 target_specs: []
 blocked_by: []
 resolution_refs: []
-superseded_by: null
+superseded_by: ["DEBT-046"]
 revisit_condition: null
 created: 2026-08-27
 updated: 2026-08-27
 tags: ["consensus","conformance","documentation"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "superseded: La contraddizione che questo debito descrive non esiste. Le due frasi stanno in sezioni diverse e parlano di due consumatori di casualita' diversi: \"Two reductions are available and are not taken in v0\" e' sotto `### Challenge evidence`, cioe' l'assegnazione emittente/soggetto; \"the reduction this document deferred ... and takes here\" e' sotto `### The seed, and why the rule does not depend on it`, cioe' il seme dell'elezione. La seconda riconosce esplicitamente la tensione invece di ignorarla.\n\nIl Lead lo ha aperto il 2026-08-27 su segnalazione di AGENT-002 verificando che le due frasi esistessero, e non che parlassero della stessa cosa. E' la quarta verifica sotto-specificata dello stesso giorno e la prima ad aver prodotto un artefatto governato con un contenuto falso; le altre tre erano falsi allarmi contro affermazioni corrette degli agenti.\n\nQuesto debito ha inoltre bloccato DEBT-038 su una dipendenza inesistente, ed e' stato citato come esclusione dichiarata nello Scope di SPEC-027: quella esclusione va riletta alla luce di questa supersessione.\n\nIl difetto residuo e' reale ma piu' piccolo e di natura diversa — la frase non qualifica il proprio ambito, `documentation` e `low` invece di `correctness` e `medium` — ed e' DEBT-046. Superseduto e non corretto in luogo perche' il titolo porta la parola \"contraddice\", che sarebbe rimasta falsa in ogni digest."
 debt_events:
   - schema_version: "1"
     id: "DEBT-041-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead perche' la scoperta e' fuori dal perimetro della spec che l'ha prodotta e SPEC-023 ha correttamente riportato invece di correggere: modificare `docs/protocol/` da dentro quella spec le avrebbe fatto scavalcare la gate di ADR-012, che e' la stessa ragione per cui SPEC-018 aveva escluso i documenti di protocollo. Il difetto e' durevole e attraversa piu' spec, quindi e' un debito e non un rilievo locale."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-041-EVENT-002"
+    timestamp: "2026-08-27T15:11:18.521985200+02:00"
+    action: "superseded"
+    from_status: "open"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "La contraddizione che questo debito descrive non esiste. Le due frasi stanno in sezioni diverse e parlano di due consumatori di casualita' diversi: \"Two reductions are available and are not taken in v0\" e' sotto `### Challenge evidence`, cioe' l'assegnazione emittente/soggetto; \"the reduction this document deferred ... and takes here\" e' sotto `### The seed, and why the rule does not depend on it`, cioe' il seme dell'elezione. La seconda riconosce esplicitamente la tensione invece di ignorarla.\n\nIl Lead lo ha aperto il 2026-08-27 su segnalazione di AGENT-002 verificando che le due frasi esistessero, e non che parlassero della stessa cosa. E' la quarta verifica sotto-specificata dello stesso giorno e la prima ad aver prodotto un artefatto governato con un contenuto falso; le altre tre erano falsi allarmi contro affermazioni corrette degli agenti.\n\nQuesto debito ha inoltre bloccato DEBT-038 su una dipendenza inesistente, ed e' stato citato come esclusione dichiarata nello Scope di SPEC-027: quella esclusione va riletta alla luce di questa supersessione.\n\nIl difetto residuo e' reale ma piu' piccolo e di natura diversa — la frase non qualifica il proprio ambito, `documentation` e `low` invece di `correctness` e `medium` — ed e' DEBT-046. Superseduto e non corretto in luogo perche' il titolo porta la parola \"contraddice\", che sarebbe rimasta falsa in ogni digest."
+    evidence_refs: ["DEBT-046"]
 ---
 # ledger.md si contraddice sull'aggregazione su K blocchi: dichiarata non presa in v0 in una sezione e presa in un'altra
 

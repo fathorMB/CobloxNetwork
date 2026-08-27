@@ -73,6 +73,8 @@ Il risolutore ha inoltre avuto bisogno di **normalizzare gli spazi**, perché le
 - **Il cablaggio in CI**, nello stesso job delle altre gate documentali.
 - **La misura dell'arretrato**, e la decisione su come trattarlo, secondo il precedente di [DEBT-027] descritto sotto.
 - **La chiusura delle due frasi che oggi non risolvono**, che lo strumento troverà da sé.
+- **I rimandi a debiti chiusi dentro i documenti pubblicati** — estensione decisa il 2026-08-27 su proposta di [DEBT-038]. È la stessa forma di difetto che questa spec esiste per cogliere: un riferimento che **scade** senza che nessuno se ne accorga. Un documento di protocollo che cita `[DEBT-nnn]` risolto, superseduto o inesistente deve far fallire, perché chi segue il rimando trova un debito chiuso e conclude che la questione sia chiusa con esso. Il caso reale che motiva l'estensione: `ledger.md` rimandava a [DEBT-005] per il beacon di casualità dedicato, e [DEBT-005] è risolto da [SPEC-006] e non aveva quell'oggetto.
+- **Le frasi che attraversano un a capo** devono risolvere. Il confronto normalizza gli spazi bianchi, e la trascrizione deve mostrare almeno una frase risolta che nel sorgente sta su due righe. Il 2026-08-27 il Lead ha sbagliato tre verifiche di citazione cercando a riga singola, e in un caso ha quasi dichiarato falsa un'affermazione vera di un agente.
 
 ### Excluded
 

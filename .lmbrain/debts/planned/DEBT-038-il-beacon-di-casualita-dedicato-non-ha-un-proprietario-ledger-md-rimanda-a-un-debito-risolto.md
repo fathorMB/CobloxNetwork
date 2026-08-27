@@ -1,7 +1,7 @@
 ---
 id: DEBT-038
 title: "Il beacon di casualita dedicato non ha un proprietario: ledger.md rimanda a un debito risolto"
-status: open
+status: planned
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -13,7 +13,7 @@ origin_ref: null
 related_specs: ["SPEC-023","SPEC-024"]
 related_reviews: ["REVIEW-040"]
 related_decisions: ["ADR-013"]
-target_specs: []
+target_specs: ["SPEC-027","SPEC-024"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
@@ -22,7 +22,9 @@ created: 2026-08-27
 updated: 2026-08-27
 tags: ["security","consensus"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il primo dei due lavori e' fatto: l'operatore ha deciso il 2026-08-27 che il beacon di casualita' dedicato vive in M-03, ed e' scritto nella roadmap con il perimetro ristretto — la sola quantizzazione di `timestamp_ms` allo slot, perche' l'altra riduzione e' gia' presa dal seme dell'elezione. M-03 e' la milestone delle sfide di availability, cioe' il consumatore di quel beacon.\n\nResta da far puntare li' il rimando di `ledger.md`, che oggi indica DEBT-005, risolto e con un altro oggetto. E' una riga in un documento di protocollo dentro una passata che SPEC-027 esegue gia' su quel file: instradato li' e non su una spec propria.\n\nInstradato anche su SPEC-024 per la seconda meta', che il debito stesso propone e che il Lead condivide: la domanda giusta non e' se `docs/protocol/` citi DEBT-005, ma quanti rimandi a debiti chiusi contengano i documenti pubblicati, ed e' una domanda che si risponde enumerando. E' la stessa forma per cui SPEC-024 esiste — un riferimento che scade senza che nessuno se ne accorga — quindi vale estenderne il perimetro invece di aprire uno strumento nuovo. L'estensione va scritta in SPEC-024 prima che parta.\n\nNota di metodo, dal debito stesso: fu aperto applicando la regola \"verificare una citazione significa leggere il suo intorno\", e la regola si fermo' troppo presto — il Lead lesse l'intorno della frase e non cerco' un altro sito dello stesso documento che la superasse. E' lo stesso errore che lo stesso giorno ha prodotto DEBT-041."
 debt_events:
   - schema_version: "1"
     id: "DEBT-038-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead mentre rimediava [REVIEW-040] NF-01, e non da chi ha scritto o rivisto l'analisi.\n\nVale la pena registrare come e' emerso, perche' e' una forma che questa sessione non aveva ancora visto. AGENT-007 aveva nominato le tre mitigazioni per dire che nessuna e' un tetto su `max_clock_drift_ms` — argomento corretto e sufficiente al suo scopo. Il Lead e' andato a verificarle **per non scriverle senza averle lette**, e la frase successiva a quelle tre era il rimando morto. **Il difetto non stava in cio' che la reviewer citava: stava nella riga dopo.**\n\nNe discende una regola pratica: verificare una citazione significa leggere il suo intorno, non solo la sua riga. Un difetto che nessuna delle due letture precedenti aveva visto stava a una frase di distanza da una che entrambe avevano guardato."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-038-EVENT-002"
+    timestamp: "2026-08-27T15:17:00.994608200+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il primo dei due lavori e' fatto: l'operatore ha deciso il 2026-08-27 che il beacon di casualita' dedicato vive in M-03, ed e' scritto nella roadmap con il perimetro ristretto — la sola quantizzazione di `timestamp_ms` allo slot, perche' l'altra riduzione e' gia' presa dal seme dell'elezione. M-03 e' la milestone delle sfide di availability, cioe' il consumatore di quel beacon.\n\nResta da far puntare li' il rimando di `ledger.md`, che oggi indica DEBT-005, risolto e con un altro oggetto. E' una riga in un documento di protocollo dentro una passata che SPEC-027 esegue gia' su quel file: instradato li' e non su una spec propria.\n\nInstradato anche su SPEC-024 per la seconda meta', che il debito stesso propone e che il Lead condivide: la domanda giusta non e' se `docs/protocol/` citi DEBT-005, ma quanti rimandi a debiti chiusi contengano i documenti pubblicati, ed e' una domanda che si risponde enumerando. E' la stessa forma per cui SPEC-024 esiste — un riferimento che scade senza che nessuno se ne accorga — quindi vale estenderne il perimetro invece di aprire uno strumento nuovo. L'estensione va scritta in SPEC-024 prima che parta.\n\nNota di metodo, dal debito stesso: fu aperto applicando la regola \"verificare una citazione significa leggere il suo intorno\", e la regola si fermo' troppo presto — il Lead lesse l'intorno della frase e non cerco' un altro sito dello stesso documento che la superasse. E' lo stesso errore che lo stesso giorno ha prodotto DEBT-041."
+    evidence_refs: ["SPEC-027", "SPEC-024"]
 ---
 # Il beacon di casualita dedicato non ha un proprietario: ledger.md rimanda a un debito risolto
 

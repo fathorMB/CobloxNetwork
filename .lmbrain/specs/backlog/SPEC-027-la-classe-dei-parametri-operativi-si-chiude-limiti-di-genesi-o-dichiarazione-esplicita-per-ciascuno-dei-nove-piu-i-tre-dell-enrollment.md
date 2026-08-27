@@ -87,10 +87,26 @@ hanno mai avuto un attacco nel merito.**
 
 ### Excluded
 
-- **Il beacon di casualita' dedicato** ([DEBT-038]). Dipende dal verso in cui si
-  risolve [DEBT-041], cioe' dalla contraddizione di `ledger.md` sull'aggregazione
-  su `K` blocchi, che e' una decisione dell'operatore ancora in sospeso. Se la
-  passata la incontra, **fermarsi e riportare**.
+- **Il beacon di casualita' dedicato in se'**, che l'operatore ha collocato in
+  M-03 il 2026-08-27: il suo consumatore e' l'esito di quella milestone e non di
+  questa.
+
+  Due righe di `docs/protocol/ledger.md` rientrano pero' **dentro** il perimetro
+  di questa spec, perche' vivono nel file su cui la passata di [ADR-012] gira
+  comunque:
+
+  - il rimando della sezione *"Challenge evidence"*, che oggi punta a [DEBT-005],
+    risolto e con un altro oggetto, e va fatto puntare alla voce di M-03
+    ([DEBT-038]);
+  - la frase *"Two reductions are available and are not taken in v0"*, che non
+    qualifica il proprio ambito: la seconda riduzione **e' presa** dal seme
+    dell'elezione via `election_entropy_blocks` ([DEBT-046]).
+
+  Una nota di provenienza, perche' non si ripeta: fino al 2026-08-27 queste due
+  righe erano descritte come una **contraddizione** del documento. Non lo sono —
+  le due frasi stanno in sezioni diverse e parlano di due consumatori di
+  casualita' diversi. [DEBT-041] portava quella descrizione ed e' stato
+  superseduto da [DEBT-046].
 - La banda di `key_compromise` e tutto cio' che vive nella parte 2 di [ADR-017]:
   e' [SPEC-022], in revisione aperta.
 - `sim/coblox_sim/params.py`, che e' [DEBT-045] e non ha ancora una casa.

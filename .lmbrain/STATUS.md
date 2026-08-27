@@ -76,21 +76,27 @@ aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 
 | Stato | N | Nota |
 | --- | --- | --- |
-| `planned` | 11 | Ognuno ha una spec bersaglio |
-| `open` | 5 | Nessuno `high`; tre aspettano una decisione dell'operatore |
+| `planned` | 13 | Ognuno ha una spec bersaglio |
+| `open` | 3 | Nessuno `high`; due aspettano una decisione dell'operatore |
 | `deferred` | 2 | [DEBT-010] a M-07, [DEBT-027] a innesco |
 | `accepted-risk` | 1 | [DEBT-039], `glib` |
 | `resolved` | 18 | 9 il 25 agosto, 9 il 26, zero il 27 |
+| `superseded` | 3 | [DEBT-036], [DEBT-041] e uno precedente |
 
 **Instradati:** [DEBT-033], [DEBT-035], [DEBT-040] su [SPEC-022] — [DEBT-029],
 [DEBT-034] su [SPEC-025] — [DEBT-028], [DEBT-037], [DEBT-043], [DEBT-044] su
 [SPEC-027] — [DEBT-025] su [SPEC-026] — [DEBT-032] su [SPEC-024].
 
-**Restano `open`, e tre aspettano l'operatore:** [DEBT-024] (la scelta congiunta
-in `ComputeAssignment` e' deliberata?), [DEBT-041] (in quale verso si risolve la
-contraddizione di `ledger.md`?), [DEBT-031] (quali affermazioni di `src/` sono
-normative?). Gli altri due sono [DEBT-038], che dipende dal verso di [DEBT-041],
-e [DEBT-045], che non ha ancora una spec che lo copra.
+**Restano `open` tre, e due aspettano l'operatore:** [DEBT-024] (la scelta
+congiunta in `ComputeAssignment` e' deliberata?) e [DEBT-031] (quali
+affermazioni di `src/` sono normative?). Il terzo e' [DEBT-045], che non ha
+ancora una spec che lo copra.
+
+**[DEBT-041] superseduto da [DEBT-046] il 2026-08-27.** Non descriveva una
+contraddizione: le due frasi stanno in sezioni diverse e parlano di due
+consumatori di casualita' diversi. Il Lead aveva verificato che esistessero,
+non che si contraddicessero. Il difetto residuo e' che una delle due non
+qualifica il proprio ambito.
 
 **Avvertenza su [DEBT-040]:** la sua *Statement* poggia su una premessa che
 [REVIEW-045] ha accertato falsa. Va riscritta quando il debito viene lavorato,
