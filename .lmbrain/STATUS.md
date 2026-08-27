@@ -32,6 +32,7 @@ Nessun agente in esecuzione.
 | Spec | Stato | Chi | Nota |
 | --- | --- | --- | --- |
 | [SPEC-025] | `backlog`, `sol`/`maximum` | AGENT-002 | Attua [ADR-018]: motore di consenso, catena finalizzata da quattro validatori come prova. Non e' una devnet — rete e persistenza sono la spec successiva |
+| [SPEC-026] | `backlog`, `terra` | AGENT-008 | Rende eseguibili due discipline che oggi sono prosa: review non terminali su spec chiuse, e probe che portano un argomento di sicurezza senza nominare la review che l'ha attaccato |
 | [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
 Sequenziare, non parallelizzare: la remediation di [SPEC-022] tocca `ledger.md` e

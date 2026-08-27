@@ -2,7 +2,7 @@
 id: REVIEW-041
 # Note: Quote the title if it contains a colon
 title: "GATE-SECREVIEW di SPEC-023, terza passata: tre correzioni su dieci applicate alla sola tabella"
-status: changes-requested
+status: superseded
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-023
 reviewer: AGENT-007
@@ -44,6 +44,16 @@ review_events:
     evidence_refs: ["SPEC-023", "REVIEW-041", "REVIEW-040", "REVIEW-038", "DEBT-036", "DEBT-038"]
     implementation_agent: "AGENT-LEAD"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-041-EVENT-004"
+    timestamp: "2026-08-27T14:53:56.093039300+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    reason: "Superseduta da REVIEW-043, accepted il 2026-08-27. Tutti e sette i suoi rilievi sono stati chiusi dalla quarta passata di AGENT-002, e REVIEW-043 ha verificato la chiusura nei tre luoghi. Porta gia' l'evento di remediation REVIEW-041-EVENT-003 con il rapporto completo di quella passata: e' quindi la review che documenta il giro, non una richiesta di modifica ancora pendente. SPEC-023 e' done.\n\nStessa causa delle due precedenti, censita in knowledge/review-lifecycle-discipline.md."
+    evidence_refs: ["SPEC-023", "REVIEW-043"]
+    implementation_agent: "AGENT-LEAD"
 links: [DEBT-036, DEBT-038]
 created: 2026-08-27
 updated: 2026-08-27
@@ -56,6 +66,8 @@ activity:
     action: "transitioned pending -> changes-requested"
   - date: 2026-08-27
     action: "recorded review remediation"
+  - date: 2026-08-27
+    action: "transitioned changes-requested -> superseded"
 ---
 # Review
 

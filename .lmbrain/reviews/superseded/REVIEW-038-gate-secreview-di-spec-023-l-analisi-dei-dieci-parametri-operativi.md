@@ -2,7 +2,7 @@
 id: REVIEW-038
 # Note: Quote the title if it contains a colon
 title: "GATE-SECREVIEW di SPEC-023: l'analisi dei dieci parametri operativi"
-status: changes-requested
+status: superseded
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-023
 reviewer: AGENT-007
@@ -55,9 +55,19 @@ review_events:
     evidence_refs: [".lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md", ".lmbrain/specs/review/SPEC-023-i-dieci-parametri-operativi-nella-lista-draft-e-la-gate-che-chiude-la-classe.md"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-038-EVENT-005"
+    timestamp: "2026-08-27T14:53:41.203383100+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    reason: "Superseduta da REVIEW-043, accepted il 2026-08-27, che e' il verdetto dell'ultimo giro di GATE-SECREVIEW su SPEC-023. I suoi nove rilievi sono chiusi: sei dalle passate successive, RF-003 promosso a DEBT-037 come la reviewer stessa aveva prescritto perche' non rimediabile dentro la spec, e RF-009 assorbito dalla passata di ADR-012 di SPEC-022. SPEC-023 e' done dal 2026-08-27.\n\nRestava in changes-requested per la causa gia' censita in knowledge/review-lifecycle-discipline.md: durante le remediation e' stata creata una review nuova a ogni giro invece di ri-esprimere il verdetto su quella esistente, e ogni review a monte e' rimasta con l'ultimo verdetto emesso. Il documento prescrive anche il controllo che lo avrebbe impedito, da eseguire prima di chiudere una spec: il Lead non l'ha eseguito chiudendo SPEC-023, ed e' la seconda volta che l'operatore rileva questo difetto dalla board."
+    evidence_refs: ["SPEC-023", "REVIEW-043", "DEBT-037"]
+    implementation_agent: "AGENT-002"
 links: [DEBT-036]
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [security, review, governance]
 related_decisions: [ADR-012, ADR-010, ADR-017]
 activity:
@@ -69,6 +79,8 @@ activity:
     action: "recorded review remediation"
   - date: 2026-08-26
     action: "recorded review remediation"
+  - date: 2026-08-27
+    action: "transitioned changes-requested -> superseded"
 ---
 # Review
 

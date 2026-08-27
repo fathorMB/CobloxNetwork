@@ -2,7 +2,7 @@
 id: REVIEW-042
 # Note: Quote the title if it contains a colon
 title: "GATE-SECREVIEW di SPEC-022: la banda che ho disegnato converte la censura in negazione"
-status: changes-requested
+status: superseded
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-022
 reviewer: AGENT-007
@@ -33,6 +33,16 @@ review_events:
     evidence_refs: ["SPEC-022", "ADR-017", "ADR-010", "REVIEW-036", "REVIEW-039", "DEBT-035"]
     implementation_agent: "AGENT-002"
     remediation_agent: "AGENT-002"
+  - schema_version: "1"
+    id: "REVIEW-042-EVENT-003"
+    timestamp: "2026-08-27T14:54:07.706897500+02:00"
+    action: "verdict"
+    from_status: "changes-requested"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    reason: "Superseduta da REVIEW-044, che e' il verdetto del giro successivo della stessa gate su SPEC-022. Sette dei suoi otto rilievi sono chiusi e REVIEW-044 li ha attaccati senza romperli; RF-008 non e' stato risolto per istruzione del Lead, perche' la sua remediation contraddirrebbe ADR-017, ed e' registrato come decisione in sospeso dell'operatore.\n\nUna nota di merito, perche' non sparisca con la supersessione: il suo RF-001 conteneva un errore aritmetico che REVIEW-045 ha poi accertato — il tetto della banda non e' il lato che la censura attraversa, perche' chi ritarda l'inclusione incontra il pavimento e >= p+F. La reviewer ha riconosciuto l'errore come proprio. Il Lead lo ha ripetuto in due artefatti senza verificarlo, e la correzione vive in ADR-017 bozza v2 e in REVIEW-045. Lo scenario originale di RF-001 — il set seduto che porta G a 1 — resta invece vero ed e' chiuso dal pavimento di genesi.\n\nSPEC-022 resta in review su REVIEW-044."
+    evidence_refs: ["SPEC-022", "REVIEW-044", "REVIEW-045", "ADR-017"]
+    implementation_agent: "AGENT-002"
 links: [DEBT-035, DEBT-036]
 created: 2026-08-27
 updated: 2026-08-27
@@ -43,6 +53,8 @@ activity:
     action: "created"
   - date: 2026-08-27
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-27
+    action: "transitioned changes-requested -> superseded"
 ---
 # Review
 

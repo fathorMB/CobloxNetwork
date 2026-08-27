@@ -2,7 +2,7 @@
 id: REVIEW-045
 # Note: Quote the title if it contains a colon
 title: "Critica avversariale della BOZZA di seconda correzione di ADR-017 parte 2: il tetto non e' il lato che la censura attraversa"
-status: pending
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-022
 reviewer: AGENT-007
@@ -12,14 +12,26 @@ implementation_agent: AGENT-LEAD
 finding_taxonomy_version: 1
 finding_categories: [security-boundary, correctness, documentation, verification-integrity]
 # Managed append-only history. Use semantic review MCP verbs; do not edit events by hand.
-review_events: []
+review_events:
+  - schema_version: "1"
+    id: "REVIEW-045-EVENT-001"
+    timestamp: "2026-08-27T14:54:24.380030800+02:00"
+    action: "verdict"
+    from_status: "pending"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Accettata su richiesta dell'operatore del 2026-08-27. Non e' il verdetto su una consegna ma una critica avversariale di una bozza, chiesta prima della decisione: stesso tipo e stesso esito di REVIEW-036, che e' accepted. Ha finito il proprio lavoro.\n\nHa fatto esattamente cio' per cui e' stata autorizzata: ha demolito la bozza v1 con sei high PRIMA che diventasse testo normativo. Le due correzioni precedenti a questo ADR erano state attaccate solo dopo essere entrate in ledger.md, in README.md e in params.rs, e dopo essere state pinnate da probe verdi. Questa volta il testo falso non e' entrato da nessuna parte.\n\nIl Lead ha verificato eseguendo il rilievo portante: con F=10, G=5, e=100 l'estremo superiore della finestra di inclusione e' p=90 identico con e senza tetto, e a p=91 la revoca e' invalida in entrambi i casi per il pavimento e >= p+F. Il tetto non e' il lato che la censura attraversa, e la premessa della decisione dell'operatore era falsa. La review individua inoltre l'origine dell'errore in REVIEW-042 RF-001, cioe' in un proprio rilievo precedente, e lo dichiara.\n\nEsiti consumati nella bozza v2, commit d8389f1: rimozione del tetto ritirata, efficacia derivata all'inclusione su proposta di questa review, ritiro della rotazione ridotto alla sola gamba che regge. Esiti non consumati e dichiarati aperti nella bozza: la sorte di revocation_effective_grace_blocks_min, il tetto sui reason pianificati, e l'enumerazione degli artefatti resi falsi, che va prodotta eseguendo la passata di ADR-012 e non derivata a mano.\n\nRF-008 resta come lavoro di tooling proprio: la regola sulla provenienza degli argomenti nelle probe e' la forma verificabile che sostituisce una regola di metodo che il Lead aveva scritto e che non era decidibile."
+    evidence_refs: ["ADR-017", "SPEC-022", "REVIEW-044", "REVIEW-042", "REVIEW-036"]
+    implementation_agent: "AGENT-LEAD"
 links: [ADR-017, ADR-018, DEBT-040, DEBT-033]
 created: 2026-08-27
 updated: 2026-08-27
 tags: [security, review, consensus, ledger]
 related_decisions: [ADR-017, ADR-018, ADR-010, ADR-012, ADR-013, ADR-016]
+activity:
+  - date: 2026-08-27
+    action: "transitioned pending -> accepted"
 ---
-
 # Review
 
 > **Critica avversariale di una BOZZA**, richiesta dall'operatore prima che il testo diventi
