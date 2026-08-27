@@ -25,20 +25,47 @@
 //!
 //! # Why `(height + round)` and not `height * rounds + round`
 //!
-//! The index has to satisfy one liveness obligation, and it is the obligation
-//! `GATE-LIVENESS-AFTER-SILENCE` exists to check: **consecutive rounds at the
-//! same height must not repeat a proposer while an unvisited member remains**.
-//! A mute proposer at round `r` has to be replaced at `r+1` by somebody else, or
-//! the height waits for a node that has already declined to speak.
+//! The index has to satisfy a liveness obligation, and it is the obligation
+//! `GATE-LIVENESS-AFTER-SILENCE` exists to check: **at uniform voting power,
+//! consecutive rounds at the same height do not repeat a proposer while an
+//! unvisited member remains**. A mute proposer at round `r` is replaced at `r+1`
+//! by somebody else, so the height does not wait on a node that has already
+//! declined to speak.
 //!
 //! `(height + round) mod total_power` gives exactly that: at a fixed height,
 //! successive rounds step one unit along the power ladder, so they visit every
-//! unit of power — and therefore every member — before returning. A product
+//! unit of power before returning. A product
 //! form would be free to skip, and a hash of the pair would visit members in an
 //! order that is uniform on average and repeats within a height. Uniformity is
 //! not what this index is for: nothing here is secret, the pair is public before
 //! the round begins, and there is nothing to hide from a grinder because there
 //! is nothing a grinder can move.
+//!
+//! ## The qualifier is not decoration: what happens at weighted power
+//!
+//! The ladder walks units of **power**, and members are what it walks *through*.
+//! At uniform power the two coincide, because every member holds one unit —
+//! which is exactly what [`ValidatorSet::check_elected_shape`] requires of an
+//! **elected** set. Away from uniform power they do not: **a member with voting
+//! power `w` occupies `w` consecutive positions and therefore proposes in `w`
+//! consecutive rounds of a height**, while a member nobody has reached yet
+//! waits. With powers `[1, 1, 1, 7]` the heavy member is the proposer of seven
+//! rounds in a row, which
+//! `at_weighted_power_a_member_proposes_in_as_many_consecutive_rounds_as_its_power`
+//! measures rather than asserts.
+//!
+//! The consequence is on **liveness**, and it is written here so that nobody has
+//! to rediscover it: a silent member of power `w` costs a height `w` rounds
+//! instead of one, and because each round's timeout grows with the round number
+//! the wait grows quadratically in `w`. **Safety is untouched.** This rule
+//! authorizes proposing, a proposal on its own decides nothing, and every rule
+//! that can finalize anything counts signed votes.
+//!
+//! No path in this module calls [`ValidatorSet::check_elected_shape`]:
+//! [`proposer_at`] and [`Engine::start`](super::Engine::start) call
+//! [`ValidatorSet::check_structure`], which admits arbitrary powers, and
+//! [ADR-001] provides for a weighted set. A deployment whose set is not uniform
+//! therefore gets the weighted behaviour above and not the property in bold.
 //!
 //! The arithmetic is `u128` throughout, so `height + round` cannot wrap: at
 //! `u64::MAX` for both, a wrapping sum would map two distinct rounds to the same

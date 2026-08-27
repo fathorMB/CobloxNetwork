@@ -8,10 +8,12 @@ mod consensus_support;
 
 use std::collections::BTreeSet;
 
-use coblox_core::consensus::VotePhase;
+use coblox_core::consensus::{BlockProposal, VotePhase};
 use coblox_core::hash::Digest32;
 
-use consensus_support::devnet::{Adversary, Devnet, Wire};
+use consensus_support::devnet::{
+    Adversary, Devnet, Wire, harness_header, harness_transaction, harness_transactions_root,
+};
 
 /// The number of adversarial executions the **always-on** safety test performs.
 ///
@@ -427,6 +429,174 @@ fn one_validator_cannot_reach_a_quorum_by_voting_many_times() {
     devnet.run(4_000);
     assert!(devnet.finalized.is_empty());
     devnet.assert_no_conflicting_finality();
+}
+
+// ------------------------------------------- the payload is bound to the block ---
+
+/// Every block any node published carries a payload that reproduces its own
+/// `header.transactions_root`, and none of them carries `forbidden`.
+///
+/// The second half is the attack payload named; the first is the rule it
+/// violated, and the rule is asserted as well as the string, so the test does
+/// not degrade into a search for one literal.
+fn assert_every_published_payload_reproduces_its_root(
+    devnet: &Devnet,
+    forbidden: &[coblox_core::json::JsonObject],
+) {
+    for node in &devnet.nodes {
+        for block in &node.chain {
+            assert!(
+                !block.transactions.iter().any(|tx| forbidden.contains(tx)),
+                "node {} published the payload its header never committed to",
+                node.validator_id
+            );
+            assert_eq!(
+                block.header.transactions_root,
+                harness_transactions_root(devnet.chain_id(), &block.transactions),
+                "node {} published a block whose payload does not reproduce its root",
+                node.validator_id
+            );
+        }
+    }
+}
+
+/// The transactions of a node's first finalized block, as canonical JSON text.
+///
+/// A failure of the test below is a *difference* between two published blocks,
+/// and the readable way to report one is the two payloads side by side.
+fn first_block_payload(devnet: &Devnet, index: usize) -> Vec<String> {
+    devnet.nodes[index].chain[0]
+        .transactions
+        .iter()
+        .map(coblox_core::json::JsonObject::to_jcs_string)
+        .collect()
+}
+
+/// **One header, two payloads, and no two `Block` artifacts.**
+///
+/// This is [REVIEW-047]'s E5 run in the opposite direction. The measured defect
+/// was: a single faulty proposer — inside the budget of fewer than a third —
+/// sends the **same header** to two honest nodes with two **different**
+/// `transactions` arrays; both nodes finalize the same `block_id`; both publish
+/// a `Block` the shipped verifier accepts; and the two `Block` artifacts differ
+/// byte for byte, one of them carrying the attacker's payload. The safety
+/// criterion on `(height, block_id)` stayed true throughout, which is exactly
+/// why the defect survived it: the divergence is in the artifact, not in the ID.
+///
+/// With `transactions` bound to `header.transactions_root` at the boundary, the
+/// second proposal never reaches an engine. The round produces no quorum, the
+/// height succeeds at a later round with a proposal whose payload its header
+/// commits to, and every node publishes the same bytes.
+#[test]
+fn one_header_with_two_payloads_does_not_produce_two_blocks() {
+    let mut devnet = Devnet::start(4, 20_260_827, Adversary::default());
+    let proposer = devnet.proposer_of(1, 0);
+    let proposer_index = devnet.index_of(&proposer);
+    // The proposer's own honest proposal is suppressed, so the only round-0
+    // proposals in this execution are the two below.
+    devnet
+        .adversary
+        .silenced_proposals
+        .insert((proposer.clone(), 0));
+
+    // Every node receives a proposal, so that a quorum of prevotes and a quorum
+    // of precommits really do form at round 0: without that the round would fail
+    // for want of votes and the divergence this test is about would never get
+    // the chance to appear. Two nodes are told one payload and two the other.
+    let others: Vec<usize> = (0..4).filter(|index| *index != proposer_index).collect();
+    let receivers_a = [proposer_index, others[0]];
+    let receivers_b = [others[1], others[2]];
+
+    let payload_a = vec![harness_transaction("an-ordinary-payee", 250_000)];
+    let payload_b = vec![harness_transaction("the-attacker", 1_000_000)];
+    let mut header = harness_header(
+        &devnet.set.hash().unwrap(),
+        1,
+        0,
+        u64::try_from(proposer_index).unwrap(),
+        &devnet.genesis_block_id(),
+    );
+    header.transactions_root = harness_transactions_root(devnet.chain_id(), &payload_a);
+    let block_id = header.block_id(devnet.chain_id()).unwrap();
+
+    let proposal_of = |transactions: Vec<_>| Wire::Proposal {
+        from: proposer.clone(),
+        proposal: Box::new(BlockProposal {
+            height: 1,
+            round: 0,
+            valid_round: None,
+            header: header.clone(),
+            transactions,
+        }),
+    };
+    let a = proposal_of(payload_a.clone());
+    let b = proposal_of(payload_b.clone());
+    // The two messages carry the same header and therefore the same `block_id`:
+    // this is the property that made the attack work, and it is still true.
+    assert_ne!(a, b);
+
+    let rejected_before = devnet.rejected;
+    for to in receivers_a {
+        devnet.inject_to(to, &a);
+    }
+    for to in receivers_b {
+        devnet.inject_to(to, &b);
+    }
+    devnet.run(40);
+    let refused = devnet.rejected - rejected_before;
+
+    devnet.run_until_chain_length(2, 200_000);
+    devnet.assert_no_conflicting_finality();
+    devnet.assert_chains_agree();
+    devnet.assert_all_certificates_verify();
+
+    // The artifact, not the ID: every node's published `Block` bytes agree.
+    let reference = devnet.chain_bytes(0);
+    assert!(!reference.is_empty(), "nothing was finalized");
+    for index in 1..4 {
+        // Compared by hand rather than with `assert_eq!` on two `Vec<u8>`: the
+        // failure this test exists to catch is a *difference*, and a byte dump
+        // of two whole chains is the least readable way to report one.
+        let other = devnet.chain_bytes(index);
+        assert!(
+            other == reference,
+            "node 0 and node {index} published different `Block` bytes for the same chain \
+             ({} and {} bytes). Node 0's first block carries {:?}; node {index}'s carries {:?}.",
+            reference.len(),
+            other.len(),
+            first_block_payload(&devnet, 0),
+            first_block_payload(&devnet, index),
+        );
+    }
+
+    assert_every_published_payload_reproduces_its_root(&devnet, &payload_b);
+
+    println!("--- E5 inverted: one header, two payloads ---");
+    println!(
+        "proposer of (height 1, round 0) is {proposer}, silenced; two proposals carrying the \
+         identical header {} injected, payload A of {} transaction(s) to nodes {receivers_a:?}, \
+         payload B (`the-attacker`, 1000000 microtokens) of {} transaction(s) to nodes \
+         {receivers_b:?}",
+        &block_id.to_prefixed()[..23],
+        payload_a.len(),
+        payload_b.len(),
+    );
+    println!(
+        "  boundary refusals during injection: {refused}; published `Block` bytes per node: \
+         {:?}; identical: {}",
+        (0..4)
+            .map(|index| devnet.chain_bytes(index).len())
+            .collect::<Vec<_>>(),
+        (0..4).all(|index| devnet.chain_bytes(index) == reference),
+    );
+    for line in devnet.transcript(0) {
+        println!("  {line}");
+    }
+    assert_eq!(
+        refused, 2,
+        "both copies of the payload the header does not commit to must have been \
+         refused at the boundary"
+    );
 }
 
 // --------------------------------------------------------- the determinism ---

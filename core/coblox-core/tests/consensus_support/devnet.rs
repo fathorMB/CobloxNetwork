@@ -44,7 +44,7 @@ use coblox_core::consensus::{
 use coblox_core::hash::{ChainId, Digest32};
 use coblox_core::json::JsonObject;
 use coblox_core::merkle::transactions_root;
-use coblox_core::registry::{block_prevote_preimage, block_vote_preimage};
+use coblox_core::registry::{block_prevote_preimage, block_vote_preimage, tx_id};
 use coblox_core::validator_set::{ValidatorEntry, ValidatorSet};
 use coblox_core::{ConsensusVerifier, SignatureVerifier};
 
@@ -199,6 +199,9 @@ pub struct Devnet {
     prng: Prng,
     /// Messages the harness has admitted, for a test to inspect.
     pub delivered: u64,
+    /// Messages the boundary refused, for a test that needs to observe a
+    /// rejection rather than infer it from an absence.
+    pub rejected: u64,
 }
 
 /// The default timeouts of the harness. Round 0 is deliberately short and the
@@ -284,6 +287,64 @@ pub fn harness_header(
     }
 }
 
+/// A transaction object of the shape `ledger.md#unsigned-transaction-and-authorization`
+/// publishes, carrying an `authorization` the ID rule has to remove.
+///
+/// The `authorization` is not decoration. `tx_id` is taken over the object
+/// **with `authorization` removed**, so a payload whose members carried none
+/// would let a boundary that forgot the removal pass this test by accident.
+#[must_use]
+pub fn harness_transaction(pay_to: &str, amount_microtokens: u64) -> JsonObject {
+    JsonObject::builder()
+        .object(
+            "authorization",
+            JsonObject::builder()
+                .str("public_key", "11qYAYdk9J0L5Z-6hB4qMTPBSAE5nK1G0IU2n6z1V9g")
+                .bytes("signature", &[0u8; 64])
+                .build()
+                .expect("the harness authorization is well formed"),
+        )
+        .object(
+            "body",
+            JsonObject::builder()
+                .uint("amount_microtokens", amount_microtokens)
+                .str("pay_to", pay_to)
+                .build()
+                .expect("the harness body is well formed"),
+        )
+        .uint("created_at_ms", 1_787_654_505_000)
+        .uint("expires_at_ms", 1_787_654_805_000)
+        .str("kind", "fund_app")
+        .str("network_id", NETWORK_ID)
+        .str("schema_version", "0.1")
+        .build()
+        .expect("the harness transaction is well formed")
+}
+
+/// The `transactions_root` of a payload, computed the way `ledger.md` defines it.
+///
+/// This is deliberately a **second** implementation of the rule the boundary
+/// applies: it calls the two published primitives directly, so a test that uses
+/// it is not asking `verify_proposal` whether it agrees with itself.
+#[must_use]
+pub fn harness_transactions_root(chain_id: &ChainId, transactions: &[JsonObject]) -> Digest32 {
+    let ids: Vec<Digest32> = transactions
+        .iter()
+        .map(|transaction| {
+            let mut unsigned = JsonObject::new();
+            for (key, value) in transaction.iter() {
+                if key != "authorization" {
+                    unsigned
+                        .insert(key, value.clone())
+                        .expect("a copied field is a valid field");
+                }
+            }
+            tx_id(chain_id, &unsigned)
+        })
+        .collect();
+    transactions_root(&ids).expect("the harness payload is within the tree limit")
+}
+
 impl Devnet {
     /// Starts a devnet of `count` validators at `height`.
     pub fn start(count: usize, seed: u64, adversary: Adversary) -> Self {
@@ -303,6 +364,7 @@ impl Devnet {
             seq: 0,
             prng: Prng::new(seed),
             delivered: 0,
+            rejected: 0,
         };
         let mut pending = Vec::new();
         for (index, key) in keys.into_iter().enumerate() {
@@ -457,6 +519,7 @@ impl Devnet {
             // A message the boundary rejects never reaches the engine. That is
             // what a conformant node does, and it is where the equivocation test
             // observes a forged signature being refused.
+            self.rejected += 1;
             return;
         };
         self.delivered += 1;
@@ -595,6 +658,22 @@ impl Devnet {
                 },
             );
         }
+    }
+
+    /// Injects a wire message at **one** node.
+    ///
+    /// [`Devnet::inject`] models a Byzantine sender that says one thing to
+    /// everybody. This models the other shape: a proposer that tells two honest
+    /// nodes two different things, which is what a gossip transport cannot
+    /// prevent and what the receiver's own checks have to survive.
+    pub fn inject_to(&mut self, to: usize, wire: &Wire) {
+        self.push(
+            self.now_ms,
+            Delivery::Message {
+                to,
+                wire: wire.clone(),
+            },
+        );
     }
 
     /// Signs a vote with a member's real key, for the equivocation test.
@@ -754,6 +833,21 @@ impl Devnet {
             .expect("the harness set has a proposer at every pair")
             .validator_id
             .clone()
+    }
+
+    /// The block ID every height-1 proposal must name as its parent.
+    #[must_use]
+    pub const fn genesis_block_id(&self) -> Digest32 {
+        self.genesis_block_id
+    }
+
+    /// The index of a member in `nodes`, by `validator_id`.
+    #[must_use]
+    pub fn index_of(&self, validator_id: &str) -> usize {
+        self.nodes
+            .iter()
+            .position(|node| node.validator_id == validator_id)
+            .expect("the harness only names its own members")
     }
 
     /// The chain ID every signature in this devnet is bound to.

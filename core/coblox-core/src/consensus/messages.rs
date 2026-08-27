@@ -32,7 +32,8 @@ use crate::block::BlockHeader;
 use crate::error::{ConsensusError, JsonError, Result};
 use crate::hash::{ChainId, Digest32, Domain};
 use crate::json::{Json, JsonObject};
-use crate::registry::{block_prevote_preimage, block_vote_preimage};
+use crate::merkle;
+use crate::registry::{block_prevote_preimage, block_vote_preimage, tx_id};
 use crate::validator_set::ValidatorSet;
 use crate::verifier::verify_in_context;
 use crate::{SignatureVerifier, encoding};
@@ -139,9 +140,17 @@ pub struct BlockProposal {
     pub header: BlockHeader,
     /// The proposed transactions, in canonical execution order.
     ///
-    /// Opaque here. The engine neither executes nor orders them; the value it
-    /// agrees on is `block_id`, and `block_id` covers them through
-    /// `transactions_root`.
+    /// Opaque here in *meaning*: the engine neither executes them nor decides
+    /// whether the order is the right one, which is `valid(v)`'s question and
+    /// needs an executor.
+    ///
+    /// They are **not** opaque in *identity*. `block_id` covers
+    /// `header.transactions_root`, which is a hash of these objects, and
+    /// [`verify_proposal`] recomputes it and rejects a proposal that carries a
+    /// payload its header does not commit to. Covering the hash and never
+    /// comparing it would leave `block_id` agreed and the published `Block`
+    /// undetermined; the comparison is what makes this field a consequence of
+    /// the value the protocol decided rather than a rider on it.
     pub transactions: Vec<JsonObject>,
 }
 
@@ -257,6 +266,35 @@ impl VerifiedMessage {
     }
 }
 
+/// The `transactions_root` a list of transaction objects produces.
+///
+/// `ledger.md#unsigned-transaction-and-authorization`: *"The unsigned
+/// transaction used for its ID is the object with `authorization` removed."*
+/// The removal is done here rather than assumed of the caller, because a
+/// receiver that hashed the signed object would compute a root no honest
+/// proposer can produce and would reject every proposal — which is the failure
+/// mode a check written at a boundary must not have.
+///
+/// It carries no opinion about what a transaction *means*: a member of
+/// `transactions` that is not a well-formed transaction still has a `tx_id` and
+/// still occupies its position in the tree. Deciding whether the objects are
+/// valid transactions is `valid(v)`, and it needs the executor this crate does
+/// not have.
+fn transactions_root_of(chain_id: &ChainId, transactions: &[JsonObject]) -> Result<Digest32> {
+    let mut ids = Vec::with_capacity(transactions.len());
+    for transaction in transactions {
+        let mut unsigned = JsonObject::new();
+        for (key, value) in transaction.iter() {
+            if key == "authorization" {
+                continue;
+            }
+            unsigned.insert(key, value.clone())?;
+        }
+        ids.push(tx_id(chain_id, &unsigned));
+    }
+    merkle::transactions_root(&ids)
+}
+
 /// Admits a proposal from `sender_validator_id`.
 ///
 /// The checks, in order, and every one of them is a rejection a receiver must be
@@ -266,10 +304,31 @@ impl VerifiedMessage {
 /// 2. the sender is the proposer of `(height, round)` under
 ///    [`proposer_at`]. This is the check that makes the proposer rule a rule and
 ///    not a convention;
-/// 3. the header's `height` and `round` are the message's. A header that
-///    disagreed with its envelope would make `block_id` a value nobody could
-///    recompute from what they thought they had agreed on;
-/// 4. `valid_round`, when present, is strictly below `round` — Algorithm 1's
+/// 3. the header's `height` is the message's. A header that disagreed with its
+///    envelope would make `block_id` a value nobody could recompute from what
+///    they thought they had agreed on;
+/// 4. the header's `round` is the message's **when `valid_round` is absent**,
+///    that is, when the value is being proposed for the first time. It is
+///    deliberately *not* checked when `valid_round` is present: Algorithm 1
+///    line 16 re-proposes a carried-over value **unchanged**, so a re-proposal's
+///    `header.round` is the round the value was *first* proposed at and is
+///    strictly below the message's. Nothing is lost by not comparing it there,
+///    because `block_id` covers every byte of the header and the receiver only
+///    acts on a re-proposal once it has seen more than two thirds of prevotes
+///    for that same `block_id` at `valid_round` **in its own log** — a quorum
+///    the proposer cannot manufacture. See [`super`] §*Two rounds, and why they
+///    are allowed to differ*;
+/// 5. `transactions` reproduces `header.transactions_root`. This is the binding
+///    between the value the protocol agrees on and the bytes the block
+///    publishes: without it one proposer can send one header to two honest
+///    nodes with two different payloads, both nodes finalize the same
+///    `block_id`, and the two `Block` artifacts they publish differ. It belongs
+///    in the same class as `links_to_the_chain` and not in the caller's
+///    `valid(v)`, because — unlike `state_root` — it needs no executor and no
+///    account state: [`crate::registry::tx_id`] and
+///    [`transactions_root`](crate::merkle::transactions_root) are one pass over
+///    the array;
+/// 6. `valid_round`, when present, is strictly below `round` — Algorithm 1's
 ///    `vr >= 0 ∧ vr < round_p`, checked here so that the engine never has to
 ///    consider a proposal that justifies itself with its own round.
 ///
@@ -303,6 +362,24 @@ pub fn verify_proposal(
     }
     if proposal.header.height != proposal.height {
         return Err(ConsensusError::ProposalHeaderMismatch { field: "height" }.into());
+    }
+    // Check 4. The `Some` arm is left uncompared on purpose, and the reason is
+    // in the list above rather than left to be deduced: a re-proposal carries
+    // the round the value was first proposed at, and comparing it here would
+    // reject every re-proposal and stall any height that needs a second round.
+    if proposal.valid_round.is_none() && proposal.header.round != proposal.round {
+        return Err(ConsensusError::ProposalHeaderMismatch { field: "round" }.into());
+    }
+    // Check 5. The payload is bound to the header before anything can prevote
+    // it, so the block the consensus agrees on determines the block that gets
+    // published.
+    let computed_root = transactions_root_of(chain_id, &proposal.transactions)?;
+    if computed_root != proposal.header.transactions_root {
+        return Err(ConsensusError::ProposalTransactionsRootMismatch {
+            declared: proposal.header.transactions_root,
+            computed: computed_root,
+        }
+        .into());
     }
     if let Some(valid_round) = proposal.valid_round
         && valid_round >= proposal.round

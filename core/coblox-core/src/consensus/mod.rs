@@ -58,32 +58,72 @@
 //! ## Divergence 1 — there are no nil votes, so the timeouts chain themselves
 //!
 //! Algorithm 1 has four broadcasts of a **nil** vote (lines 26, 32, 45, 59, 63)
-//! and two rules that count them (34, 44, 47). Coblox has no nil vote and cannot
+//! and four rules that count them (34, 44, 47, **55**). Coblox has no nil vote and cannot
 //! grow one inside this spec: a vote signs
 //! `... || raw_32_bytes(block_id)` and `ledger.md#what-validators-sign` is a
 //! published preimage that [ADR-018] declares unchanged. Spelling nil as 32 zero
 //! bytes would be a new meaning for a published preimage, which is the premise
 //! the decision rests on, so it was not done.
 //!
-//! What nil votes are *for* in Algorithm 1 is not safety — no nil vote ever
-//! locks anything or decides anything — it is **arming the next timer**. Lines
-//! 35 and 48 schedule `OnTimeoutPrevote` and `OnTimeoutPrecommit` only once a
-//! quorum of votes of any kind has been seen, and without nils those quorums may
-//! never form, so the chain of timers would break at its first link and a round
-//! would never end.
+//! No nil vote ever locks anything or decides anything, so their absence costs
+//! no safety. What it costs is **information**, and the information is used in
+//! two places.
+//!
+//! The first is **arming the next timer**. Lines 35 and 48 schedule
+//! `OnTimeoutPrevote` and `OnTimeoutPrecommit` only once a quorum of votes of
+//! any kind has been seen, and without nils those quorums may never form, so the
+//! chain of timers would break at its first link and a round would never end.
+//!
+//! The second is **line 55**, the round-skip rule, and it is the one an earlier
+//! version of this page missed. Line 55 counts `f+1` messages
+//! `⟨∗, h_p, round, ∗, ∗⟩` at a round above the node's own — *any* message,
+//! including a nil vote. Without nils, **a round whose proposer says nothing
+//! produces no honest message at all**: the correct nodes prevote nothing,
+//! precommit nothing, and let the round expire in silence. A node that has
+//! fallen behind therefore receives no evidence that such a round happened and
+//! cannot skip to it; it has to walk the rounds one at a time, paying each
+//! round's timeout, and those timeouts grow with the round number. Composed with
+//! the weighted proposer rule — where a silent member of power `w` holds `w`
+//! consecutive rounds, see [`proposer`] — the catch-up cost after a stretch of
+//! silence is **quadratic** rather than linear. This is a recovery cost, not a
+//! safety property: `Engine::try_skip_round` never decides anything, and a
+//! node that skips no round finalizes exactly what it would have finalized
+//! anyway, later.
 //!
 //! Here each timer is armed at the step transition instead:
 //! `Propose → Prevote` arms `OnTimeoutPrevote`, `Prevote → Precommit` arms
-//! `OnTimeoutPrecommit`, and `OnTimeoutPrecommit` starts the next round. The
-//! substitution is a **superset**: every state in which Algorithm 1 would have
+//! `OnTimeoutPrecommit`, and `OnTimeoutPrecommit` starts the next round.
+//!
+//! **The substitution is a superset in what it arms, and that is not the same as
+//! a superset in what it does.** Every state in which Algorithm 1 would have
 //! armed a timer is a state this engine has already armed it in, and there are
 //! states — a round nobody votes in at all — where this engine arms one and
-//! Algorithm 1 does not. It cannot affect safety, because no rule that locks,
-//! precommits or decides reads a timer; a timer can only abandon a round, and
-//! abandoning a round is what a locked validator's lock survives.
+//! Algorithm 1 does not. But an *earlier* timer is also an earlier *firing*, and
+//! the difference has a name: Algorithm 1 arms `OnTimeoutPrevote` at the moment
+//! a quorum of prevotes exists, and therefore guarantees a full
+//! `timeoutPrevote(round_p)` **after** that quorum; this engine arms it on
+//! entering `Prevote`, so it can expire before a single prevote has arrived.
+//! When it does, the node leaves `Prevote`, and from `Precommit` it can no
+//! longer lock or precommit that round even if the quorum arrives one event
+//! later. **That is a liveness cost and it is declared as one**, not smoothed
+//! over as a superset: a node whose prevote timeout is short for its network
+//! wastes rounds. The three timeouts are local parameters
+//! ([`ConsensusTimeouts`]) precisely so that a deployment can pay this cost or
+//! not.
 //!
-//! The cost is real and is latency: a round that has visibly failed is abandoned
-//! when its timer says so rather than when two thirds have said nil, so a failed
+//! **Safety is untouched, and the reason is not that no rule reads a timer** —
+//! `Engine::try_lock_and_precommit` is guarded by `self.step`, and
+//! `Engine::on_timeout` writes `self.step`, so a rule that locks does read one
+//! indirectly. The reason is the **direction**: the two timers this divergence
+//! arms early can only move the step *past* the point where the round's lock and
+//! precommit are still possible, or abandon the round altogether. Neither can
+//! cause a lock or a precommit; both can only suppress one. Suppressing is safe
+//! by construction — a node that locks less can only fail to help a quorum form,
+//! never help two form — and a lock already taken survives a round change,
+//! because `locked` is cleared only on a decision.
+//!
+//! The other cost is latency: a round that has visibly failed is abandoned when
+//! its timer says so rather than when two thirds have said nil, so a failed
 //! round costs `propose + prevote + precommit` of local timeout instead of a
 //! round trip. The gain is that nothing published changes.
 //!

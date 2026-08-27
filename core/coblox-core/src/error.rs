@@ -106,6 +106,20 @@ pub enum ConsensusError {
     /// A proposal's header does not carry the `(height, round)` the message
     /// claims.
     ProposalHeaderMismatch { field: &'static str },
+    /// A proposal's `transactions` do not reproduce its header's
+    /// `transactions_root`.
+    ///
+    /// The two digests are carried because the rejection is otherwise
+    /// indistinguishable from a truncated payload, and the difference matters to
+    /// whoever reads the log: a mismatch is a proposer that sent one header with
+    /// two payloads, and that is attributable to the round's proposer by the
+    /// proposer rule alone.
+    ProposalTransactionsRootMismatch {
+        /// The root the header declares.
+        declared: crate::hash::Digest32,
+        /// The root recomputed from the carried transactions.
+        computed: crate::hash::Digest32,
+    },
     /// A proposal's `valid_round` is not below its own round.
     ProposalValidRoundNotBelowRound { round: u64, valid_round: u64 },
     /// A proposer offered a value for a `(height, round)` it is not proposing.

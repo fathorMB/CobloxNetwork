@@ -425,8 +425,21 @@ analysis, that a participant able to grind an input it chooses will grind it, an
 the prize here is the right to propose.
 
 Two consecutive rounds at the same height therefore step one unit along the
-power ladder and cannot name the same member while an unvisited one remains,
-which is what makes a height survive a proposer that says nothing.
+power ladder. **At uniform voting power** — one unit each, which is the shape
+an elected set is required to have — two consecutive rounds cannot name the
+same member while an unvisited one remains, and that is what makes a height
+survive a proposer that says nothing.
+
+**At weighted voting power the ladder is walked in units and not in members, so
+a member with voting power `w` is the proposer of `w` consecutive rounds of a
+height** while a member nobody has reached yet waits. With powers
+`1, 1, 1, 7` the heavy member proposes seven rounds in a row. The consequence
+is on liveness and is stated rather than left to be discovered: a silent member
+of power `w` costs a height `w` rounds instead of one, and since each round's
+timeout grows with the round number, the wait grows quadratically in `w`.
+Safety is untouched — this rule authorizes proposing, a proposal decides
+nothing on its own, and every rule that can finalize a block counts signed
+votes.
 
 #### `block_proposal`
 
@@ -451,6 +464,37 @@ re-proposed in a later round: `block_id` covers the header, and a rewritten
 header would be a different block, which would strand every prevote already cast
 for the value and make a locked validator unable to vote for the only block it is
 allowed to vote for.
+
+That rule binds the proposer. The receiver's half of it is this, and it is
+stated separately because it is what a receiver can actually check:
+
+> **A receiver MUST reject a proposal that omits `valid_round` and whose
+> `header.round` is not `round`.** A receiver MUST NOT apply that comparison
+> when `valid_round` is present: a re-proposal carries the header of the round
+> the value was first proposed at, so `header.round` is below `round` there, and
+> a receiver that rejected it would refuse every re-proposal and stall every
+> height that needs a second round.
+
+Nothing further is required of `header.round` on a re-proposal, and the reason
+is not an omission: `block_id` covers every byte of the header, and a receiver
+acts on a re-proposal only once it has itself seen more than two thirds of
+prevotes for that same `block_id` at `valid_round` — a quorum in its own log,
+which the proposer cannot manufacture.
+
+> **A receiver MUST reject a proposal whose `transactions` do not reproduce
+> `header.transactions_root`**, recomputed as
+> [ledger.md](ledger.md#hashing-primitives) defines it: `tx_id` over each
+> transaction with `authorization` removed, then the transaction Merkle tree in
+> block order.
+
+The check needs no executor and no account state, so it is not part of the
+executing validity of a block: it is the binding between the value the protocol
+agrees on and the bytes the block publishes. Without it one proposer can send
+one `header` to two honest receivers with two different `transactions` arrays;
+both prevote and precommit the same `block_id`, both finalize, and the two
+`Block` artifacts they publish differ — a divergence in the ledger produced by a
+single participant well inside the fault budget, and one that no rule stated in
+terms of `block_id` can see.
 
 `valid_round` is present exactly when the proposer is re-proposing a value it
 has seen more than two thirds of prevotes for at an earlier round; it MUST then
@@ -583,7 +627,9 @@ announcements require an enrolled validator sender but are treated as hints.
 Consensus messages additionally require a sender that is a member of the active
 validator set, a `prevote` or `precommit` signature that verifies under its own
 domain against that member's `consensus_public_key`, and — for a
-`block_proposal` — a sender that is the proposer of its `(height, round)`.
+`block_proposal` — a sender that is the proposer of its `(height, round)`, a
+`transactions` array that reproduces `header.transactions_root`, and, when
+`valid_round` is absent, a `header.round` equal to `round`.
 Unlike a block announcement, a consensus message is **not** a hint and MUST NOT
 be shed as one.
 Application objects MUST NOT use libp2p's anonymous author mode.

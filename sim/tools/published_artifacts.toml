@@ -1463,6 +1463,27 @@ count = 1
 why = "Re-proposing a carried-over value with a rewritten header changes block_id, strands the prevotes that justify it, and makes a locked validator unable to vote for the only block it may vote for. It reads like a tidiness rule and it is the one that keeps locking reachable."
 
 [[probe]]
+id = "consensus-proposal-payload-reproduces-its-root"
+site = "wire.md"
+pattern = 'A receiver MUST reject a proposal whose `transactions` do not reproduce'
+count = 1
+why = "[REVIEW-047] RF-001. `block_id` covers `transactions_root` and covering a hash is not comparing it: without this MUST one proposer sends one header to two honest receivers with two different payloads, both finalize the same `block_id`, and the two published `Block` artifacts differ. It is the one rule of the proposal message that no statement about `block_id` can imply, which is why it is pinned separately from the header rules above it."
+
+[[probe]]
+id = "consensus-first-hand-proposal-carries-its-own-round"
+site = "wire.md"
+pattern = 'A receiver MUST reject a proposal that omits `valid_round` and whose'
+count = 1
+why = "[REVIEW-047] RF-002. The proposer-facing rule above was published with no receiver-facing form, so nothing checked it and `header.round` was a published field an attacker could choose. This is the half a receiver can apply, and it is pinned with the exemption below it because the naive strengthening — comparing the rounds on every proposal — rejects every re-proposal and stalls any height that needs a second round."
+
+[[probe]]
+id = "consensus-proposer-property-holds-at-uniform-power"
+site = "wire.md"
+pattern = 'At weighted voting power the ladder is walked in units and not in members'
+count = 1
+why = "[REVIEW-047] RF-003. The unqualified sentence was false: the index walks a ladder of power, so a member with power `w` proposes in `w` consecutive rounds, and only `check_elected_shape` forces `w = 1` — a rule no consensus path calls. The qualifier and the weighted consequence are pinned together, because the qualifier alone would leave a reader to assume the weighted case is merely slower by a constant."
+
+[[probe]]
 id = "consensus-has-no-nil-vote"
 site = "wire.md"
 pattern = 'There is \*\*no nil vote\*\* in either phase\.'

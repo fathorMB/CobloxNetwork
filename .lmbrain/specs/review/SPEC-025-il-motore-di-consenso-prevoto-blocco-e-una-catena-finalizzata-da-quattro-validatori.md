@@ -270,7 +270,7 @@ Tutto eseguito su questo albero, sul commit `7c95267` piu' le modifiche sopra,
 | GATE-LOCKING-FROM-SOURCE | confronto riga per riga con arXiv:1807.04938 Algorithm 1 | quattro divergenze dichiarate |
 | GATE-NO-IO | forma dell'interfaccia + `consensus_no_io.py` con `--negative` | PASS |
 | GATE-NOTHING-PUBLISHED-CHANGED | diff + un test che riproduce una fixture anteriore alla spec | 7 preimmagini riprodotte byte per byte |
-| GATE-ADR012-PASS | `published_artifacts.py` e la prova in negativo | PASS, 177 probe provate singolarmente |
+| GATE-ADR012-PASS | `published_artifacts.py` e la prova in negativo | PASS, 177 probe provate singolarmente (**180** dopo la remediation di [REVIEW-047]) |
 
 ### Verification transcript
 
@@ -742,3 +742,333 @@ dichiarato chiuso e non chiuso.
 9. **La sicurezza e' provata per esplorazione, non per dimostrazione.** 530
    esecuzioni avverse in totale sono una ricerca, non una prova di modello. Una
    verifica formale della regola di blocco non e' stata fatta e non era in scope.
+
+---
+
+## Remediation di REVIEW-047
+> Compilata da AGENT-002 il 2026-08-27, sui tre rilievi bloccanti piu' RF-005.
+> La spec resta in `review`.
+
+### Che cosa e' cambiato, rilievo per rilievo
+
+**RF-001 (high) — il carico e' ora legato al blocco.** `verify_proposal` ricalcola
+`transactions_root` dai `transactions` portati e rifiuta la proposta che non
+riproduce `header.transactions_root`. Il controllo e' il **quinto** dell'elenco
+del doc-comment ed e' fatto **prima** che qualunque regola possa prevotare, cioe'
+nella stessa classe di `links_to_the_chain` e non in quella di `state_root`: non
+serve un esecutore, perche' `registry::tx_id` e `merkle::transactions_root` sono
+gia' in questo crate. La radice e' presa sull'oggetto **senza `authorization`**,
+come `ledger.md#unsigned-transaction-and-authorization` definisce `tx_id`; la
+rimozione e' fatta nel confine e non assunta del chiamante, perche' un ricevente
+che hashasse l'oggetto firmato rifiuterebbe *ogni* proposta onesta — che e' il
+modo peggiore in cui una regola di rifiuto puo' sbagliare, ed e' pinnato da
+`the_boundary_computes_the_root_over_the_unsigned_transaction`.
+
+Variante d'errore nuova: `ConsensusError::ProposalTransactionsRootMismatch`, che
+porta **entrambe** le radici perche' un log che dicesse solo «radice sbagliata»
+non distinguerebbe un payload troncato da un proponente che ha mandato un header
+con due carichi.
+
+La frase falsa di `messages.rs` — *«il valore su cui si accorda e' `block_id`, e
+`block_id` li copre attraverso `transactions_root`»* — e' corretta: copriva
+l'hash e nessuno lo confrontava, e ora il doc-comment del campo dice quale delle
+due cose fa il confine.
+
+`wire.md#block_proposal` porta il MUST del ricevente, e la riga di validazione
+gossip lo ripete nella forma in cui un ricevente la applica. Probe di [ADR-012]:
+`consensus-proposal-payload-reproduces-its-root`.
+
+**RF-002 (high) — `header.round` e' imposto dove va imposto.** Nel ramo
+`valid_round: None` il confine esige `header.round == proposal.round`. Nel ramo
+`Some(vr)` **non** c'e' alcun confronto, ed e' scritto perche' non c'e' invece di
+essere lasciato dedurre: una ri-proposta porta l'header del round di prima
+proposta, `block_id` copre ogni byte dell'header, e il ricevente agisce su una
+ri-proposta solo dopo aver visto **nel proprio log** oltre due terzi di prevoti
+per quello stesso `block_id` a `vr` — un quorum che il proponente non puo'
+fabbricare. Il punto 3 del doc-comment, che dichiarava un controllo inesistente,
+e' riscritto in due punti (3 e 4) che descrivono i controlli che esistono.
+`wire.md` porta la regola del ricevente **e** l'esenzione, perche' il
+rafforzamento ingenuo — confrontare i round su ogni proposta — rifiuterebbe ogni
+ri-proposta e stallerebbe ogni altezza a due round. Probe:
+`consensus-first-hand-proposal-carries-its-own-round`.
+
+**RF-003 (medium) — l'affermazione pubblicata e' ristretta al fatto.** Presa la
+strada **(a)** della review: l'indice **non** e' cambiato, perche' cambiarlo e'
+una modifica di [ADR-018] §3 e non e' dell'implementatrice. `wire.md` e
+`proposer.rs` dicono ora che la proprieta' vale **a potere uniforme** — cio' che
+`check_elected_shape` impone a un set eletto — e dichiarano accanto che a potere
+pesato un membro di potere `w` propone in `w` round consecutivi, con la
+conseguenza sulla vivacita' (attesa quadratica in `w`, perche' il timeout cresce
+col numero di round) e con la nota che la **sicurezza non e' toccata**: la regola
+autorizza a proporre, e una proposta da sola non decide niente. Probe:
+`consensus-proposer-property-holds-at-uniform-power`.
+
+**RF-005 (medium, documentazione) — le tre frasi della Divergenza 1.** Nessuna
+modifica di codice.
+
+- (a) L'argomento *«no rule that locks, precommits or decides reads a timer»* era
+  falso e ora e' dichiarato falso nel testo che lo sostituisce:
+  `try_lock_and_precommit` e' guardato da `self.step`, che `on_timeout` scrive.
+  L'argomento vero e' la **direzione**: i due timer che questa divergenza arma in
+  anticipo possono solo portare il passo **oltre** il punto in cui blocco e
+  precommit del round sono ancora possibili, o abbandonare il round. Possono solo
+  **sopprimere** un blocco o un precommit, mai causarne uno, e sopprimere e'
+  sicuro per costruzione — chi blocca di meno puo' solo non aiutare un quorum a
+  formarsi, mai aiutarne due — mentre un blocco gia' preso sopravvive al cambio
+  di round, perche' `locked` si azzera solo su una decisione.
+- (b) L'assenza del nil perde informazione che l'Algorithm 1 usa **alla riga 55**,
+  la regola di salto di round `f+1`, e non alle tre elencate (34, 44, 47). Senza
+  nil un round il cui proponente tace non produce **alcun** messaggio onesto,
+  quindi un nodo in ritardo non riceve da quel round alcun segnale di salto e
+  cammina i round uno alla volta pagando timeout crescenti; composto con RF-003 —
+  un membro pesante muto che tiene `w` round — il recupero e' **quadratico**. E'
+  un costo di recupero e non di sicurezza: `try_skip_round` non decide niente.
+- (c) Armare `OnTimeoutPrevote` al cambio di passo e' un soprainsieme
+  nell'**armare** e non nel **comportamento**, ed e' dichiarato come il costo di
+  vivacita' che e': l'Algorithm 1 garantisce un `timeoutPrevote(round_p)` intero
+  **dopo** il quorum di prevoti; qui il timer puo' scadere prima che arrivi un
+  solo prevoto, e da `Precommit` il nodo non puo' piu' bloccarsi ne'
+  precommittare quel round.
+
+### Files changed nella remediation
+
+| file | delta | cosa |
+| --- | --- | --- |
+| `core/coblox-core/src/consensus/messages.rs` | +85/-8 | il legame carico-blocco, `header.round` nel ramo di prima mano, `transactions_root_of`, i due doc-comment corretti |
+| `core/coblox-core/src/consensus/mod.rs` | +58/-12 | le tre frasi della Divergenza 1 |
+| `core/coblox-core/src/consensus/proposer.rs` | +34/-5 | la proprieta' ristretta al potere uniforme e il caso pesato |
+| `core/coblox-core/src/error.rs` | +14 | `ProposalTransactionsRootMismatch` |
+| `docs/protocol/wire.md` | +46/-6 | i due MUST del ricevente, la riga gossip, la frase del proponente ristretta |
+| `sim/tools/published_artifacts.toml` | +21 | tre probe |
+| `core/coblox-core/tests/consensus_rules.rs` | +241/-29 | cinque test nuovi, uno rinominato al vero |
+| `core/coblox-core/tests/consensus_devnet.rs` | +163/-11 | E5 invertito |
+| `core/coblox-core/tests/consensus_support/devnet.rs` | +90/-6 | `harness_transaction`, `harness_transactions_root`, `inject_to`, il contatore dei rifiuti |
+
+**Ancora non toccati:** `ledger.md`, `README.md`, `identity.md`, `block.rs`,
+`quorum.rs`, `registry.rs`, `hash.rs`, `merkle.rs`, `Cargo.lock`. La premessa di
+[ADR-018] regge anche dopo questa passata.
+
+### Verification transcript della remediation
+
+#### Ogni regola nuova osservata fallire su un albero mutato
+
+Le due regole nuove di `verify_proposal` sono state disattivate (`if false && ...`)
+e i test sono stati eseguiti sull'albero mutato. L'albero e' stato ripristinato da
+una copia presa **prima** della mutazione, in `scratchpad/messages.rs.bak`, non
+con `git checkout`.
+
+```text
+$ cargo test -p coblox-core --test consensus_rules -- a_first_hand_proposal \
+    a_proposal_whose_payload the_boundary_computes_the_root a_re_proposal
+test a_first_hand_proposal_must_carry_its_own_round_in_the_header ... FAILED
+test the_boundary_computes_the_root_over_the_unsigned_transaction ... ok
+test a_re_proposal_keeps_the_round_the_value_was_first_proposed_at ... ok
+test a_proposal_whose_payload_does_not_reproduce_its_root_is_refused ... FAILED
+
+thread 'a_first_hand_proposal_must_carry_its_own_round_in_the_header' panicked at
+consensus_rules.rs:374:5:
+assertion failed: matches!(verify_proposal(&chain_id(), &set, &proposer, proposal,
+thread 'a_proposal_whose_payload_does_not_reproduce_its_root_is_refused' panicked at
+consensus_rules.rs:465:9:
+a payload the header does not commit to was admitted
+
+test result: FAILED. 2 passed; 2 failed
+```
+
+I due che restano verdi sono i due che **devono** restarlo, ed e' il controllo che
+vale piu' dei due rossi: `a_re_proposal_...` e `the_boundary_computes_the_root_...`
+sono le direzioni in cui una regola **troppo forte** romperebbe il protocollo, non
+quelle in cui una regola assente lo lascia rotto.
+
+#### E5 invertito — misurato prima e dopo
+
+**Prima** (albero mutato, il legame carico-blocco disattivato): la costruzione
+della review si riproduce esattamente. Un proponente muto, due proposte con lo
+**stesso header** e due carichi diversi verso due nodi ciascuna, quorum di
+prevoti e di precommit, e due `Block` diversi allo stesso `block_id`, entrambi
+accettati da `FinalizedBlock::verify` col verificatore spedito — che e' cio' che
+`Devnet::finalize` esige prima di ammettere un blocco in catena:
+
+```text
+thread 'one_header_with_two_payloads_does_not_produce_two_blocks' panicked at
+consensus_devnet.rs:522:9:
+node 0 and node 2 published different `Block` bytes for the same chain
+(3113 and 3109 bytes).
+Node 0's first block carries [{... "body":{"amount_microtokens":"250000",
+  "pay_to":"an-ordinary-payee"} ...}];
+node 2's carries [{... "body":{"amount_microtokens":"1000000",
+  "pay_to":"the-attacker"} ...}].
+```
+
+Le due catene divergono al **primo** blocco; `assert_no_conflicting_finality` e
+`assert_chains_agree` sono passate entrambe — perche' asseriscono su
+`(height, block_id)` — e `assert_all_certificates_verify` e' passata anche lei.
+E' esattamente il punto di RF-001: il criterio di sicurezza della spec resta vero
+e l'artefatto pubblicato diverge.
+
+**Dopo** (albero ripristinato):
+
+```text
+$ cargo test -p coblox-core --test consensus_devnet -- one_header_with_two_payloads --nocapture
+--- E5 inverted: one header, two payloads ---
+proposer of (height 1, round 0) is val-001, silenced; two proposals carrying the
+identical header sha256:cdd9069e5ab89e41 injected, payload A of 1 transaction(s)
+to nodes [1, 0], payload B (`the-attacker`, 1000000 microtokens) of 1
+transaction(s) to nodes [2, 3]
+  boundary refusals during injection: 2; published `Block` bytes per node:
+  [2730, 2730, 2730, 2730]; identical: true
+  height  1 header.round 1 qc.round 1 signatures 3 block_id sha256:9b622a28e83bf29e verified true
+  height  2 header.round 0 qc.round 0 signatures 3 block_id sha256:2372bda384ece014 verified true
+test one_header_with_two_payloads_does_not_produce_two_blocks ... ok
+```
+
+Entrambe le copie del carico che l'header non impegna sono respinte al confine; il
+round 0 non raccoglie quorum e l'altezza riesce al round 1 con una proposta il cui
+carico il suo header impegna; i quattro nodi pubblicano gli **stessi 2730 byte**.
+
+#### E2 invertito
+
+```text
+$ cargo test -p coblox-core --test consensus_rules -- a_first_hand_proposal a_re_proposal
+test a_first_hand_proposal_must_carry_its_own_round_in_the_header ... ok
+test a_re_proposal_keeps_the_round_the_value_was_first_proposed_at ... ok
+test result: ok. 2 passed; 0 failed
+```
+
+Il primo e' la proposta di prima mano con `header.round = 424242` al round 0,
+respinta con `ProposalHeaderMismatch { field: "round" }`. Il secondo e' la meta'
+necessaria: la ri-proposta ai round 1..4 che porta l'header del round 0 resta
+**accettata**, a tutti e quattro i round, perche' un'implementazione che la
+rifiutasse stallerebbe ogni altezza che richiede un secondo round.
+
+#### RF-003 — E1 riprodotto come test
+
+```text
+$ cargo test -p coblox-core --test consensus_rules -- at_weighted_power --nocapture
+--- RF-003: the proposer rule at weighted power ---
+powers [1, 1, 1, 7], height 1, rounds 0..12 -> ["val-001", "val-002", "val-003",
+  "val-003", "val-003", "val-003", "val-003", "val-003", "val-003", "val-000",
+  "val-001", "val-002"]
+longest consecutive run by one proposer: 7
+test at_weighted_power_a_member_proposes_in_as_many_consecutive_rounds_as_its_power ... ok
+```
+
+Il test asserisce tre cose e non una: che la corsa piu' lunga sia **esattamente**
+il potere del membro pesante; che la corsa cominci **prima** che ogni membro abbia
+proposto; e che quattro round consecutivi **non** nominino quattro membri
+distinti, cioe' che il set pesato non si sia comportato come uno uniforme — senza
+quest'ultima il test resterebbe verde anche se qualcuno rendesse uniforme il set.
+Il test uniforme e' rinominato
+`consecutive_rounds_visit_every_member_before_repeating_at_uniform_power` e
+asserisce di essere su un set uniforme **prima** di asserire la proprieta'.
+
+#### Le passate di progetto, rieseguite per intero
+
+```text
+$ cargo test --workspace
+  coblox_core (unit)          35 passed
+  authorization_unrevoked     12 passed
+  cadence_and_reward_epoch    19 passed
+  canonical_serialization      6 passed
+  conformance_registry        26 passed
+  consensus_devnet            10 passed, 1 ignored     (50.12s)
+  consensus_rules             25 passed
+  constraint_block            24 passed
+  election_degenerate         12 passed
+  genesis_derivation           9 passed
+  identity_revocation          7 passed
+  light_client_perimeter      14 passed
+  preimage_context             5 passed
+  sparse_account_state         8 passed
+  speccheck_conformance       11 passed
+  worked_example               6 passed
+  coblox_ffi                   1 passed
+  0 failed in every target
+
+$ cargo clippy --workspace --all-features --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s)
+
+$ cargo fmt --all --check
+    (nessun diff)
+```
+
+```text
+$ python sim/tools/consensus_no_io.py                  exit=0  consensus engine no-I/O lint: PASS
+$ python sim/tools/consensus_parameters_closure.py     exit=0  PASS: all 22 fields covered
+$ python sim/tools/published_artifacts.py              exit=0  published-artifact inventory: PASS
+$ python sim/tools/published_artifacts_negative.py     exit=0  negative proof: PASS - 17 mutations
+                                                               across 11 defect classes, plus every
+                                                               probe individually, each observed failing
+$ python sim/tools/protocol_hashes.py                  exit=0  every published value reproduced: PASS
+$ python sim/tools/genesis_chain_id.py                 exit=0  ok
+$ python sim/tools/non_consensus_containment.py        exit=0  ok
+$ python sim/tools/threat_model_matrix_coherence.py    exit=0  OK: matrice e scenari coerenti
+$ python sim/tools/lead_claims_check.py                exit=0  lead-claims: PASS
+$ python sim/tools/reward_rules.py                     exit=0  GATE-RULES-REJECT: PASS
+$ python sim/tools/auth0_oracle.py                     exit=0  AUTH-0 second derivation: PASS
+$ python sim/tools/ed25519_coblox_extension_vectors.py exit=0  reproduces byte for byte
+$ python sim/tools/ed25519_speccheck_oracle.py         exit=0
+$ node .lmbrain/design/coblox-public-guide/tools/check-guide-pairs.mjs
+                                                       exit=0  public-guide form check: PASS
+```
+
+`published_artifacts.py` conta ora **180** probe, tre in piu' delle 177 della
+consegna, e la prova in negativo le esercita **una per una**: la riga «plus every
+probe individually, each observed failing» e' cio' che chiude la condizione (c) di
+RF-001 senza che io debba dichiararlo a parte.
+
+### Stato delle gate `owner=agent` dopo la remediation
+
+| gate | stato | perche' |
+| --- | --- | --- |
+| GATE-CHAIN-EXISTS | **vera** | rieseguita: dieci blocchi, certificati verificati |
+| GATE-SAFETY-UNDER-ADVERSARY | **vera** | 30 esecuzioni sempre-attive rieseguite; nessuna altezza con due `block_id`, **e ora nessuna altezza con due `Block`** |
+| GATE-LIVENESS-AFTER-SILENCE | **vera** | rieseguita; la proprieta' su cui poggia e' ora pubblicata nella forma vera (RF-003) |
+| GATE-LOCKING-FROM-SOURCE | **vera** | la regola di blocco non e' cambiata; le **ragioni** della Divergenza 1 sono state corrette (RF-005), e la riga 55 e' ora contata fra quelle a cui i nil servono |
+| GATE-NO-IO | **vera** | `consensus_no_io.py` PASS; il controllo nuovo e' in `messages.rs`, che e' il confine e non il motore, e non introduce ne' generici ne' `dyn` |
+| GATE-NOTHING-PUBLISHED-CHANGED | **vera** | il diff della remediation non tocca `ledger.md`, `README.md`, `identity.md`, `registry.rs`, `hash.rs`, `block.rs`, `quorum.rs`, `merkle.rs`. `wire.md` cambia, ed e' il documento che questa spec pubblica |
+| GATE-ADR012-PASS | **vera** | 180 probe, PASS, e la prova in negativo osserva fallire anche le tre nuove |
+
+### Cio' che resta non verificato, e cio' che non e' stato toccato
+
+1. **`Engine::on_value` non ricalcola la radice del valore che il chiamante gli
+   porge.** Impone gia' `header.height` e `header.round`, ma non confronta
+   `header.transactions_root` coi `transactions`. Non e' un buco raggiungibile da
+   un pari — `on_value` risponde a una `RequestValue` che il motore stesso ha
+   emesso — e la proposta che ne esce passa comunque dal confine di **ogni**
+   ricevente, incluso il nodo stesso quando il trasporto gliela riconsegna: un
+   chiamante che costruisse un valore incoerente vedrebbe la propria proposta
+   rifiutata da tutti. La review chiede il legame **al confine** e li' e' stato
+   messo; l'aggiunta simmetrica in `on_value` cambierebbe l'errore da «tutti
+   rifiutano» a «il motore rifiuta subito» e non e' stata fatta perche' e' fuori
+   dal rimedio richiesto. **Nominata qui, non aperta come debito.**
+2. **Nessuna prova di equivocazione di proposta oltre quella di RF-001.** RF-006
+   e' non bloccante e resta al triage del Lead. Il test di E5 invertito e' pero'
+   la prima proposta equivocante che questa suite produca davvero — cosa su cui
+   `messages.rs`, `mod.rs` e `wire.md` ragionavano senza esercitarla.
+3. **Il costo del controllo nuovo non e' misurato.** `verify_proposal` fa ora una
+   passata di SHA-256 sull'array per ogni proposta ricevuta. Sul banco di prova il
+   carico e' di zero o una transazione e il tempo della suite non si e' mosso; su
+   un blocco pieno (16.384 transazioni, il tetto di `ledger.md`) il costo e' reale
+   e non e' stato profilato. Non e' una regressione di sicurezza — il tetto del
+   Merkle e' imposto dalla stessa chiamata, quindi una proposta oltre il limite e'
+   ora respinta **al confine** invece che accettata — ma e' una superficie di
+   costo per messaggio che prima non c'era, e va detta.
+4. **RF-004, RF-006, RF-009 e RF-010 non sono stati lavorati**, come da incarico:
+   sono non bloccanti e il loro triage e' del Lead. **RF-007 e RF-008 sono del
+   Lead** e non sono stati toccati.
+
+### Il residuo di RF-003, per il Lead
+
+**Nessun percorso di consenso chiama `ValidatorSet::check_elected_shape`.**
+`Engine::start` e `proposer_at` chiamano `check_structure`, che ammette poteri
+arbitrari, e [ADR-001] prevede un set pesato. La conseguenza e' che **il set di
+genesi — cioe' la devnet di M-02 — non e' vincolato a potere uniforme**, e quindi
+la proprieta' di vivacita' che `wire.md` pubblica non e' garantita da alcuna regola
+su quel set: e' garantita solo dalla forma che un set **eletto** avra'. Questa
+remediation ha ristretto l'affermazione al fatto, che e' la strada **(a)** della
+review; la strada **(b)** — cambiare l'indice perche' round consecutivi non
+ripetano un membro finche' ne resta uno non visitato, conservando la
+proporzionalita' su un ciclo intero — e' una modifica di [ADR-018] §3 e non e'
+dell'implementatrice. **Nessun debito e' stato aperto**, come da incarico: il
+residuo e' riportato qui e la decisione e' del Lead.

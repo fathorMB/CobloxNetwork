@@ -18,7 +18,9 @@ use coblox_core::registry::{block_prevote_preimage, block_vote_preimage};
 use coblox_core::validator_set::ValidatorSet;
 use coblox_core::{ConsensusVerifier, verify_in_context};
 
-use consensus_support::devnet::{Adversary, Devnet, devnet_set, harness_header};
+use consensus_support::devnet::{
+    Adversary, Devnet, devnet_set, harness_header, harness_transaction, harness_transactions_root,
+};
 use consensus_support::ed25519_signer::{SigningKey, rfc8032_vectors_reproduce};
 
 fn chain_id() -> ChainId {
@@ -164,14 +166,20 @@ fn two_nodes_with_the_same_set_hash_compute_the_same_proposer() {
     assert_eq!(distinct.len(), 4, "every member must propose sometimes");
 }
 
-/// Consecutive rounds at one height never repeat a proposer while an unvisited
-/// member remains.
+/// **At uniform power**, consecutive rounds at one height never repeat a
+/// proposer while an unvisited member remains.
 ///
-/// This is the obligation the liveness criterion rests on: a proposer that says
-/// nothing at round `r` has to be replaced at `r+1` by somebody else.
+/// This is the obligation the liveness criterion rests on, and the qualifier is
+/// load-bearing: it holds because every member occupies exactly one position on
+/// the power ladder, which is what `ValidatorSet::check_elected_shape` requires
+/// of an elected set. The weighted case is the test below, and it is a different
+/// statement.
 #[test]
-fn consecutive_rounds_visit_every_member_before_repeating() {
+fn consecutive_rounds_visit_every_member_before_repeating_at_uniform_power() {
     let (set, _) = devnet_set(4);
+    for entry in &set.validators {
+        assert_eq!(entry.voting_power, 1, "this test is about a uniform set");
+    }
     for height in 0..17u64 {
         let names: Vec<String> = (0..4u64)
             .map(|round| {
@@ -188,6 +196,70 @@ fn consecutive_rounds_visit_every_member_before_repeating() {
             "height {height} repeats a proposer within four rounds: {names:?}"
         );
     }
+}
+
+/// **At weighted power the obligation does not hold, and this is by how much.**
+///
+/// The index walks a ladder of *power*, so consecutive rounds step one unit and
+/// a member with power `w` occupies `w` consecutive positions. The property the
+/// uniform test above verifies is therefore a property of the uniform case and
+/// not of the rule, and this test pins the true statement so that nothing can
+/// publish the stronger one again without a red suite. It is [REVIEW-047] RF-003
+/// measured rather than argued: powers `[1, 1, 1, 7]` give the heavy member
+/// **seven** consecutive rounds while a member nobody has visited waits.
+///
+/// The consequence is on liveness and not on safety: a mute member of power `w`
+/// costs `w` consecutive rounds of its heights, and with a per-round timeout
+/// growing linearly the wait grows quadratically in `w`. Nothing here can
+/// finalize two blocks — the proposer rule authorizes proposing, and a proposal
+/// decides nothing on its own.
+#[test]
+fn at_weighted_power_a_member_proposes_in_as_many_consecutive_rounds_as_its_power() {
+    let (mut set, _) = devnet_set(4);
+    set.validators[3].voting_power = 7;
+    let total = set.total_voting_power().unwrap();
+    assert_eq!(total, 10);
+
+    let names: Vec<String> = (0..12u64)
+        .map(|round| proposer_at(&set, 1, round).unwrap().validator_id.clone())
+        .collect();
+
+    // The longest run of one proposer over consecutive rounds is the heavy
+    // member's power, exactly.
+    let mut longest = 1usize;
+    let mut run = 1usize;
+    for window in names.windows(2) {
+        run = if window[0] == window[1] { run + 1 } else { 1 };
+        longest = longest.max(run);
+    }
+    assert_eq!(
+        longest, 7,
+        "a member with power 7 must hold 7 consecutive rounds: {names:?}"
+    );
+
+    // And it holds them while a member nobody has proposed yet is waiting, which
+    // is precisely the sentence a published document must not state without its
+    // qualifier.
+    let heavy = set.validators[3].validator_id.clone();
+    let first_run_start = names.iter().position(|name| *name == heavy).unwrap();
+    let visited_before: std::collections::BTreeSet<&String> =
+        names[..first_run_start].iter().collect();
+    assert!(
+        visited_before.len() < 4,
+        "the heavy member's run must begin before every member has proposed"
+    );
+
+    // The four rounds of the uniform property are not enough here: four
+    // consecutive rounds do not name four distinct members.
+    let first_four: std::collections::BTreeSet<&String> = names[..4].iter().collect();
+    assert!(
+        first_four.len() < 4,
+        "the weighted set behaved like a uniform one, so this test proves nothing"
+    );
+
+    println!("--- RF-003: the proposer rule at weighted power ---");
+    println!("powers [1, 1, 1, 7], height 1, rounds 0..12 -> {names:?}");
+    println!("longest consecutive run by one proposer: {longest}");
 }
 
 /// The index runs over power, so a member with more power proposes more often.
@@ -346,6 +418,192 @@ fn a_proposal_header_must_carry_the_height_the_message_claims() {
             field: "height"
         }))
     ));
+}
+
+/// A first-hand proposal whose header declares a round of its own is refused.
+///
+/// The doc-comment of `verify_proposal` claimed this check before the check
+/// existed, so a conformant implementation written from the comment rejected
+/// what one written from the code accepted. Without it a proposer chooses a
+/// field of a `BlockHeader` that gets published: a proposal at round 0 carrying
+/// `header.round = 424242` was prevoted, locked, precommitted and **finalized**.
+#[test]
+fn a_first_hand_proposal_must_carry_its_own_round_in_the_header() {
+    let (set, _) = devnet_set(4);
+    let set_hash = set.hash().unwrap();
+    let proposer = proposer_at(&set, 1, 0).unwrap().validator_id.clone();
+    let mut header = harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01));
+    header.round = 424_242;
+    let proposal = BlockProposal {
+        height: 1,
+        round: 0,
+        valid_round: None,
+        header,
+        transactions: Vec::new(),
+    };
+    assert!(matches!(
+        verify_proposal(&chain_id(), &set, &proposer, proposal, Validity::Valid),
+        Err(Error::Consensus(ConsensusError::ProposalHeaderMismatch {
+            field: "round"
+        }))
+    ));
+}
+
+/// A **re-proposal** keeps the round the value was first proposed at, and is
+/// accepted.
+///
+/// This is the necessary other half of the rule above, and it is the reason the
+/// round check cannot simply be `header.round == round` for every proposal.
+/// Algorithm 1 line 16 re-proposes `validValue_p` unchanged, so a re-proposal at
+/// round 3 carries a header from round 0: rewriting it would change `block_id`
+/// and strand every prevote that justifies the value. An implementation that
+/// rejected this would stall every height that needs a second round — which is
+/// every height whose first proposer says nothing.
+#[test]
+fn a_re_proposal_keeps_the_round_the_value_was_first_proposed_at() {
+    let (set, _) = devnet_set(4);
+    let set_hash = set.hash().unwrap();
+    for round in 1..5u64 {
+        let proposer = proposer_at(&set, 1, round).unwrap().validator_id.clone();
+        let proposal = BlockProposal {
+            height: 1,
+            round,
+            valid_round: Some(0),
+            // The header is the one from round 0, unchanged.
+            header: harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01)),
+            transactions: Vec::new(),
+        };
+        assert!(
+            verify_proposal(&chain_id(), &set, &proposer, proposal, Validity::Valid).is_ok(),
+            "the boundary refused a re-proposal at round {round}, \
+             which is the form Algorithm 1 line 16 requires"
+        );
+    }
+}
+
+/// A proposal whose `transactions` do not reproduce `header.transactions_root`
+/// is refused.
+///
+/// Without this the consensus decides a `block_id` and the `Block` that comes
+/// out of it is not determined: one proposer, inside the fault budget, sends one
+/// header to two honest nodes with two different payloads, both finalize the
+/// same `block_id`, and the two published artifacts differ.
+#[test]
+fn a_proposal_whose_payload_does_not_reproduce_its_root_is_refused() {
+    let (set, _) = devnet_set(4);
+    let set_hash = set.hash().unwrap();
+    let proposer = proposer_at(&set, 1, 0).unwrap().validator_id.clone();
+    let payload = vec![harness_transaction("the-attacker", 1_000_000)];
+
+    // The honest form: the header commits to exactly this payload.
+    let mut header = harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01));
+    header.transactions_root = harness_transactions_root(&chain_id(), &payload);
+    let honest = BlockProposal {
+        height: 1,
+        round: 0,
+        valid_round: None,
+        header: header.clone(),
+        transactions: payload.clone(),
+    };
+    assert!(
+        verify_proposal(
+            &chain_id(),
+            &set,
+            &proposer,
+            honest.clone(),
+            Validity::Valid
+        )
+        .is_ok(),
+        "the boundary must accept a payload its header does commit to"
+    );
+
+    // The same header with the payload removed, and with a different payload:
+    // both are the same defect, and both are the shape a proposer uses to make
+    // two honest nodes publish two blocks for one `block_id`.
+    for divergent in [
+        Vec::new(),
+        vec![harness_transaction("somebody-else", 1_000_000)],
+        vec![
+            harness_transaction("the-attacker", 1_000_000),
+            harness_transaction("the-attacker", 1),
+        ],
+    ] {
+        let forged = BlockProposal {
+            transactions: divergent,
+            ..honest.clone()
+        };
+        assert!(
+            matches!(
+                verify_proposal(&chain_id(), &set, &proposer, forged, Validity::Valid),
+                Err(Error::Consensus(
+                    ConsensusError::ProposalTransactionsRootMismatch { .. }
+                ))
+            ),
+            "a payload the header does not commit to was admitted"
+        );
+    }
+
+    // And the reverse direction: the payload stands and the root is rewritten.
+    let mut relabelled = honest;
+    relabelled.header.transactions_root = Digest32::repeated(0x22);
+    assert!(matches!(
+        verify_proposal(&chain_id(), &set, &proposer, relabelled, Validity::Valid),
+        Err(Error::Consensus(
+            ConsensusError::ProposalTransactionsRootMismatch { .. }
+        ))
+    ));
+}
+
+/// The root the boundary computes is the one `ledger.md` defines, including the
+/// removal of `authorization`.
+///
+/// A boundary that hashed the signed object would reject every honest proposal,
+/// which is a failure a rejection rule must not have; this pins the direction.
+#[test]
+fn the_boundary_computes_the_root_over_the_unsigned_transaction() {
+    let (set, _) = devnet_set(4);
+    let set_hash = set.hash().unwrap();
+    let proposer = proposer_at(&set, 1, 0).unwrap().validator_id.clone();
+    let payload = vec![harness_transaction("a-payee", 7)];
+
+    // The same transaction with a different `authorization` has the same ID, so
+    // a header built over one is accepted with the other. That is the whole
+    // content of "the object with `authorization` removed", stated as a test.
+    let mut resigned = payload[0].clone();
+    let mut rebuilt = JsonObject::new();
+    for (key, value) in resigned.iter() {
+        if key != "authorization" {
+            rebuilt.insert(key, value.clone()).unwrap();
+        }
+    }
+    rebuilt
+        .insert(
+            "authorization",
+            coblox_core::json::Json::Object(
+                JsonObject::builder()
+                    .str("public_key", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                    .bytes("signature", &[0xff; 64])
+                    .build()
+                    .unwrap(),
+            ),
+        )
+        .unwrap();
+    resigned = rebuilt;
+    assert_ne!(resigned, payload[0]);
+
+    let mut header = harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01));
+    header.transactions_root = harness_transactions_root(&chain_id(), &payload);
+    let proposal = BlockProposal {
+        height: 1,
+        round: 0,
+        valid_round: None,
+        header,
+        transactions: vec![resigned],
+    };
+    assert!(
+        verify_proposal(&chain_id(), &set, &proposer, proposal, Validity::Valid).is_ok(),
+        "the root was computed over the signed object, not the unsigned one"
+    );
 }
 
 /// A vote with a signature under the other phase's domain is refused, and so is
