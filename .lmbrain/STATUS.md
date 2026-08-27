@@ -9,191 +9,125 @@ updated: 2026-08-27
 
 ## Current focus
 
-**Sessione del 27 agosto 2026: il consenso ha finalmente un ADR, e la sessione e' uscita di strada.**
+M-02 (Ledger vivo: federazione BFT su devnet). Dei quattro esiti che la milestone
+nomina, solo il simulatore economico e' fatto. Non c'e' rete: `libp2p` non e' una
+dipendenza del workspace.
 
-**[ADR-018] accettato.** E' la decisione che sblocca l'esito di M-02 e non era mai stata presa: `wire.md` non ha alcun messaggio di consenso, nessuna regola dice chi propone, nessun timeout esiste. Ma il protocollo aveva quasi deciso da se': un blocco porta il **proprio** certificato di quorum, e i domini di firma per i voti sono **uno su quaranta**. Da li' il crux - con un solo voto firmato un protocollo e' sicuro **oppure** vivo - e la tesi: **`coblox-block-vote-v0` e' senza saperlo un precommit, e manca la prima fase.** Si aggiunge `coblox-block-prevote-v0` e non cambia nulla di pubblicato. **[SPEC-025]** lo attua ed e' la prossima cosa da fare.
+Cosa esiste: una libreria di regole in `coblox-core` e le specifiche di
+protocollo pubblicate. Ventuno spec `done` hanno prodotto regole scritte,
+applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
-**E la sessione e' uscita dalla roadmap, per ore, senza che il Lead se ne accorgesse.** M-02 nomina quattro esiti e solo il simulatore e' fatto: **ventuno spec chiuse, diciassette dentro M-02, e nessuna consegna uno dei tre restanti**. La sessione ha invece prodotto tre passate di review su un documento preparatorio che non blocca niente. Ogni passo sembrava giusto; **il difetto stava nel fatto che nessuno guardava dove si stava andando**, ed e' il lavoro del Lead.
-
-**Cosa abbiamo davvero:** una libreria di regole - 16 000 righe, 191 test - e 6 300 righe di specifiche. **Non c'e' rete** (`libp2p` non e' nemmeno una dipendenza), **non c'e' persistenza**, **non c'e' un nodo** (`coblox-node` e' ventun righe e stampa *not configured yet*), **non c'e' consenso in esecuzione**. Abbiamo un validatore di regole, non una rete.
-
-**Il difetto piu' grave trovato e' contro un ADR del Lead.** [REVIEW-042] RF-001: la banda di `key_compromise` di [ADR-017] ha il tetto ancorato in genesi e **il pavimento no**. Con `G = 1` una revoca per chiave compromessa va inclusa entro **due blocchi**, e due blocchi di censura la invalidano. Il tetto e' nuovo: prima un ritardo poteva solo rimandare. **Il veto e' stato reso piu' caro, non tolto.**
-
-## Ready for handoff
-
-**[SPEC-025] e' la prossima cosa da fare**, in `backlog`, `sol`/`maximum`, AGENT-001. Attua [ADR-018] e consegna il **motore** di consenso con una catena finalizzata da quattro validatori come prova. **Non e' una devnet**: rete e persistenza sono la spec successiva, e la spec lo dichiara in apertura.
-
-**Enumerando la coda per esaurimento, quattro voci:** [SPEC-022] in `review` (remediation aperta), [SPEC-023] in `review` (ferma, aspetta una deroga), [SPEC-024] in `backlog` (igiene sulle citazioni), [SPEC-025] in `backlog`. **Delle quattro, la sola che avvicini un esito nominato da M-02 e' [SPEC-025].**
-
-**Sequenziare, non parallelizzare:** la remediation di [SPEC-022] tocca `ledger.md` e `core/`, cioe' gli stessi file di [SPEC-025]. E' l'errore gia' pagato in questa sessione, dove due remediation parallele hanno fatto scadere le citazioni di una mentre venivano scritte.
-
-**Tredici debiti aperti**, di cui **cinque `high`** ([DEBT-028], [DEBT-033], [DEBT-034], [DEBT-036], [DEBT-037]), piu' uno deferred.
-
-**Quattro decisioni aspettano l'operatore:** la correzione di [ADR-017] su [REVIEW-042] RF-001 (il pavimento di `G` nell'ancora di genesi); la deroga di `GATE-SECREVIEW` su [SPEC-023] o la quarta remediation; i valori di taratura; e **l'advisory Dependabot**, una vulnerabilita' moderata sul default branch che nessuno ha ancora guardato.
-
-**Tre lezioni hanno un artefatto e vanno lette:** `.lmbrain/knowledge/predicato-di-accettazione.md` prima di scrivere qualunque vincolo; la conversione delle citazioni a frase invece che a numero di riga; e il fatto che **scritture disgiunte non sono riferimenti disgiunti**.
+[SPEC-025] e' il prossimo passo verso l'esito della milestone.
 
 ## In progress
 
-**Due spec in `review`**: [SPEC-022] con remediation aperta su [REVIEW-042], [SPEC-023] ferma. **Nessun agente in esecuzione.**
+| Spec | Stato | Chi | Prossimo passo |
+| --- | --- | --- | --- |
+| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Chiudere RF-001; richiede prima la decisione dell'operatore su [ADR-017] |
+| [SPEC-023] | `review`, ferma | AGENT-002 | Attende deroga di `GATE-SECREVIEW` o quarta remediation ([REVIEW-038], [REVIEW-040], [REVIEW-041]) |
 
-## Done
+Nessun agente in esecuzione.
 
-- [SPEC-015] Guida pubblica al funzionamento di Coblox → AGENT-006 (Lia Wireframe). **`done` il 2026-08-26**, accettata con [REVIEW-024] senza finding, `GATE-OPERATOR-LOOK` **attestata dall'operatore**, `GATE-SECREVIEW` **derogata e trasferita su [DEBT-023]**. Il pacchetto è `.lmbrain/design/coblox-public-guide/`: una pagina in inglese, sette sezioni, otto blocchi apribili chiusi di default, che carica i token del design system **senza copiarne un byte**. Le probe passano da 19 a **84**, con 533 aggiunte e zero rimozioni.
+## Ready for handoff
 
-  **Ha chiuso una direzione che il Lead non aveva chiesto**: ogni probe porta il testo della frase che tiene e fallisce se quella frase non è più sulla pagina — altrimenti una probe sopravvive a una riscrittura e **diventa un commento**.
+| Spec | Stato | Chi | Nota |
+| --- | --- | --- | --- |
+| [SPEC-025] | `backlog`, `sol`/`maximum` | AGENT-001 | Attua [ADR-018]: motore di consenso, catena finalizzata da quattro validatori come prova. Non e' una devnet — rete e persistenza sono la spec successiva |
+| [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
-  **Il risultato che vale più della pagina è l'elenco delle undici affermazioni tolte** perché nessuna regola le teneva, fra cui *«i credits non si convertono in denaro»* — che era una frase scritta dal Lead nella spec — e *«un blocco ogni cinque secondi»*, eliminata perché [ADR-013] dichiara la cadenza e poi dice che nessuna regola la impone.
-
-  **Cinque questioni riportate invece che aggirate scrivendo bene.** Una è [DEBT-022], `high`. Una è la divergenza di `SECURITY.md`, corretta dal Lead.
-
-  **`GATE-SECREVIEW` è stata derogata alla chiusura, non soddisfatta**, e la spec è stata portata a `done` con `force` su richiesta dell'operatore il 2026-08-26. La ragione del rinvio resta quella dichiarata il giorno prima: le affermazioni di sicurezza della guida non sono rivedibili contro un protocollo che sta ancora cambiando — sarebbero riviste due volte e la prima non varrebbe nulla. **La condizione** — la review si fa **prima della pubblicazione, con la versione definitiva del protocollo sotto mano** — non è decaduta: è passata su **[DEBT-023]**, che porta il nome della gate derogata come [DEBT-001] portava `GATE-CI-GREEN`, ha AGENT-007 come proprietaria, e ha per innesco **la pubblicazione e non una data**. Finché la guida resta in `.lmbrain/design/` il debito resta aperto senza urgenza; se qualcuno propone di pubblicarla, il debito è il blocco. Chiudere la spec **senza** aprirlo avrebbe fatto sparire l'obbligo insieme alla spec, che è la famiglia 2 del censimento commessa dal Lead nel gesto di chiusura.
-- [SPEC-014] I due cambiamenti breaking dell'API di `coblox-core` → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-022] e con `GATE-SECREVIEW` attestato su [REVIEW-023]. Chiude [DEBT-016] e [DEBT-015] **prima che esista un chiamante del verificatore**, quindi senza rompere nulla. Passare un `Digest32` o byte grezzi a uno dei due punti d'ingresso **non compila**.
-
-  **Il finding di AGENT-007 ha invertito un ragionamento del Lead e ne ha trovato uno migliore.** La via non-consensus era **nominata ma non contenuta**: `registry` è un `pub mod`, il costruttore era `pub`, e il crate non aveva alcuna sezione `[features]` — quindi raggiungibile da `coblox-node`, `coblox-ffi` e dalla shell Tauri **in build di produzione**. La prova era già in albero e il Lead l'aveva **citata come rassicurazione**: la suite di conformità è un test di integrazione, cioè un crate esterno, e le sue otto chiamate provano la raggiungibilità dall'esterno, non l'assenza di chiamanti.
-
-  Chiusa con **entrambe** le strade proposte, con ruoli distinti — feature non-default come confine di compilazione, strumento versionato come guardia d'albero — più una classe che **nessuna delle due opzioni nominava**: un dipendente che abilita la feature per sé con una riga in un manifesto. Il limite di *feature unification* è stato **misurato e dichiarato**, non taciuto. Apre [DEBT-021].
-- [SPEC-013] Separazione della chiave di trasporto dalla chiave di identità → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-020] e con `GATE-SECREVIEW` attestato su [REVIEW-021], dopo un giro di remediation e **sei finding, due `high` bloccanti**. Attua [ADR-015]: il legame fra identità di ledger e indirizzo di rete non è più un fatto di dominio pubblico.
-
-  **Il finding portante smonta la spec che lo contiene, e la gate del Lead non lo vedeva.** `identity.md` diceva *«uses a distinct Ed25519 key pair»* come **frase descrittiva** — nessun MUST, nessuna regola, nessun confronto nel codice — e **la fixture canonica usava la stessa chiave per i due ruoli**. Il Lead ha ricalcolato il corollario: dalla sola chiave pubblicata sul ledger si ottiene il Peer ID pubblicato in `identity.md`, quindi TM-28 nella forma originale, gratis e retroattivo. `GATE-NO-PUBLISHED-LINK` restava verde perché **misurava l'assenza di un campo, non la proprietà che quel campo doveva togliere**: il legame non era pubblicato, era **ricalcolabile**. Settima occorrenza della famiglia 1, e la più grave — la fixture insegnava la forma che annulla la spec.
-
-  Chiuso con **una regola applicata a runtime da ogni ricevente**, provata in negativo. Il secondo `high`: il tetto sulla finestra di validità esisteva solo come esempio fra parentesi, ed è diventato un **parametro governato**. Apre [DEBT-017] e [DEBT-018].
-- [SPEC-012] Verificatore Ed25519 con i vettori speccheck come oracolo → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-018] e con `GATE-SECREVIEW` attestato su [REVIEW-019], dopo **due giri di review e quattro finding fra `high` e `medium`, nessuno a carico di `verifier.rs`**. Il progetto ha ora un verificatore di firme; prima non ne aveva alcuno.
-
-  **Due difetti trovati, entrambi negli artefatti e non nel codice, ed entrambi previsti dalla spec.** Il primo: **la tabella pubblicata era sbagliata al vettore 8**, scritta in [SPEC-001] e mai eseguita da nessuno — sesta occorrenza della famiglia 1, e la prima trovata da una review. Il secondo, di AGENT-007 e più grave: **la regola 1 ha due metà e i dodici vettori ne esercitavano una**. Nessuna delle 24 codifiche della fixture aveva `y ≥ p`; le quattro dette «non canoniche» hanno `y = p−1`, che è canonica. Un'implementazione identica a Coblox salvo il rifiuto di `y ≥ p` **passa tutti e dodici i vettori** e diverge su una firma che qualunque possessore di chiave costruisce in tempo costante, su un voto di finalità. Ha aperto la **famiglia 4** in `recurring-defects.md`.
-
-  **Il Lead ha verificato ogni anello con oracoli propri**: i dodici vettori confrontati byte per byte contro `novifinancial/ed25519-speccheck` upstream; la regola riscritta da zero in Python; la divergenza ricostruita; e per **enumerazione esaustiva** che le codifiche divergenti sono **esattamente quattro su 38** — quindi i vettori nuovi non sono un campione ma la classe al completo. Apre [DEBT-016].
-- [SPEC-011] `RewardBounds` e le regole di validità economiche in `coblox-core` → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-016] e con `GATE-SECREVIEW` attestato su [REVIEW-017], dopo un giro di remediation e **tre finding `medium`** di AGENT-007, nessuno `critical` o `high`. Chiude il divario fra documenti e codice lasciato da [SPEC-009]: `RewardBounds` non esisteva come tipo, il crate accettava la tariffa di availability positiva, e `3·min_set ≥ 2V` non era nel blocco relazionale. **Il finding che conta è RF-002, ed è un difetto di *oracolo* e non di codice:** disattivando la sola metà **discendente** del rapporto di variazione, l'intera suite Rust e l'intero oracolo Python restavano verdi. Causa: nessuna riga pubblicata esercita una discesa rifiutata dal rapporto — l'unica che ne nomina una è respinta dal **pavimento**, e la trascrizione lo mostrava riportando il motivo sbagliato. `GATE-TWO-ORACLES` non copriva il buco perché **i due oracoli sono indipendenti nell'implementazione ma non nella derivazione dei casi**, distinzione che il Lead non aveva fatto scrivendo la gate. La correzione deriva i casi in due modi diversi e nessuno legge la tabella. **Il Lead ha poi trovato la stessa lacuna sul lato elezione** — dieci parametri, metà discendente non esercitata da alcun test — e l'ha fatta chiudere con il gemello; è codice di [SPEC-006] e [SPEC-008], non di questa consegna. Apre [DEBT-015].
-- [SPEC-010] Inventario degli artefatti pubblicati, codifica del `lifecycle`, precisione normativa → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-015] **senza finding a carico dell'implementazione**. Chiude [DEBT-012] e [DEBT-008]. Rende eseguibile la gate di [ADR-012] con uno strumento che **ri-deriva meccanicamente i candidati dai documenti** e fallisce in entrambe le direzioni su dieci classi di difetto, ciascuna **osservata fallire** su un albero mutato. **Il risultato che conta più della spec:** alla prima esecuzione lo strumento ha trovato una **quinta occorrenza della famiglia 1** — l'esempio canonico di `challenge_evidence` portava un `request_hash` diverso dal proprio `challenge_id`, contro una regola che esisteva da [SPEC-001]. Le prime quattro le aveva trovate il caso; questa una guardia. **Tre errori del Lead trovati dall'implementatore**, fra cui un conteggio sbagliato — «dieci valori di hash» quando sono sedici — **nella spec scritta per prevenire quella classe di errore**, con il conteggio corretto già presente nel file che il paragrafo citava. Su `lifecycle_u8` la scelta è migliore di quella attesa: `0x00` riservato e invalido, `active = 0x01`, perché il byte zero è ciò che un record troncato produce gratis e se significasse `active` l'incidente produrrebbe lo stato **permissivo**.
-- [SPEC-009] Attuazione di [ADR-010] e [ADR-011] → AGENT-002. **`done` il 2026-08-25**, accettata con [REVIEW-013] e con `GATE-SECREVIEW` attestato su [REVIEW-014], dopo due giri di review e dieci finding di cui **tre `critical`**. Porta `RewardBounds` nella genesi, tre regole di validità nuove e il claim in due regimi. **La scoperta principale ribalta un invariante appena scritto:** il vincolo `3·min_set ≥ 2V` impedisce a una coalizione sotto i due terzi di *possedere* il set, non di ottenerne il **quorum** — a `V=27` bastano 13 seggi, il 48,1%, e la soglia reale ha asintoto `4V/9`. La sezione nuova di `ledger.md` si chiama *«Owning the set and controlling it are different thresholds»*. La diagnosi che tiene tutti i finding, di AGENT-007: **è stata vincolata la grandezza nominata dall'ADR, non quella da cui la proprietà dipende**.
-- [SPEC-007] Simulatore economico e taratura di `α` → AGENT-002. **`done` il 2026-08-25**, accettata con [REVIEW-011] dopo un giro di review adversariale con sette finding, uno critico. Chiude [DEBT-007]. **Il risultato principale è un risultato negativo, riportato onestamente:** `α` non è una curva con un ottimo, è un'**identità** — la cattura vale `α·N/(N+H)` e il reddito di un nodo di sola availability rapportato al reddito medio vale `α` esattamente. Difendibilità e significato del reddito sono lo stesso numero letto due volte, la cattura è lineare senza ginocchio, e **il modello non poteva scegliere `α`**. Valori: `α = 0,15` banda `[0,10–0,20]`, `X = 20%`, tutti e ventidue i parametri fissati. Ha prodotto tre scoperte che il debito non chiedeva: una contestazione di [ADR-007], [ADR-010], e la disposizione sul dimensionamento del fondo di genesi.
-- [SPEC-008] Core del ledger in Rust → AGENT-001. **`done` il 2026-08-25**, accettata con [REVIEW-012] senza finding a carico dell'implementazione. **Primo codice reale del progetto**: dodici moduli, 8.097 righe, 103 test, sedici fixture su sedici riprodotte al primo tentativo. Ha trovato [DEBT-012] e due errori di scrittura del Lead nella spec stessa.
-- [SPEC-006] Regola di elezione dei validatori → AGENT-002. **`done` il 2026-08-25**, accettata con [REVIEW-009] e con `GATE-SECREVIEW` attestato su [REVIEW-010]. **Chiude [DEBT-005], l'unico debito `critical` del progetto.** Quattro giri di review adversariale con AGENT-007, tredici finding fra cui tre `critical`. **Due dei finding erano arresti certi della catena introdotti dalle correzioni precedenti**, e nessuno dei due era visibile prima che la correzione precedente esistesse: la genesi con mandati sincronizzati, e i timbri di scadenza che collidono se e solo se il limite di mandato decresce — quest'ultimo innescabile da un operatore onesto che accorci i mandati, senza alcun avversario. Scoperto per strada che **il fixture `PD-0` del progetto era esso stesso inammissibile** (`T=3`, mentre la soddisfacibilità congiunta impone `T ≥ 4`). L'architettura portante — due strati che falliscono in modo diverso, con l'invariante anti-cattura confinato in quello che un light client verifica — non è stata toccata da nessuno dei tredici finding. AGENT-007 chiude dichiarando il claim difendibile **senza dichiarazioni accanto**.
-- [SPEC-005] Applicazione di [ADR-009] al design system → AGENT-006 (Lia Wireframe). **`done` il 2026-08-25**, accettata con [REVIEW-008] senza alcun finding. Nove criteri su nove, con ogni gate rieseguita dal Lead in modo indipendente invece che presa dall'evidenza: zero residui del segnaposto, zero virgole come separatore delle migliaia, i tre generatori in `--check` confermano che gli artefatti non sono stati modificati a mano, 130 coppie di contrasto su 130 conformi a WCAG AA. L'implementatrice ha distinto il glifo del marchio da quello del segnaposto, simili a vista, che una sostituzione frettolosa avrebbe confuso. Una sua segnalazione sui titoli italiani delle pagine di mockup è stata valutata e **respinta nel merito**: sono la cornice di documentazione attorno agli artboard, non superficie di prodotto.
-- [SPEC-003] Design system → AGENT-006 (Lia Wireframe). **`done` il 2026-08-25**, ultima spec di M-01. Accettata tecnicamente con [REVIEW-004] — sette criteri su sette verificati, un solo finding di severità bassa non bloccante — ed è rimasta ferma sul solo `GATE-OPERATOR-LOOK` finché l'operatore non ha attestato di aver visto i mockup. Il gate ha funzionato come doveva: il sistema ha rifiutato `spec_done` al tentativo del Lead, e nessuno ha attestato al posto dell'operatore un giudizio estetico che spettava a lui. Il pacchetto vive in `.lmbrain/design/coblox-design-system/`.
-- [SPEC-001] Protocollo v0 → AGENT-001 (Dario Meshnet). **`done` il 2026-08-25**, dopo tre giri di remediation di sicurezza. `GATE-SECREVIEW` attestato: AGENT-007 l'ha bocciato due volte ([REVIEW-002] con 18 finding, [REVIEW-006] con 4 gravi residui) e superato alla terza ([REVIEW-007]). I documenti sono passati da 1268 a 2607 righe. **Due contestazioni di AGENT-001 sono state confermate dalla reviewer come migliori della sua stessa condizione di chiusura**: il pavimento Argon2id imposto come area più memoria minima invece di `iterations ≥ 3`, che avrebbe rifiutato il profilo RFC 9106 più forte; e lo scudo di ammissione adattivo con validazione della sorgente invece di un puzzle fisso, che avrebbe reintrodotto il divario CPU/GPU per cui [ADR-007] esiste. Residui in [DEBT-008].
-- [SPEC-002] Workspace Rust + CI → AGENT-008 (Remo Pipeline). **`done` il 2026-08-25**, accettata con [REVIEW-005]. Tre difetti chiusi più sei problemi ulteriori scoperti eseguendo davvero il runbook, fra cui un flag Tauri inesistente che il Lead stesso aveva citato come prova senza eseguirlo. `GATE-LOCAL-REPRO` soddisfatto e in parte rieseguito dal Lead; `GATE-CI-GREEN` era derogato e coperto da [DEBT-001]. Commit `81cca93`. **Deroga rientrata il 2026-08-25:** la run 32821923135 sul commit `6b9ad1f` è verde su tutti e cinque i job, con `cargo fmt`, `clippy -D warnings` e `cargo-deny` eseguiti come step distinti e riusciti; [DEBT-001] è risolto. Ne era però emerso [DEBT-009] — quel `cargo-deny` non copriva `apps/desktop/src-tauri`, escluso dal workspace — **anch'esso risolto lo stesso giorno** con la run 32833295352, che aggiunge il gate sul grafo della shell desktop.
-- [SPEC-004] Threat model iniziale → AGENT-007 (Greta Threatmodel). **`done` il 2026-08-25**, prima spec chiusa del progetto. Accettata con [REVIEW-003], `GATE-LEAD-MAP` attestato dal Lead. Ha prodotto `.lmbrain/knowledge/threat-model.md` (1930 righe, 36 scenari, 24 `SEC-REQ`, 15 test di attacco) e ha istruito [ADR-007]. Commit `024f81f` spinto su `main`.
+Sequenziare, non parallelizzare: la remediation di [SPEC-022] tocca `ledger.md` e
+`core/`, gli stessi file di [SPEC-025]. Due remediation parallele hanno gia' fatto
+scadere le citazioni di una mentre venivano scritte.
 
 ## Blockers and risks
 
-- **Il claim di sicurezza, nella forma che AGENT-007 giudica difendibile.** La rete è robusta contro la falsificazione ma **non** resistente ai Sybil per via crittografica, e tre cose non sono garantite: la disponibilità dell'enrollment sotto attacco sostenuto (i dispositivi lenti soffrono per primi), la resistenza Sybil crittografica, e la verifica indipendente dell'eleggibilità a validatore prima di M-02. Parole della reviewer: *"il progetto non deve chiamare la rete super-sicura senza quelle tre frasi accanto; con quelle accanto il claim è più solido della media a questo stadio, e la parte migliore non è nessun singolo meccanismo ma il fatto che i limiti siano quantificati."*
-- **BLOCCO 1 — sciolto con [ADR-007].** La metrica "zero accrediti a nodi emulati" era irraggiungibile per via crittografica. Il Lead ha adottato su delega l'opzione 4a di [SPEC-004]: difesa economica (fondo a tetto per il reddito di esistenza, frazione `α` sorvegliata, eleggibilità a validatore ancorata a lavoro difficile da falsificare) più Argon2id come pavimento d'ingresso. La metrica in [[PROJECT]] è stata riformulata di conseguenza. **Confermata dall'operatore il 2026-08-25**, dopo revisione congiunta: [ADR-007] resta `accepted`. Nella stessa sessione l'operatore ha però chiesto di riaprire le esclusioni permanenti che avevano collassato lo spazio delle alternative prima ancora che [SPEC-004] cominciasse a enumerarle — ne è nata [ADR-008]. ~~Resta aperto il valore `X`~~ — **chiuso il 2026-08-25 da [SPEC-007]**: `X = 20%`, pari al bordo superiore della banda di sorveglianza su `α`. Questa riga dava per aperto un punto chiuso ed è stata corretta nella passata di decisioni.
-- **Attenzione, decisione delegata di rilievo:** il progetto ora dichiara di essere robusto contro la falsificazione ma **non** resistente ai Sybil per via crittografica. È una rinuncia esplicita a una promessa, resa in cambio di onestà verificabile.
-- **BLOCCO 2 — chiuso.** La prima run CI (commit `4ea0db9`) era fallita in 6 secondi **senza eseguire alcun job**, per la fatturazione dell'account GitHub e non per il codice; l'operatore aveva concesso la deroga su `GATE-CI-GREEN`, registrata come [DEBT-001]. Il 2026-08-25 la fatturazione è stata sbloccata, la pipeline ha eseguito e, dopo due giri di remediation, la run 32821923135 è verde su tutti i job. [DEBT-001] è **risolto**. I criteri di [SPEC-002] marcati `[~] ... | waived=DEBT-001` non sono più coperti da una deroga ma da una run reale.
-- ~~Nome del token e font monospace~~ — **decisi dall'operatore il 2026-08-25**, [ADR-009]. L'unità è `credit`/`credits`, forma compatta `cr` posposta al numero; il glifo `◇` e la classe `.cbx-unit--provisional` sono ritirati. Font: JetBrains Mono. **Resta lavoro di applicazione** nel pacchetto di design, che è di AGENT-006 e non del Lead.
+- **Il claim di sicurezza.** La rete e' robusta contro la falsificazione ma **non**
+  resistente ai Sybil per via crittografica. Rinuncia esplicita, decisa su delega
+  con [ADR-007] e dichiarata in `SECURITY.md`. Dettaglio in
+  `knowledge/threat-model.md`.
+- **Set di validatori auto-perpetuante in v0** ([DEBT-005], chiuso da [SPEC-006]
+  come regola; il rischio residuo resta dichiarato).
+- **Advisory Dependabot moderato** sul default branch, non ancora esaminato.
+
+## Decisioni in attesa dell'operatore
+
+1. Correzione di [ADR-017] su [REVIEW-042] RF-001 — il pavimento di `G` nell'ancora
+   di genesi. Blocca la remediation di [SPEC-022].
+2. Deroga di `GATE-SECREVIEW` su [SPEC-023], oppure autorizzare una quarta
+   remediation.
+3. Valori di taratura.
+4. Advisory Dependabot.
 
 ## Debiti aperti
 
-| ID | Severità | Owner | Questione |
+Tredici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010], a
+M-07).
+
+| ID | Sev | Owner | Questione |
 | --- | --- | --- | --- |
-| [DEBT-013] | medium | AGENT-007 | Nessuna regola impone il passo di produzione dei blocchi: il set attivo decide la durata reale delle proprie epoche, quindi la propria incumbency. Aperto con [ADR-013]. |
-| [DEBT-014] | medium | AGENT-007 | `validator_set_hash` è **l'unica preimmagine a dominio separato non legata a `chain_id`**: un set identico su due catene produce lo stesso hash. Trovato da AGENT-001 costruendo l'inventario di [SPEC-010]. |
-| [DEBT-022] | high | AGENT-007 | L'autorizzazione del burn di abbonamento **non richiede che la chiave sia non revocata**, mentre le tre regole sorelle lo richiedono. Una chiave rubata può continuare a svuotare il saldo dopo la revoca. Trovata scrivendo la guida. |
-| [DEBT-021] | medium | AGENT-001 | `SigningPreimage` non trasporta dominio né `chain_id`: un valore **ben tipato può essere semanticamente falso**. Stessa domanda di [DEBT-016] un livello sopra, stessa scadenza. |
-| [DEBT-019] | high | AGENT-002 | `reward_epoch` non ha una regola di derivazione dal tempo: il pavimento di [SPEC-009] vincola la durata dichiarata, non la velocità con cui gli indici avanzano. |
-| [DEBT-020] | medium | AGENT-001 | La circolarità di `chain_id` alla genesi non è risolta da alcuna regola: due implementazioni possono derivarne due diversi. |
-| [DEBT-017] | medium | AGENT-007 | La finestra reale di accettazione dell'attestazione è **tolleranza + durata**, e solo la durata è limitata. Famiglia 3. Segnalata dall'implementatore fermandosi. |
-| [DEBT-018] | medium | AGENT-007 | Nella matrice del threat model l'argomento *«non può scrivere, quindi `n/a`»* confonde falsificazione e perdita. La cella `A-04` poggia sullo stesso argomento appena caduto. |
-| [DEBT-016] | medium | AGENT-001 | Il verificatore accetta `message: &[u8]` dove il contratto impone la preimmagine: un chiamante che passasse un digest **compilerebbe e passerebbe ogni test**. Nessun chiamante esiste ancora, quindi il primo fissa la convenzione. Da chiudere con [DEBT-015] in una sola passata. |
-| [DEBT-015] | low | AGENT-001 | I sotto-controlli della reward policy sono `pub` mentre i gemelli del lato consenso sono privati: un chiamante può invocarne uno solo e credere di aver validato. Secondo cambiamento breaking, da raggruppare. |
+| [DEBT-028] | high | AGENT-002 | `election_epoch` dipende da un parametro governato senza che il documento lo dichiari |
+| [DEBT-033] | high | AGENT-002 | `effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione non e' vincolato |
+| [DEBT-034] | high | AGENT-007 | Un verdetto locale del ricevente puo' entrare in catena |
+| [DEBT-036] | high | AGENT-002 | Dieci parametri di consenso su venti non sono ne' limitati in genesi ne' governati |
+| [DEBT-037] | high | AGENT-007 | Tre campi di `EnrollmentParametersBody` non sono ne' limitati ne' validati |
+| [DEBT-024] | medium | AGENT-007 | `ComputeAssignment` lascia al validatore la scelta del modulo |
+| [DEBT-025] | medium | AGENT-007 | Coerenza fra matrice del threat model ed elenchi asset degli scenari |
+| [DEBT-027] | medium | AGENT-LEAD | Trentasei superlativi non enumerati in artefatti del Lead |
+| [DEBT-029] | medium | AGENT-001 | Il legame di contesto della preimmagine non e' imposto da nulla |
+| [DEBT-031] | medium | AGENT-001 | La documentazione di modulo del crate fa affermazioni normative non garantite |
+| [DEBT-032] | medium | AGENT-006 | Le probe della guida vedono la pagina allontanarsi da se stessa, non dal protocollo |
+| [DEBT-035] | medium | AGENT-007 | Dentro la classe 0 l'ordine e' per ID di transazione, e il revocante puo' sfruttarlo |
+| [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
 
-**Nessun debito `critical` aperto.** Due `high`, [DEBT-019] e [DEBT-022]: [DEBT-012] e [DEBT-008] sono chiusi da [SPEC-010]. Entrambi i debiti aperti hanno owner AGENT-007 e la stessa forma — un'osservazione che chi l'ha fatta non deve valutare da sé.
+## Done
 
-**Differito:** [DEBT-010] a M-07, il 2026-08-25. Non chiuso come rischio accettato benché i numeri lo suggeriscano — con il blocco a 5 s una spinta irreversibile porta l'incumbency massima da 63 a 84 giorni e il pavimento di ricambio non si muove, perché `ceil(27/9)` e `ceil(27/12)` valgono entrambi 3. **Ma è aritmetica del Lead, non la dimostrazione che il debito pone come condizione**, e accettare un rischio su un'affermazione non dimostrata è la famiglia 2 di `recurring-defects.md`. La dimostrazione è ora un criterio della spec di M-02 che tocca i parametri di consenso.
+Ventuno spec, tutte con la propria review. Storia e finding stanno nella spec e
+nella sua review, non qui.
 
-Risolti, tutti il 2026-08-25 — **cinque su dieci**: [DEBT-001] con la run CI verde 32821923135, primo debito chiuso del progetto; [DEBT-009] con la run 32833295352, che esegue `cargo-deny` anche sul grafo della shell desktop; **[DEBT-005] con [SPEC-006]**, dopo quattro giri di review adversariale e tredici finding; e **[DEBT-007] con [SPEC-007]**. Eseguire quel controllo ha rivelato che la stima del debito era per difetto — fallivano `advisories`, `bans` e `licenses` — e ha scoperto due errori nostri che non erano derogabili: `coblox-desktop` senza `license` né `publish`, e il campo `repository` del workspace che puntava a un repository inesistente.
+| Spec | Chi | Chiusa |
+| --- | --- | --- |
+| [SPEC-021] I valori della banda di cadenza nei documenti e nell'ancora di genesi | AGENT-002 | 2026-08-26 |
+| [SPEC-020] L'orologio su cui si misura la scadenza di un'attestazione | AGENT-001 | 2026-08-26 |
+| [SPEC-019] Cosa significa "non revocata" per autorizzare una spesa | AGENT-002 | 2026-08-26 |
+| [SPEC-018] Quando `n/a` e' un esito ammissibile | AGENT-007 | 2026-08-26 |
+| [SPEC-017] Il legame di catena dove oggi e' ambiguo o assente | AGENT-001 | 2026-08-26 |
+| [SPEC-016] Gli orologi della catena | AGENT-002 | 2026-08-26 |
+| [SPEC-015] Guida pubblica al funzionamento di Coblox | AGENT-006 | 2026-08-26 |
+| [SPEC-014] I due cambiamenti breaking dell'API di `coblox-core` | AGENT-001 | 2026-08-25 |
+| [SPEC-013] Separazione della chiave di trasporto dalla chiave di identita' | AGENT-001 | 2026-08-25 |
+| [SPEC-012] Verificatore Ed25519 con i vettori speccheck come oracolo | AGENT-001 | 2026-08-25 |
+| [SPEC-011] `RewardBounds` e le regole di validita' economiche | AGENT-001 | 2026-08-25 |
+| [SPEC-010] Inventario degli artefatti pubblicati e codifica del `lifecycle` | AGENT-001 | 2026-08-25 |
+| [SPEC-009] Attuazione di [ADR-010] e [ADR-011] | AGENT-002 | 2026-08-25 |
+| [SPEC-008] Core del ledger in Rust | AGENT-001 | 2026-08-25 |
+| [SPEC-007] Simulatore economico e taratura di `alpha` | AGENT-002 | 2026-08-25 |
+| [SPEC-006] Regola di elezione e rotazione del set di validatori | AGENT-002 | 2026-08-25 |
+| [SPEC-005] Applicazione di [ADR-009] al design system | AGENT-006 | 2026-08-25 |
+| [SPEC-004] Threat model iniziale | AGENT-007 | 2026-08-25 |
+| [SPEC-003] Fondamenta del design system | AGENT-006 | 2026-08-25 |
+| [SPEC-002] Workspace Rust `coblox-core` con CI multipiattaforma | AGENT-008 | 2026-08-25 |
+| [SPEC-001] Specifica del protocollo Coblox v0 | AGENT-001 | 2026-08-25 |
 
-## Lavoro immediato di M-02
+M-01 e' chiusa. Le sue quattro spec sono [SPEC-001] .. [SPEC-004].
 
-**Il divario che il pulse non diceva, verificato il 2026-08-25.** [SPEC-009] ha cambiato le regole **nei documenti e non nel codice**: il commit `eadba2d` tocca `core/coblox-core/tests/` e non tocca `core/coblox-core/src/` in nessuna riga. Tre conseguenze verificate una per una:
+## Decisioni
 
-- `RewardPolicyConstraints::from_body` non legge affatto `availability_microtokens_per_unit`, quindi il crate **accetta la tariffa positiva** che `ledger.md` dichiara rifiutata in accettazione;
-- `check_relations` contiene `3c < V` e `3cm ≤ V` ma **non** `3·min_set ≥ 2V`, cioè il vincolo su cui poggia l'intera sezione *«Owning the set and controlling it are different thresholds»*;
-- **`RewardBounds` non esiste come tipo**: c'è `ElectionBounds`, non il suo gemello.
+Diciotto ADR, tutte `accepted`. Il testo e il ragionamento stanno in
+`decisions/`.
 
-Quattro fixture di frontiera pubblicate in `docs/protocol/README.md` dichiarano `invalid` casi che **oggi nessuna implementazione rifiuta**.
+[ADR-018] e' l'ultima e la piu' rilevante per il lavoro corrente: fissa il
+protocollo di consenso — cosa il voto firmato aveva gia' deciso, e il prevoto che
+mancava. [SPEC-025] la attua.
 
-### Tre spec in `ready`, dispacciabili
+## Riferimenti
 
-[SPEC-010] è `done`; le tre che seguono erano bloccate dalla sua dipendenza e si sono sbloccate alla sua chiusura. Tutte ad AGENT-001, `sol`.
-
-1. **[SPEC-011] — `RewardBounds` e le regole di validità economiche in `coblox-core`.** Chiude il divario fra documenti e codice lasciato da [SPEC-009]. Criterio portante: **ogni caso dichiarato `invalid` dev'essere rifiutato**, perché una suite di soli casi validi la passa anche un validatore che accetta tutto. Con una gate dedicata alla **direzione** del limite, che [REVIEW-014] indica come il punto in cui l'errore sarebbe facile e invisibile.
-2. **[SPEC-012] — Verificatore Ed25519 con i vettori speccheck come oracolo.** Isolata, dispatchabile in parallelo, **prima di qualunque devnet**. Il suo rischio dichiarato è anche il suo possibile risultato migliore: **la tabella pubblicata dei dodici esiti non è mai stata eseguita da nessuno**, e se un esito diverge non è un fallimento della spec ma la ragione per cui esiste.
-3. **[SPEC-013] — Separazione della chiave di trasporto dalla chiave di identità.** Attua [ADR-015]. Scadenza dura: **prima che la devnet emetta il primo certificato**. Il primo passo del piano è tracciare cosa usava `libp2p_peer_id`, perché il Lead non l'ha fatto e lo dichiara.
-
-Poi devnet BFT, light client con prove Merkle e mint & burn, che dipendono dalla forma delle API fissate da [SPEC-008]. Costruirli prima significherebbe poggiare il consenso su uno strato di firme che nessuno ha verificato e su un validatore di parametri che accetta genesi inammissibili.
-
-## Next recommended actions
-
-**Per l'operatore, al risveglio:**
-
-1. ~~Rivedere [ADR-007]~~ — **fatto il 2026-08-25**: confermata, e dalla revisione è nata [ADR-008]. Resta da fissare `X`, ma dipende dal simulatore di M-02.
-2. ~~Attestare `GATE-OPERATOR-LOOK`~~ — **fatto il 2026-08-25**: [SPEC-003] è `done` e **M-01 è chiusa**.
-3. ~~Sbloccare la fatturazione GitHub~~ — **fatto il 2026-08-25**, [DEBT-001] chiuso.
-4. ~~Decidere nome del token/unità e font monospace~~ — **fatto il 2026-08-25**, [ADR-009].
-
-5. **Decidere sui file di configurazione degli harness** (`.codex/`, `.pi/`, `.mcp.json`, `opencode.json`): il Lead li ha esclusi dai commit perché contengono percorsi assoluti della macchina e il nome utente. ~~Vanno aggiunti al `.gitignore` oppure resi portabili.~~ **Fatto il 2026-08-25:** aggiunti al `.gitignore`, quindi esclusi da una regola e non più dalla disciplina manuale.
-6. ~~Decidere sulla `LICENSE`~~ — **fatto il 2026-08-25**: `LICENSE` Apache-2.0 in radice, allineato a quanto i manifest già dichiaravano. Anche `SECURITY.md` è in piedi.
-7. ~~Redigere le spec di M-02~~ — **in corso**: cinque redatte e chiuse ([SPEC-005]…[SPEC-009]), quattro da redigere nell'ordine rivisto in *Lavoro immediato di M-02*.
-8. ~~Prendere le decisioni di prodotto aperte~~ — **fatto il 2026-08-25**, tutte e cinque; vedi *Passata di chiusura delle decisioni di prodotto*.
-9. **Leggere [ADR-015] e accettarla o rimandarla.** È l'unica ADR lasciata deliberatamente in `proposed`: supera una regola già accettata, e il Lead si era impegnato a portarla in lettura prima dell'accettazione.
-
-**Per il Lead, in autonomia:**
-
-- A ogni spec che passa a `done`: commit e push su `main`.
-- Prima di ogni `spec_done`: il controllo sullo stato delle review, che `spec_done` non fa e `lmbrain_validate` non segnala — vedi `.lmbrain/knowledge/review-lifecycle-discipline.md`.
-
-## Postura di sicurezza del repository pubblico
-
-Il repository `github.com/fathorMB/CobloxNetwork` è pubblico dal 2026-08-25. Quanto segue è lo stato verificato quel giorno.
-
-**Audit della storia dei commit: pulita.** Nessuna chiave, token o credenziale in nessun commit — scansionati i pattern `ghp_`, `gho_`, `github_pat_`, `sk-`, `AKIA`, e le intestazioni di chiave privata PEM. I file di configurazione degli harness, che contengono davvero percorsi assoluti e nome utente, non sono mai entrati in un commit. Unica esposizione residua, di severità bassa: le trascrizioni PowerShell delle evidenze in [SPEC-002] mostrano `E:\Git\CobloxNetwork` e `F:/dev/android-sdk`. Sono metadati di ambiente, senza username né email.
-
-**Attivato dal Lead il 2026-08-25, su autorizzazione esplicita dell'operatore:**
-
-- Secret scanning e **push protection** — quest'ultima è l'unico controllo che agisce in tempo, perché blocca un segreto prima che diventi pubblico anziché segnalarlo dopo.
-- Dependabot alerts e security updates. Hanno prodotto un risultato entro pochi minuti, che è come [DEBT-009] è stato scoperto.
-- Ruleset su `main` che vieta force-push e cancellazione del branch. Deliberatamente **non** richiede pull request: la strategia main-only con push diretto del Lead resta intatta.
-- **Pin a SHA di tutte le action di terze parti**, tredici occorrenze, con la versione leggibile in commento. Il caso peggiore era `dtolnay/rust-toolchain@1.96.0`, che non è un tag ma un **branch**, quindi ripuntabile con un commit qualsiasi. Completato da `.github/dependabot.yml`, che propone il refresh in un solo pull request settimanale in batch: un pin non invecchia in un modo che GitHub segnali come vulnerabile, smette solo di ricevere le correzioni in silenzio, quindi il refresh è la seconda metà della difesa e non un extra. Il ciclo ha già girato una volta: [PR #1](https://github.com/fathorMB/CobloxNetwork/pull/1), quattro action con salti di major, verificata verde e mergiata su richiesta dell'operatore. Ha eliminato anche i warning di deprecazione Node 20.
-- **Private vulnerability reporting** abilitato, e `SECURITY.md` che lo documenta. Nessun indirizzo email esposto — è un bersaglio di spam e un punto singolo di rottura, mentre il canale di GitHub dà una discussione privata tracciata. Il documento dichiara per iscritto i limiti noti invece di lasciarli scoprire: rete non resistente ai Sybil per via crittografica ([ADR-007]), set di validatori auto-perpetuante in v0 ([DEBT-005]), e advisory derogati con la loro condizione di riesame.
-
-*Non* disponibile: `secret_scanning_non_provider_patterns` richiede GitHub Advanced Security e resta disabilitato sul piano attuale. In pratica significa che vengono riconosciuti i formati di segreto dei provider noti, non quelli inventati dal progetto — rilevante se in futuro Coblox definisse un proprio formato di chiave.
-
-- **`LICENSE` Apache-2.0**, su conferma dell'operatore. Non era una casella vuota ma una contraddizione: il `Cargo.toml` del workspace dichiarava `license = "Apache-2.0"` dal bootstrap, quindi il repository pubblicava crate che dichiaravano una licenza che nessun file concedeva. Il testo non è stato trascritto ma copiato da una copia canonica del registry Cargo locale, e il corpo verificato identico byte per byte contro una seconda copia indipendente — su un documento legale la fedeltà conta più della comodità. Il segnaposto `[yyyy] [name of copyright owner]` nell'`APPENDIX` è parte del template di applicazione ai singoli file e va lasciato com'è.
-
-**Tutte le voci rilevate al passaggio a pubblico sono chiuse.** Restano solo due limiti dichiarati: `secret_scanning_non_provider_patterns` non disponibile sul piano attuale, e i percorsi di macchina nelle trascrizioni di [SPEC-002], severità bassa.
-
-## Difetti ricorrenti
-
-`.lmbrain/knowledge/recurring-defects.md` raccoglie le **tre famiglie** che si sono ripetute, con le occorrenze contate e le domande che le intercettano. Il tratto comune: **in ogni caso il difetto era gia scritto da qualche parte nel repository e nessuno lo stava guardando** — non errori di ragionamento, errori di dove si guardava. La prima famiglia e chiusa da [ADR-012] con una gate; le altre due no, e vivono nelle domande da porsi.
-
-## Igiene del brain
-
-- 2026-08-25 — **Tre review erano ferme in `changes-requested` su una spec già `done`** ([SPEC-001]): rilievo dell'operatore dalla board. Nessuna era sbagliata nel merito; mancava solo il verdetto finale, perché a ogni giro di remediation veniva creata una review nuova invece di ri-esprimere il verdetto su quella esistente. Disposizione caso per caso e non in blocco: [REVIEW-001] **accettata**, perché i suoi tre finding risultano chiusi e verificati; [REVIEW-002] e [REVIEW-006] **superate**, perché rimpiazzate da review successive sullo stesso gate senza mai arrivare all'accettazione — registrarle come accettate avrebbe cancellato proprio l'informazione che rende leggibile la catena. **Il difetto era invisibile agli strumenti**: `spec_done` verifica i gate e non lo stato delle review, e `lmbrain_validate` non lo segnala. La regola e il controllo da fare prima di `spec_done` sono in `.lmbrain/knowledge/review-lifecycle-discipline.md`.
-
-## Strategia di branching
-
-Dichiarata dall'operatore il 2026-08-25 e registrata in `.lmbrain/BRANCHING.json` via `branching_strategy_set`: topologia **main-only**, nessun branch di feature. Gli specialisti lavorano sul working tree e **non fanno mai commit né push**; il Project Lead è l'unico autorizzato, e committa e pusha su `main` **al passaggio di una spec a `done`**. Vincolo aggiuntivo: **nessuna produzione di installer o release lato GitHub per ora** — la CI di [SPEC-002] è già conforme (Tauri con `--bundles none`, nessun job di release).
-
-## Recent scope clarifications
-
-- 2026-08-25 — **Lingua del prodotto: inglese** per tutto ciò che vede l'utente finale (rilievo dell'operatore sulle anteprime di SPEC-003). Registrata come vincolo in [[PROJECT]]. SPEC-003 corretta in corso d'opera e AGENT-006 avvisata mentre era ancora in lavorazione; la formulazione originale della spec ("tono del copy (it/en)") era ambigua per responsabilità del Lead, non dell'implementatrice. Da applicare d'ora in poi a ogni spec con superficie utente (SPEC-002 espone solo una schermata di versione, impatto trascurabile ma da verificare in review).
-
-## Recent profile changes
-
-- 2026-08-25 — AGENT-007: `can_implement` portato a true con vincolo "solo deliverable documentali di sicurezza, mai codice" (approvato dall'operatore per SPEC-004); sui propri documenti la review spetta al Lead.
-
-## Recent decisions
-
-- ADR-015 — L'identità di trasporto è subordinata e ruotabile, non è la chiave di identità (**proposed**, 2026-08-25). Decisa dall'operatore, in attesa della sua lettura prima dell'accettazione perché **supera una regola già accettata**: `identity.md` §*Key hierarchy* impone oggi la chiave unica, e quella frase diventa falsa nel momento in cui la ADR è attuata. Affronta TM-28, severità alta e finora senza alcun ADR né debito alle spalle. **Impatto su lavoro futuro:** tocca `identity.md`, `wire.md`, lo schema di richiesta e certificato di enrollment e le preimmagini che ne discendono; deve atterrare **prima che la devnet emetta il primo certificato**, dopo di che non è più una decisione ma una migrazione. La conseguenza che il Lead giudica più probabile fonte di difetto, e la segnala come tale a chi farà la review: una chiave di trasporto ruotabile azzera lo stato per peer, quindi tocca code e backpressure di `wire.md` e va confrontata con lo scudo di ammissione di [ADR-007].
-- ADR-014 — Gli abbonamenti sono pubblici e correlabili, e il progetto lo dichiara prima che lo siano (accepted, 2026-08-25). Decisa dall'operatore, coincide con la raccomandazione di AGENT-007 per v0. Chiude [DEBT-006]. Il ragionamento che la tiene insieme non è la proporzionalità ma **dove sta davvero la fuga**: non nel conteggio degli abbonati ma nel **burn**, che nomina `payer_node_id` perché è la firma del pagatore ad autorizzare l'addebito — quindi togliere la quota al creatore toglie la ragione di contare e **lascia la lista intatta**. La grandezza da cui la proprietà dipende è l'invariante *un pagatore, un voto*. **Impatto su lavoro futuro:** il testo pubblico va scritto **una volta sola** e citato, ed è deliverable di una spec con `GATE-SECREVIEW`, con scadenza al primo partecipante esterno e non al lancio.
-- ADR-013 — L'intervallo di blocco è una costante di genesi dichiarata, non un parametro governato (accepted, 2026-08-25). Decisa dall'operatore. **Ha reso normativo un numero che esisteva in un solo punto del repository come assunzione** (`sim/coblox_sim/recommended.py:21`), e su cui poggiava la taratura dei ventidue parametri di [SPEC-007]: `election_epoch_blocks = 120 960` significa «7 giorni» solo se un blocco dura 5 secondi. È la domanda di [REVIEW-014] — *qual è il denominatore* — applicata alla metà che quella review non guardava: l'emissione è denominata in millisecondi e il suo denominatore fu chiuso da [SPEC-009], l'elezione è denominata in blocchi e il suo no. **Impatto su lavoro futuro:** contenuto normativo nuovo nei documenti di protocollo, quindi la gate di [ADR-012] si applica; e la parte 3 della decisione — v0 dichiara la cadenza e non la impone — ha aperto [DEBT-013].
-- ADR-009 — L'unità del token si chiama credit e si scrive come una misura, non come una valuta (accepted, 2026-08-25). Decisa dall'operatore. Il ragionamento che la tiene insieme: il vincolo di non convertibilità spinge verso un nome **poco brandizzabile**, non solo non-monetario, perché la speculazione ha bisogno di un brand su cui aggrapparsi; e la posizione dell'unità porta significato, perché `1 240 cr` è la grammatica della misura mentre `◇1 240` è quella del denaro. Ha corretto un dato di [SPEC-003]: JetBrains Mono è sotto SIL OFL 1.1, non Apache-2.0 — quest'ultima copre il codice sorgente del repository, non il carattere — e poiché anche gli altri due candidati sono OFL 1.1, l'argomento della licenza non li distingueva. **Impatto su lavoro futuro:** aggiornamento del pacchetto di design e di `PRINCIPLES.md`, lavoro di AGENT-006; e con OFL 1.1 la licenza del font andrà inclusa accanto all'Apache-2.0 quando il font sarà incorporato nel bundle Tauri.
-- ADR-008 — Il divieto di proof-of-work continuo colpisce il lavoro sprecato, non il lavoro campionato (accepted, 2026-08-25). Nata dalla revisione di [ADR-007] con l'operatore. Non abroga l'esclusione: la sostituisce con un principio più un test in tre punti. **Ha sanato una contraddizione che nessuno aveva messo alla prova:** `PROJECT.md` escludeva il proof-of-work continuo «di qualsiasi tipo» mentre [ADR-002] prescrive proof-of-retrievability continuo e ri-esecuzione WASM, quindi il protocollo violava già una propria esclusione dichiarata. **Impatto su lavoro futuro:** ogni ADR o spec che introduca lavoro remunerato deve dichiarare l'esito dei tre punti del test, ed è materia di review verificarlo; il punto 1 vincola la specifica di elezione dei validatori di M-02, già gravata da [DEBT-005].
-- ADR-006 — Pubblicazione delle app e ricompensa al creatore (accepted, 2026-08-25). Estende ADR-005 con una nuova categoria di emissione. **Impatto su lavoro in corso:** vincola i campi del manifest in SPEC-001 (repliche, tetti di risorse, prezzo di abbonamento) — da comunicare all'implementatore o da verificare in review.
-- ADR-001 — Ledger su federazione BFT con validatori a rotazione (accepted, 2026-08-25)
-- ADR-002 — Proof of contribution tramite challenge crittografici (accepted, 2026-08-25)
-- ADR-003 — Core del nodo in Rust con shell native (accepted, 2026-08-25)
-- ADR-004 — Runtime delle app in sandbox WASM/WASI (accepted, 2026-08-25)
-- ADR-005 — Economia del token a mint & burn (accepted, 2026-08-25)
+- **Strategia di branching:** `main-only`, dichiarata in `BRANCHING.json`. Push su
+  `main` riservato al Lead, nessun branch di feature, `commit_on_doc_change: false`.
+- **Kit LMBrain:** 5.1.0 dal 2026-08-27.
+- **Lingua:** inglese per tutto cio' che vede l'utente finale; italiano per gli
+  artefatti interni.
+- **Prima di scrivere un vincolo:** `knowledge/predicato-di-accettazione.md`.
+- **Prima di chiudere una spec:** `knowledge/review-lifecycle-discipline.md`.
+- **Difetti che si ripetono:** `knowledge/recurring-defects.md`.
+- **Postura di sicurezza del repo pubblico:** `knowledge/postura-sicurezza-repo-pubblico.md`.
+- **Disciplina di commit:** `knowledge/commit-discipline.md`.
