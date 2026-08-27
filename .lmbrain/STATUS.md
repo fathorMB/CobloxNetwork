@@ -52,6 +52,7 @@ Nessun agente in esecuzione.
 | Spec | Stato | Chi | Nota |
 | --- | --- | --- | --- |
 | [SPEC-026] | `backlog`, `terra` | AGENT-008 | Rende eseguibili due discipline che oggi sono prosa: review non terminali su spec chiuse, e probe che portano un argomento di sicurezza senza nominare la review che l'ha attaccato |
+| [SPEC-029] | `backlog`, `sol`/`maximum` | AGENT-001 | **La devnet.** Quattro processi separati su rete vera, i voti durevoli prima di essere trasmessi, un nodo ucciso e riavviato che non equivoca. Dipende da [SPEC-025]: chiude il **primo esito di M-02** |
 | [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
 Sequenziare, non parallelizzare: la remediation di [SPEC-022] tocca `ledger.md` e
