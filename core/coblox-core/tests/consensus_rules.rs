@@ -986,3 +986,155 @@ fn the_finality_vote_preimage_still_reproduces_a_fixture_older_than_this_spec() 
          reproduced byte for byte by the refactored block_vote_preimage"
     );
 }
+
+// ------------------------------------- DEBT-047 & DEBT-048 verification ---
+
+/// [DEBT-047]: `FinalizedBlock::verify` recalculates `transactions_root` from the carried
+/// payload (`transactions`) and rejects if it does not reproduce `header.transactions_root`.
+///
+/// A block with a genuine certificate signed by a valid quorum over a genuine header
+/// is rejected if its transactions payload is replaced with an empty or divergent payload.
+#[test]
+fn finalized_block_verify_rejects_divergent_payload_with_genuine_certificate() {
+    let devnet = Devnet::start(4, 20_260_827, Adversary::default());
+    let set_hash = devnet.set.hash().unwrap();
+    let tx1 = harness_transaction("cblx1recipient01", 100);
+    let tx2 = harness_transaction("cblx1recipient02", 200);
+    let txs = vec![tx1.clone(), tx2.clone()];
+    let root = harness_transactions_root(devnet.chain_id(), &txs);
+
+    let mut header = harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01));
+    header.transactions_root = root;
+    let block_id = header.block_id(devnet.chain_id()).unwrap();
+
+    // Collect precommits from 3 validators (sufficient for 4-node quorum: 3 * 3 > 4 * 2)
+    let preimage = block_vote_preimage(devnet.chain_id(), 1, 0, &block_id);
+    let mut signatures = Vec::new();
+    for i in 0..3 {
+        let val_id = format!("val-{i:03}");
+        let sig = devnet.nodes[i].key.sign(preimage.as_bytes());
+        signatures.push(CertificateSignature {
+            validator_id: val_id,
+            signature: sig,
+        });
+    }
+    signatures.sort_by(|a, b| a.validator_id.cmp(&b.validator_id));
+
+    let certificate = QuorumCertificate {
+        height: 1,
+        round: 0,
+        block_id,
+        validator_set_hash: set_hash,
+        signatures,
+    };
+
+    let genuine_block = FinalizedBlock {
+        header: header.clone(),
+        transactions: txs.clone(),
+        quorum_certificate: certificate.clone(),
+    };
+
+    // Genuine block passes verification
+    assert!(
+        genuine_block
+            .verify(devnet.chain_id(), &devnet.set, &ConsensusVerifier)
+            .is_ok(),
+        "genuine finalized block must pass verification"
+    );
+
+    // Case 1: Empty payload
+    let empty_payload_block = FinalizedBlock {
+        header: header.clone(),
+        transactions: Vec::new(),
+        quorum_certificate: certificate.clone(),
+    };
+    let err = empty_payload_block
+        .verify(devnet.chain_id(), &devnet.set, &ConsensusVerifier)
+        .unwrap_err();
+    match err {
+        Error::Consensus(ConsensusError::ProposalTransactionsRootMismatch {
+            declared,
+            computed,
+        }) => {
+            assert_eq!(declared, root);
+            assert_ne!(computed, declared);
+        }
+        other => panic!("expected ProposalTransactionsRootMismatch, got {other:?}"),
+    }
+
+    // Case 2: Divergent transaction payload (modified amount)
+    let divergent_tx = harness_transaction("cblx1recipient01", 999);
+    let divergent_payload_block = FinalizedBlock {
+        header: header.clone(),
+        transactions: vec![divergent_tx, tx2],
+        quorum_certificate: certificate,
+    };
+    let err2 = divergent_payload_block
+        .verify(devnet.chain_id(), &devnet.set, &ConsensusVerifier)
+        .unwrap_err();
+    match err2 {
+        Error::Consensus(ConsensusError::ProposalTransactionsRootMismatch {
+            declared,
+            computed,
+        }) => {
+            assert_eq!(declared, root);
+            assert_ne!(computed, declared);
+        }
+        other => panic!("expected ProposalTransactionsRootMismatch, got {other:?}"),
+    }
+}
+
+/// [DEBT-048]: Proves that `transactions_root` is sensitive to canonical execution order.
+///
+/// `ledger.md#block-format` and `merkle.rs` require: "The transaction Merkle tree
+/// preserves block order — so unlike the other five trees, this one is not sorted."
+/// Two distinct transactions in order `[A, B]` produce a different root than `[B, A]`.
+#[test]
+fn transaction_root_is_sensitive_to_canonical_execution_order() {
+    let devnet = Devnet::start(4, 20_260_827, Adversary::default());
+    let set_hash = devnet.set.hash().unwrap();
+    let tx_a = harness_transaction("cblx1recipientA", 100);
+    let tx_b = harness_transaction("cblx1recipientB", 200);
+
+    let root_ab = harness_transactions_root(devnet.chain_id(), &[tx_a.clone(), tx_b.clone()]);
+    let root_ba = harness_transactions_root(devnet.chain_id(), &[tx_b.clone(), tx_a.clone()]);
+
+    assert_ne!(
+        root_ab, root_ba,
+        "ledger.md: transactions are in canonical execution order; [A, B] and [B, A] must produce distinct roots"
+    );
+
+    // Proposal committing to [A, B] order rejects [B, A]
+    let mut header_ab = harness_header(&set_hash, 1, 0, 0, &Digest32::repeated(0x01));
+    header_ab.transactions_root = root_ab;
+    let proposer = devnet.proposer_of(1, 0);
+    let proposal_ba = BlockProposal {
+        height: 1,
+        round: 0,
+        valid_round: None,
+        header: header_ab,
+        transactions: vec![tx_b, tx_a],
+    };
+
+    let err = verify_proposal(
+        devnet.chain_id(),
+        &devnet.set,
+        &proposer,
+        proposal_ba,
+        Validity::Valid,
+    )
+    .unwrap_err();
+
+    match err {
+        Error::Consensus(ConsensusError::ProposalTransactionsRootMismatch {
+            declared,
+            computed,
+        }) => {
+            assert_eq!(declared, root_ab);
+            assert_eq!(computed, root_ba);
+        }
+        other => panic!(
+            "expected ProposalTransactionsRootMismatch on reordered transactions, got {other:?}"
+        ),
+    }
+}

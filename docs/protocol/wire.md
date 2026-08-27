@@ -31,6 +31,17 @@ new negotiated transport profile. The behavior above follows the current
 [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 and [DCUtR](https://github.com/libp2p/specs/blob/master/relay/DCUtR.md).
 
+### Devnet transport subset
+
+For the devnet seed validator topology, nodes implement the required baseline fallback: TCP with Noise and Yamux, plus GossipSub 1.1 for broadcast of consensus messages (`/coblox/<network_id>/consensus/0.1`) and blocks (`/coblox/<network_id>/blocks/0.1`). Seed validators are configured with reachable peer addresses and do not require WAN NAT traversal or peer discovery.
+
+The following elements of the full WAN baseline are explicitly excluded from the devnet seed validator scope:
+- QUIC-v1 over UDP (connection migration and 0-RTT);
+- Kademlia DHT and mDNS (WAN/LAN peer routing and discovery);
+- AutoNAT v1, Circuit Relay v2, and DCUtR (reachability classification and NAT hole punching).
+
+Full WAN NAT traversal and peer discovery are deferred to milestone M-04.
+
 ## Discovery
 
 Bootstrap distributions provide at least three seed multiaddresses from

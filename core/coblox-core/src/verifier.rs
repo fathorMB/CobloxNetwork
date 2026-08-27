@@ -69,41 +69,13 @@ use crate::registry::SigningPreimage;
 /// preimage costs no curve arithmetic. The verification logic itself is
 /// untouched — this function calls it and does not reimplement it.
 ///
-/// # Nothing makes a caller come through here, and that is not yet closed
+/// # Context enforcement and the fence of [DEBT-029]
 ///
-/// Using this function is a **convention**, not a boundary. Two public paths
-/// reach signature verification without any context check:
-/// [`SignatureVerifier::verify`], which this function itself calls, and
-/// [`verify_consensus_ed25519`], re-exported at the crate root. Neither is
-/// behind a feature gate or a versioned lint.
-///
-/// That is the shape [REVIEW-022] found in `pub(crate)`: a guarantee held by a
-/// name. It is sharper here because **the sibling escape hatch in this crate has
-/// two fences and this one has none** — the raw-bytes constructor on
-/// [`SigningPreimage`], the one this file must not name, is behind the
-/// non-default `conformance-testing` feature *and* behind a versioned lint in
-/// `sim/tools/`. The two are twins: one lets bytes in without a context, the
-/// other lets a verification out without one.
-///
-/// *That the sentence above cannot name it is itself the demonstration.* The
-/// first draft did name it, and the lint failed the build — a guard doing
-/// exactly what it was written to do. Loosening it so that a doc comment could
-/// spell the name would have traded a working fence for a nicer paragraph.
-///
-/// It is named and not closed, deliberately — but the reason has changed, and
-/// the sentence that used to give it was false when [SPEC-025] landed. This
-/// crate *does* ship a verifier, re-exported at the root, and since [SPEC-025]
-/// there *are* consensus callers: [`crate::consensus`] verifies every vote and
-/// every certificate. The window [DEBT-029] described as open — "the defect is
-/// entirely in the future" — closed with that commit.
-///
-/// What survives is the choice, not the excuse. The first consensus caller took
-/// the fenced road on its own: both `verify_vote` and `QuorumCertificate::verify`
-/// go through this function rather than around it, so the convention now has the
-/// worked example its own file could not give. Closing the hatch is therefore a
-/// migration and no longer a fence around empty ground, and that re-costing is
-/// [DEBT-029]'s, not this comment's. A convention its own file does not state is
-/// not a convention, so it is stated here.
+/// Consensus-critical verification requires passing through [`verify_in_context`]
+/// to enforce domain separation and chain-id binding before any signature check.
+/// Direct access to [`verify_consensus_ed25519`] is removed from the crate root
+/// re-exports; callers must pass through [`verify_in_context`] with their expected
+/// domain and chain ID.
 #[must_use]
 pub fn verify_in_context<V: SignatureVerifier + ?Sized>(
     verifier: &V,

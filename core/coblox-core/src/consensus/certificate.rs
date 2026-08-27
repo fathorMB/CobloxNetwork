@@ -293,14 +293,16 @@ impl FinalizedBlock {
 
     /// Verifies that the certificate finalizes **this** block under `set`.
     ///
-    /// Two checks the certificate alone cannot make, then
+    /// Three checks the certificate alone cannot make, then
     /// [`QuorumCertificate::verify`]:
     ///
     /// * `quorum_certificate.block_id` is the ID of the header carried here. A
     ///   certificate is a set of signatures over an ID, so a block paired with a
     ///   valid certificate for a *different* ID is the substitution this check
     ///   exists for, and it costs one hash;
-    /// * `quorum_certificate.height` is the header's height.
+    /// * `quorum_certificate.height` is the header's height;
+    /// * `transactions` reproduces `header.transactions_root`, ensuring the payload
+    ///   carried in the finalized block matches what was committed to by the header.
     ///
     /// The certificate's `round` is deliberately **not** compared with the
     /// header's. See [`QuorumCertificate`].
@@ -322,6 +324,14 @@ impl FinalizedBlock {
             return Err(ConsensusError::CertificateHeightMismatch {
                 header: self.header.height,
                 certificate: self.quorum_certificate.height,
+            }
+            .into());
+        }
+        let computed_root = super::messages::transactions_root_of(chain_id, &self.transactions)?;
+        if computed_root != self.header.transactions_root {
+            return Err(ConsensusError::ProposalTransactionsRootMismatch {
+                declared: self.header.transactions_root,
+                computed: computed_root,
             }
             .into());
         }

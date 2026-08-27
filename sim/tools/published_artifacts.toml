@@ -2893,6 +2893,14 @@ pattern = 'fixed by this sentence and is not configurable: it is an input to'
 count = 1
 why = "previous_block_id of the height-0 header is an input to genesis_block_id and therefore to chain_id. The earlier wording, 'the configured all-zero previous ID', admitted a reading in which a distribution could choose it, which would leave chain_id underdetermined by another door."
 
+[[probe]]
+id = "wire-devnet-transport-subset"
+site = "wire.md"
+pattern = 'For the devnet seed validator topology, nodes implement the required baseline fallback: TCP with Noise and Yamux, plus GossipSub 1.1'
+count = 1
+why = "GATE-SUBSET-DECLARED: wire.md declares the exact transport subset enacted by the devnet seed validators (TCP/Noise/Yamux + GossipSub 1.1) and the explicit exclusions (QUIC, Kademlia DHT, mDNS, AutoNAT, Relay, DCUtR), preventing silent protocol divergence."
+
+
 # --- markdown outside the sweep, each with its reason ------------------------
 #
 # [REVIEW-027] RF-005: every markdown a reader can reach is classified in one of

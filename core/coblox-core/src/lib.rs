@@ -153,7 +153,7 @@ pub mod verifier;
 pub use error::{Error, Result};
 pub use identity::{RevocationReason, RevokeIdentityBody, TransportKeyAttestation};
 pub use registry::{PreimageContext, SigningPreimage};
-pub use verifier::{ConsensusVerifier, verify_consensus_ed25519, verify_in_context};
+pub use verifier::{ConsensusVerifier, verify_in_context};
 
 /// Returns the semantic version exposed by every native shell.
 #[must_use]

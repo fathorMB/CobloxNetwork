@@ -280,7 +280,10 @@ impl VerifiedMessage {
 /// still occupies its position in the tree. Deciding whether the objects are
 /// valid transactions is `valid(v)`, and it needs the executor this crate does
 /// not have.
-fn transactions_root_of(chain_id: &ChainId, transactions: &[JsonObject]) -> Result<Digest32> {
+pub(crate) fn transactions_root_of(
+    chain_id: &ChainId,
+    transactions: &[JsonObject],
+) -> Result<Digest32> {
     let mut ids = Vec::with_capacity(transactions.len());
     for transaction in transactions {
         let mut unsigned = JsonObject::new();
