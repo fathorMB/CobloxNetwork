@@ -418,7 +418,8 @@ impl RevokeIdentityBody {
     /// authentic but belongs to a different parameter epoch is rejected here
     /// exactly as it is on the light-client path. As there, verifying the
     /// quorum signature over the document is the caller's step: this crate
-    /// ships no signature verifier.
+    /// ships a consensus-domain verifier ([`crate::verify_in_context`]), not one
+    /// for governed documents.
     ///
     /// # Errors
     ///

@@ -90,11 +90,20 @@ use crate::registry::SigningPreimage;
 /// exactly what it was written to do. Loosening it so that a doc comment could
 /// spell the name would have traded a working fence for a nicer paragraph.
 ///
-/// It is named and not closed, deliberately. `light_client` documents that this
-/// crate ships no verifier of its own, so there is no consensus caller to fence
-/// today, and the right fence depends on how the first one is built — which is
-/// another spec's work ([REVIEW-029] RF-001, tracked as [DEBT-029]). A convention its own file does not state is not a convention, so it is
-/// stated here.
+/// It is named and not closed, deliberately — but the reason has changed, and
+/// the sentence that used to give it was false when [SPEC-025] landed. This
+/// crate *does* ship a verifier, re-exported at the root, and since [SPEC-025]
+/// there *are* consensus callers: [`crate::consensus`] verifies every vote and
+/// every certificate. The window [DEBT-029] described as open — "the defect is
+/// entirely in the future" — closed with that commit.
+///
+/// What survives is the choice, not the excuse. The first consensus caller took
+/// the fenced road on its own: both `verify_vote` and `QuorumCertificate::verify`
+/// go through this function rather than around it, so the convention now has the
+/// worked example its own file could not give. Closing the hatch is therefore a
+/// migration and no longer a fence around empty ground, and that re-costing is
+/// [DEBT-029]'s, not this comment's. A convention its own file does not state is
+/// not a convention, so it is stated here.
 #[must_use]
 pub fn verify_in_context<V: SignatureVerifier + ?Sized>(
     verifier: &V,

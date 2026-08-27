@@ -116,7 +116,8 @@ impl TrustedTip {
 ///
 /// The quorum-signature verification of the document is the caller's step and
 /// is not folded in here, for the same reason as
-/// [`checkpoint_is_fresh`]: this crate ships no signature verifier.
+/// [`checkpoint_is_fresh`]: this crate ships a consensus-domain verifier
+/// ([`crate::verify_in_context`]), not a verifier for governed documents.
 pub fn authenticate_consensus_parameters(
     chain_id: &ChainId,
     trusted_header: &BlockHeader,
@@ -169,8 +170,8 @@ pub fn authenticate_consensus_parameters(
 /// policy, never from the document being authenticated.
 ///
 /// As with the twin, the quorum-signature verification of the document is the
-/// caller's step and is not folded in here: this crate ships no signature
-/// verifier.
+/// caller's step and is not folded in here: the verifier this crate ships
+/// ([`crate::verify_in_context`]) covers consensus domains, not this one.
 pub fn authenticate_reward_policy(
     chain_id: &ChainId,
     expected_policy_hash: &Digest32,
