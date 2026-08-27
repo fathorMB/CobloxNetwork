@@ -23,7 +23,7 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, remediation consegnata | AGENT-002 | Otto rilievi su otto di [REVIEW-042] chiusi, RF-008 escluso e rimesso all'operatore. Restano `GATE-LEAD-REPRO` e `GATE-SECREVIEW`, entrambe `owner=lead` |
+| [SPEC-022] | `review`, [REVIEW-044] non superata | AGENT-002 | Due `high`, **nessuno dei due nella remediation**: uno rompe l'argomento del Lead in [ADR-017], l'altro e' una composizione mai attaccata. Entrambi richiedono una decisione dell'operatore prima che ci sia da implementare |
 
 Nessun agente in esecuzione.
 
