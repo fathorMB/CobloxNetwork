@@ -228,7 +228,7 @@ that the remaining three advance, restarts it, and checks that all four reach a
 later height. Run it with:
 
 ```bash
-cargo test -p coblox-node --test devnet_multiprocess -- --nocapture --test-threads=1
+cargo test --release -p coblox-node --test devnet_multiprocess -- --ignored --nocapture --test-threads=1
 ```
 
 It is the same devnet. It is not a substitute for this file: a test proves the

@@ -38,6 +38,15 @@ jobs:
       # transcript.
       - if: runner.os == 'Linux'
         run: cargo test --release --locked -p coblox-core --test consensus_devnet -- --ignored --nocapture
+      # [SPEC-029] GATE-FOUR-PROCESSES e GATE-RESTART-NO-EQUIVOCATION. I due
+      # test multiprocesso sono `#[ignore]`d sopra perche' avviano quattro
+      # processi validatore ciascuno: eseguiti in parallelo fra loro, e in
+      # debug, non finivano entro le proprie scadenze su nessuna delle due
+      # piattaforme. Qui girano una volta, in serie e in release. Le scadenze
+      # sono quelle originali: e' l'esecuzione a essere cambiata, non
+      # l'asserzione.
+      - if: runner.os == 'Linux'
+        run: cargo test --release --locked -p coblox-node --test devnet_multiprocess -- --ignored --nocapture --test-threads=1
       - if: runner.os == 'Linux'
         run: cargo fmt --all -- --check
       - if: runner.os == 'Linux'

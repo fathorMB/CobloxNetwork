@@ -51,6 +51,17 @@ fn read_finalized_blocks(dir: &std::path::Path) -> Vec<FinalizedBlock> {
     blocks
 }
 
+// `#[ignore]`d nella passata normale e rieseguito in CI dal proprio step, in
+// release e con `--test-threads=1`. La ragione e' misurata, non prudenziale:
+// `cargo test --workspace` esegue i test in parallelo, quindi questi due
+// avviavano insieme otto processi validatore su un runner condiviso, e in debug
+// ogni messaggio costa una verifica Ed25519 reale. Gli esiti erano sempre della
+// stessa forma — catena viva e in avanzamento, ma sotto la scadenza:
+// `[7, 7, 7, 7]` su ubuntu e `[8, 9, 9, 8]` su windows. Non era un difetto del
+// nodo, ed e' il motivo per cui nessuna scadenza e' stata allentata qui: cio'
+// che va cambiato e' come il test viene eseguito, non cio' che asserisce. Stesso
+// trattamento, e per la stessa ragione, dello sweep esteso di [SPEC-025].
+#[ignore = "avvia quattro processi validatore: eseguito dal proprio step CI, in serie e in release"]
 #[test]
 fn four_seed_validator_processes_finalize_ten_blocks() {
     let bin_path = get_bin_path();
@@ -175,6 +186,17 @@ fn four_seed_validator_processes_finalize_ten_blocks() {
 // l'unica cosa che questo test deve rendere evidente.
 // Dichiarato dal Lead nella presa in carico correttiva del 2026-08-27.
 #[allow(clippy::too_many_lines)]
+// `#[ignore]`d nella passata normale e rieseguito in CI dal proprio step, in
+// release e con `--test-threads=1`. La ragione e' misurata, non prudenziale:
+// `cargo test --workspace` esegue i test in parallelo, quindi questi due
+// avviavano insieme otto processi validatore su un runner condiviso, e in debug
+// ogni messaggio costa una verifica Ed25519 reale. Gli esiti erano sempre della
+// stessa forma — catena viva e in avanzamento, ma sotto la scadenza:
+// `[7, 7, 7, 7]` su ubuntu e `[8, 9, 9, 8]` su windows. Non era un difetto del
+// nodo, ed e' il motivo per cui nessuna scadenza e' stata allentata qui: cio'
+// che va cambiato e' come il test viene eseguito, non cio' che asserisce. Stesso
+// trattamento, e per la stessa ragione, dello sweep esteso di [SPEC-025].
+#[ignore = "avvia quattro processi validatore: eseguito dal proprio step CI, in serie e in release"]
 #[test]
 fn validator_crash_and_restart_recovers_without_equivocation() {
     let bin_path = get_bin_path();
