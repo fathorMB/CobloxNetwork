@@ -23,10 +23,10 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Chiudere RF-001; richiede prima la decisione dell'operatore su [ADR-017] |
-| [SPEC-023] | `review`, ferma | AGENT-002 | Attende deroga di `GATE-SECREVIEW` o quarta remediation ([REVIEW-038], [REVIEW-040], [REVIEW-041]) |
+| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | RF-001 sbloccato: [ADR-017] e' corretta. Da dispacciare dopo [SPEC-023], perche' toccano gli stessi file |
+| [SPEC-023] | `review`, quarta remediation in corso | AGENT-002 | Dispacciata il 2026-08-27. Chiudere i rilievi di [REVIEW-041]; le passate 2 e 3 le aveva rimediate il Lead introducendo due `high` |
 
-Nessun agente in esecuzione.
+AGENT-002 in esecuzione su [SPEC-023].
 
 ## Ready for handoff
 
@@ -50,19 +50,28 @@ venivano scritte.
   come regola; il rischio residuo resta dichiarato).
 - **Advisory Dependabot moderato** sul default branch, non ancora esaminato.
 
-## Decisioni in attesa dell'operatore
+## Decisioni prese il 2026-08-27
 
-1. Correzione di [ADR-017] su [REVIEW-042] RF-001 — il pavimento di `G` nell'ancora
-   di genesi. Blocca la remediation di [SPEC-022].
-2. Deroga di `GATE-SECREVIEW` su [SPEC-023], oppure autorizzare una quarta
-   remediation.
-3. Valori di taratura.
-4. Advisory Dependabot.
+Le quattro che erano in attesa sono decise. Nessuna decisione dell'operatore e'
+oggi pendente.
+
+1. **[ADR-017] corretta.** Pavimento di `G` ancorato in genesi come relazione:
+   `revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`.
+   Nessun valore provvisorio da scegliere. Attende una tua rilettura prima che
+   la remediation di [SPEC-022] parta.
+2. **[SPEC-023]: quarta passata ad AGENT-002**, dispacciata. Le passate 2 e 3
+   erano state rimediate dal Lead e avevano introdotto due `high`.
+3. **Taratura:** solo il pavimento di `G` ora, e la relazione lo risolve senza
+   numeri. Il resto — `F`, `P`, `max_clock_drift_ms`, `D_max`/`S_max`, i dieci
+   parametri — dopo la chiusura di [SPEC-023].
+4. **Advisory Dependabot su `glib`:** chiuso come rischio accettato,
+   [DEBT-039]. Nessun percorso di aggiornamento e nessuna esposizione del
+   codice di progetto, entrambi accertati eseguendo.
 
 ## Debiti aperti
 
-Tredici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010], a
-M-07).
+Quindici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
+a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 
 | ID | Sev | Owner | Questione |
 | --- | --- | --- | --- |
@@ -79,6 +88,8 @@ M-07).
 | [DEBT-032] | medium | AGENT-006 | Le probe della guida vedono la pagina allontanarsi da se stessa, non dal protocollo |
 | [DEBT-035] | medium | AGENT-007 | Dentro la classe 0 l'ordine e' per ID di transazione, e il revocante puo' sfruttarlo |
 | [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
+| [DEBT-040] | medium | AGENT-007 | La finestra di inclusione piu' stretta tocca il `reason` piu' urgente: ordinamento invertito rispetto all'urgenza |
+| [DEBT-039] | low | AGENT-008 | `glib` resta vulnerabile: `javascriptcore-rs` la pinna esattamente, nessun aggiornamento fino a `wry`. Rischio accettato |
 
 ## Done
 

@@ -11,15 +11,17 @@ decider: OPERATOR
 # effect at acceptance. Do not edit either side by hand.
 supersedes: []
 superseded_by: []
-links: [ADR-010, ADR-015, ADR-012]
+links: [ADR-010, ADR-015, ADR-012, DEBT-040]
 tags: [consensus, security, identity]
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 activity:
   - date: 2026-08-26
     action: "created"
   - date: 2026-08-26
     action: "transitioned proposed -> accepted"
+  - date: 2026-08-27
+    action: "corretta la parte 2 su REVIEW-042 RF-001: pavimento di G ancorato in genesi come relazione, decisione dell'operatore"
 ---
 # La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo
 
@@ -115,7 +117,52 @@ max_planned_revocation_delay_blocks   >= min_revocation_effective_delay_blocks
 min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max
 revocation_effective_grace_blocks     <= revocation_effective_grace_blocks_max
 max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
+
+// correzione del 2026-08-27, [REVIEW-042] RF-001: il pavimento della banda
+// deve stare nell'ancora di genesi, non fra i vincoli relazionali, perche'
+// e' il lato da cui la banda difende:
+revocation_effective_grace_blocks     >= revocation_effective_grace_blocks_min
+revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min
 ```
+
+> **Correzione del 2026-08-27, su decisione dell'operatore.** [REVIEW-042] RF-001,
+> `high`, contro questa stessa ADR. Le due righe qui sopra non c'erano.
+
+**Il pavimento era scritto dove il set seduto poteva portarlo a `1`.** Questa
+decisione dichiarava, fra le alternative scartate, che la banda si paga «al
+prezzo di `G`, che e' discrezione **dichiarata e limitata in genesi** invece che
+illimitata». Non ha mantenuto la promessa: in `ElectionBounds` era ancorato solo
+il **tetto** `revocation_effective_grace_blocks_max`, mentre il pavimento
+`G >= 1` stava in `check_relations`, cioe' fra i vincoli che un
+`consensus_parameters` governato soddisfa da se'. Un documento con `G = 1`
+passava ogni controllo ed era indistinguibile da governance ordinaria: da quel
+momento un `key_compromise` andava firmato a quorum e incluso entro una finestra
+di **due blocchi**, predetta prima che il giro di firma cominciasse, e due
+blocchi di censura o una riorganizzazione di profondita' due lo invalidavano.
+
+**Il pavimento e' una relazione, non un numero.** `G+1` e' la larghezza della
+finestra in blocchi, e la cadenza non e' imposta: la finestra non si converte in
+tempo reale, quindi non puo' essere giustificata in secondi. La forma scelta e'
+strutturale — **la finestra dura almeno una rotazione completa del set minimo**.
+L'argomento si chiude da se': su una finestra lunga una rotazione ogni validatore
+ha un turno di proposta dentro la finestra, e una coalizione capace di censurare
+un'intera rotazione avrebbe gia' il quorum — a quel punto la revoca sarebbe vana
+comunque, e questo parametro non e' piu' la difesa giusta. Cosi' il numero non va
+scelto oggi contro la misura che la sezione *Revisit* dichiara mancante: arriva
+con la taratura di `validator_min_set_size_min`.
+
+`ElectionBounds` porta gia' due pavimenti di questa forma —
+`validator_min_set_size_min` e `validator_min_capture_epochs_min` — quindi
+`revocation_effective_grace_blocks_min` e' il terzo su un pattern esistente.
+
+**Cosa questa correzione non chiude.** Il tetto della banda e' nuovo di
+[SPEC-022]: la clausola 4 preesistente aveva pavimento e nessun tetto, quindi un
+ritardo di inclusione poteva solo rimandare una revoca, e ora puo' distruggerla.
+Ancorare il pavimento toglie al set seduto la possibilita' di stringere la
+finestra, ma non riordina le larghezze fra i `reason`: `key_compromise` resta il
+caso con il margine minore, cioe' l'urgenza piu' alta con la finestra piu'
+stretta. E' [DEBT-040], aperto, con per innesco la stessa misura che la sezione
+*Revisit* nomina.
 
 Senza questo la parte 2 **non toglierebbe la discrezione: la sposterebbe**. Un quorum che vuole latitudine su un `key_compromise` non toccherebbe `effective_height` — la banda glielo stringe — ma pubblicherebbe un `consensus_parameters` con `F` enorme, soddisfacendo ogni vincolo relazionale esistente. Sarebbe la **famiglia 3** alla lettera: vincolata la grandezza nominata, non quella da cui la proprietà dipende. È [REVIEW-036] RF-001, ed è l'obbligo che [ADR-010] impone e che la prima stesura non aveva assolto pur citando quell'ADR.
 
