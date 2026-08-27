@@ -22,6 +22,8 @@ activity:
     action: "transitioned proposed -> accepted"
   - date: 2026-08-27
     action: "corretta la parte 2 su REVIEW-042 RF-001: pavimento di G ancorato in genesi come relazione, decisione dell'operatore"
+  - date: 2026-08-27
+    action: "correzione della parte 2 approvata dall'operatore dopo lettura"
 ---
 # La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo
 
@@ -125,8 +127,11 @@ revocation_effective_grace_blocks     >= revocation_effective_grace_blocks_min
 revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min
 ```
 
-> **Correzione del 2026-08-27, su decisione dell'operatore.** [REVIEW-042] RF-001,
-> `high`, contro questa stessa ADR. Le due righe qui sopra non c'erano.
+> **Correzione del 2026-08-27, decisa e approvata dall'operatore.** [REVIEW-042]
+> RF-001, `high`, contro questa stessa ADR. Le due righe qui sopra non c'erano.
+> La forma della correzione e' stata scelta dall'operatore fra tre alternative;
+> il testo e' stato redatto dal Lead e approvato dall'operatore dopo lettura,
+> lo stesso giorno. Da qui e' vincolante per l'implementazione.
 
 **Il pavimento era scritto dove il set seduto poteva portarlo a `1`.** Questa
 decisione dichiarava, fra le alternative scartate, che la banda si paga «al

@@ -23,7 +23,7 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | RF-001 sbloccato: [ADR-017] e' corretta. Da dispacciare dopo [SPEC-023], perche' toccano gli stessi file |
+| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Sbloccata: [ADR-017] e' corretta e approvata. In coda dopo [SPEC-023], perche' toccano `ledger.md` e `core/` entrambe |
 | [SPEC-023] | `review`, quarta remediation in corso | AGENT-002 | Dispacciata il 2026-08-27. Chiudere i rilievi di [REVIEW-041]; le passate 2 e 3 le aveva rimediate il Lead introducendo due `high` |
 
 AGENT-002 in esecuzione su [SPEC-023].
@@ -55,10 +55,10 @@ venivano scritte.
 Le quattro che erano in attesa sono decise. Nessuna decisione dell'operatore e'
 oggi pendente.
 
-1. **[ADR-017] corretta.** Pavimento di `G` ancorato in genesi come relazione:
-   `revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`.
-   Nessun valore provvisorio da scegliere. Attende una tua rilettura prima che
-   la remediation di [SPEC-022] parta.
+1. **[ADR-017] corretta e approvata.** Pavimento di `G` ancorato in genesi come
+   relazione: `revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`.
+   Nessun valore provvisorio da scegliere. Approvata dall'operatore dopo lettura
+   il 2026-08-27, quindi vincolante per l'implementazione.
 2. **[SPEC-023]: quarta passata ad AGENT-002**, dispacciata. Le passate 2 e 3
    erano state rimediate dal Lead e avevano introdotto due `high`.
 3. **Taratura:** solo il pavimento di `G` ora, e la relazione lo risolve senza
