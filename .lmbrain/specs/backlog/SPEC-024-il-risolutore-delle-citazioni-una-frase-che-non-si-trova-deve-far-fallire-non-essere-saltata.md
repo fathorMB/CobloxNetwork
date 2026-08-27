@@ -152,7 +152,7 @@ E una quarta che è la ragione di questa spec:
 - [ ] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Le quattro classi di difetto sono state **osservate fallire**, una mutazione per classe ([SKILL-001]).
 - [ ] GATE-WRAPPED-PHRASE | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Una frase che attraversa un a capo nel documento sorgente è risolta correttamente, dimostrato con il caso.
 - [ ] GATE-DISCOVERY-NOT-LIST | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento trova gli artefatti per scoperta: aggiungendo un file nuovo che cita `docs/protocol/` con una frase falsa, lo strumento **fallisce senza essere stato modificato**. Osservato.
-- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
+- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente almeno la classe *citazione illeggibile* e la scoperta, invece di prenderle dall'evidenza.
 
 ## Production quality and documentation

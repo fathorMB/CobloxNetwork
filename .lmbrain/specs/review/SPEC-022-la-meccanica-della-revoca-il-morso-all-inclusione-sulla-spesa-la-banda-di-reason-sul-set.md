@@ -23,7 +23,7 @@ verification_gates: []
 related_decisions: [ADR-017, ADR-012, ADR-010]
 links: [DEBT-033, DEBT-034, DEBT-035]
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [identity, ledger, conformance, governance]
 activity:
   - date: 2026-08-26
@@ -160,7 +160,7 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
 - [x] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
 - [x] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
-- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
+- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di sicurezza di AGENT-007 sulla consegna. **Non è facoltativa**: questa spec cambia il predicato di autorizzazione delle transazioni, ed è la superficie su cui [REVIEW-036] ha già trovato dieci voci sulla sola decisione.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
 

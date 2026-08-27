@@ -138,7 +138,7 @@ Da lì il crux di [ADR-018]: con un solo voto firmato un protocollo è sicuro **
 - [ ] GATE-NO-IO | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il motore non ha I/O, dimostrato dalla propria interfaccia e non da un'affermazione.
 - [ ] GATE-NOTHING-PUBLISHED-CHANGED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il diff non tocca `BlockHeader`, `QuorumCertificate`, il predicato di quorum, né la preimmagine del voto esistente. È la premessa di [ADR-018] e si verifica guardando il diff.
 - [ ] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Passata eseguita, `published_artifacts.py` `PASS`, probe nuove nella prova in negativo.
-- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
+- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **È la superficie di sicurezza più grande che il progetto abbia prodotto finora**: finora il rischio stava nelle regole, da qui sta in un protocollo distribuito con stati, timeout e avversari che tacciono.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente il caso del proponente muto e almeno una esecuzione avversa, invece di prenderli dall'evidenza.
 
