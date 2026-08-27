@@ -52,8 +52,9 @@ updated: 2026-08-27
 
 - `status`: proposed
 - `outcome`: I nodi eseguono moduli WASM con metering e capability; verifica a campione dei risultati; SDK per sviluppatori; pubblicare un'app costa token (burn) e hostarla li fa guadagnare; catalogo/abbonamenti ai servizi delle app.
-- `specs`: []
+- `specs`: [SPEC-028]
 - `risks`: [limiti WASI, equità del metering, prima app dimostrativa convincente]
+- `nota`: [SPEC-028] e' anticipata a oggi pur appartenendo a questa milestone. Toglie all'emittente di un `ComputeAssignment` la scelta dell'host, che [ADR-006] aveva gia' negato al publisher, e dichiara i due tetti mancanti. Decisa dall'operatore il 2026-08-27 per chiudere [DEBT-024], con l'argomento che il debito fa da se': oggi la correzione e' un paragrafo, qui sara' un formato di messaggio con implementazioni al seguito.
 
 ### M-07 — Rotazione e resilienza: validatori eletti e hardening
 

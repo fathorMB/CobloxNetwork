@@ -1,7 +1,7 @@
 ---
 id: DEBT-024
 title: "ComputeAssignment lascia scegliere al validatore quale modulo un host determinato esegue, e con quale input"
-status: open
+status: planned
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "TM-42, perimetro dichiarato"
 related_specs: ["SPEC-018"]
 related_reviews: []
 related_decisions: ["ADR-004","ADR-006"]
-target_specs: []
+target_specs: ["SPEC-028"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["compute","security","wire"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: La domanda che il debito poneva e' stata decisa dall'operatore il 2026-08-27: la scelta congiunta di modulo, input e host da parte dell'emittente **non e' deliberata** e va tolta. SPEC-028 la attua: l'host si deriva come gia' avviene per le sfide, e i due tetti mancanti vengono dichiarati.\n\nDue fatti hanno deciso il verso, e nessuno dei due era scritto nel debito. Il protocollo ha gia' il modello corretto e lo usa altrove: per le sfide `ledger.md` impone che la coppia sia quella che la funzione di assegnazione dell'epoca produce dal beacon, quindi compute e sfide seguono oggi modelli opposti nello stesso protocollo senza che alcun documento dica perche'. E ADR-006 aveva gia' tolto deliberatamente al publisher la scelta degli host: un validatore che ce l'ha per il compute e' la stessa capacita' rientrata da un'altra porta.\n\nPortato avanti ora e non a M-06 per l'argomento che il debito fa da se': oggi la correzione e' un paragrafo, a M-06 sara' un formato di messaggio con implementazioni al seguito."
 debt_events:
   - schema_version: "1"
     id: "DEBT-024-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su segnalazione esplicita di AGENT-007, che ha rispettato il perimetro di [SPEC-018] invece di correggere `wire.md` fuori scopo — la scelta giusta, perche' quella spec non ha la gate di [ADR-012] e correggere li' un documento di protocollo l'avrebbe scavalcata.\n\nIl debito esiste perche' TM-42 registra lo **scenario** e non l'**obbligo**: uno scenario nel threat model dice che il pericolo e' stato visto, non che qualcuno lo chiudera'. Senza questo artefatto la conoscenza sarebbe rimasta in un documento di analisi, dove nessuna lifecycle la fa maturare."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-024-EVENT-002"
+    timestamp: "2026-08-27T15:22:11.494783600+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "La domanda che il debito poneva e' stata decisa dall'operatore il 2026-08-27: la scelta congiunta di modulo, input e host da parte dell'emittente **non e' deliberata** e va tolta. SPEC-028 la attua: l'host si deriva come gia' avviene per le sfide, e i due tetti mancanti vengono dichiarati.\n\nDue fatti hanno deciso il verso, e nessuno dei due era scritto nel debito. Il protocollo ha gia' il modello corretto e lo usa altrove: per le sfide `ledger.md` impone che la coppia sia quella che la funzione di assegnazione dell'epoca produce dal beacon, quindi compute e sfide seguono oggi modelli opposti nello stesso protocollo senza che alcun documento dica perche'. E ADR-006 aveva gia' tolto deliberatamente al publisher la scelta degli host: un validatore che ce l'ha per il compute e' la stessa capacita' rientrata da un'altra porta.\n\nPortato avanti ora e non a M-06 per l'argomento che il debito fa da se': oggi la correzione e' un paragrafo, a M-06 sara' un formato di messaggio con implementazioni al seguito."
+    evidence_refs: ["SPEC-028"]
 ---
 # ComputeAssignment lascia scegliere al validatore quale modulo un host determinato esegue, e con quale input
 

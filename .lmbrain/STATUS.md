@@ -76,8 +76,8 @@ aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 
 | Stato | N | Nota |
 | --- | --- | --- |
-| `planned` | 13 | Ognuno ha una spec bersaglio |
-| `open` | 3 | Nessuno `high`; due aspettano una decisione dell'operatore |
+| `planned` | 16 | Ognuno ha una spec bersaglio |
+| `open` | 1 | [DEBT-045], che non ha ancora una spec che lo copra |
 | `deferred` | 2 | [DEBT-010] a M-07, [DEBT-027] a innesco |
 | `accepted-risk` | 1 | [DEBT-039], `glib` |
 | `resolved` | 18 | 9 il 25 agosto, 9 il 26, zero il 27 |
@@ -87,10 +87,14 @@ aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 [DEBT-034] su [SPEC-025] — [DEBT-028], [DEBT-037], [DEBT-043], [DEBT-044] su
 [SPEC-027] — [DEBT-025] su [SPEC-026] — [DEBT-032] su [SPEC-024].
 
-**Restano `open` tre, e due aspettano l'operatore:** [DEBT-024] (la scelta
-congiunta in `ComputeAssignment` e' deliberata?) e [DEBT-031] (quali
-affermazioni di `src/` sono normative?). Il terzo e' [DEBT-045], che non ha
-ancora una spec che lo copra.
+**Le tre decisioni dell'operatore sono prese il 2026-08-27.** [DEBT-024]: la
+scelta congiunta dell'host non e' deliberata, l'host si deriva — [SPEC-028].
+[DEBT-031]: adottato il criterio dell'enumerazione, controllo su [SPEC-026], che
+passa a tre guardie e da `terra` a `sol`. [DEBT-038]: il beacon di casualita'
+vive in M-03.
+
+**Resta `open` uno solo:** [DEBT-045], il verificatore dei vincoli nel
+simulatore, che non ha ancora una spec che lo copra.
 
 **[DEBT-041] superseduto da [DEBT-046] il 2026-08-27.** Non descriveva una
 contraddizione: le due frasi stanno in sezioni diverse e parlano di due
