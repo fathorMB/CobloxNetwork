@@ -14,11 +14,19 @@ light client con prove Merkle, mint & burn, e simulatore economico. Solo il
 simulatore e' fatto, chiuso il 2026-08-25. Non c'e' rete: `libp2p` non e' una
 dipendenza del workspace.
 
-**[SPEC-025] e' consegnata** e in `review` dal 2026-08-27. Quattro validatori
-producono una catena di dieci blocchi finalizzati con certificati veri che il
-verificatore esistente accetta: il primo consenso reale del progetto. Non e'
-ancora una devnet — rete, persistenza e ciclo di vita del nodo sono la spec
-successiva, e `coblox-node/src/main.rs` e' intatto.
+**[SPEC-025] e' consegnata** e in `review`. Quattro validatori producono una
+catena di dieci blocchi finalizzati con certificati veri che il verificatore
+esistente accetta: il primo consenso reale del progetto, e **la regola di blocco
+regge** — [REVIEW-047] l'ha verificata invece di crederle.
+
+[REVIEW-047] chiede pero' modifiche su tre punti, e il piu' grave non e' nel
+consenso ma in cio' che il consenso lascia libero: `transactions` non e' legato a
+`header.transactions_root` da nessuna parte, quindi due nodi onesti possono
+tenere `Block` diversi allo stesso `block_id` finalizzato, entrambi accettati dal
+verificatore. Il rimedio e' gia' nel crate.
+
+Non e' ancora una devnet — rete, persistenza e ciclo di vita del nodo sono la
+spec successiva, e `coblox-node/src/main.rs` e' intatto.
 
 **Rilievo dell'operatore del 2026-08-27, e va tenuto in vista.** La sessione si
 era arenata su questioni che non servivano la milestone: tre spec nuove di cui
@@ -34,7 +42,7 @@ quando il lavoro richiesto non serve la milestone corrente.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-025] | **`review`** | AGENT-002 | Consegnata il 2026-08-27. Tredici criteri su tredici, sette gate `owner=agent` spuntate. Attende `GATE-SECREVIEW` da AGENT-007, che l'operatore deve richiedere |
+| [SPEC-025] | `review`, [REVIEW-047] non superata | AGENT-002 | Tre bloccanti, **nessuno nella regola di blocco**, che regge. Il piu' grave: `transactions` non e' legato a `header.transactions_root`, quindi due nodi onesti possono tenere `Block` diversi allo stesso `block_id`. `GATE-CI-GREEN` attestata |
 | [SPEC-022] | `review`, **congelata** | AGENT-002 | Attende la forma iniettiva del punto 3 di [ADR-017], riaperto da [REVIEW-046]. Nessuno tocca `ledger.md` ne' `core/` per essa: non e' in contesa con [SPEC-025] |
 
 Nessun agente in esecuzione.

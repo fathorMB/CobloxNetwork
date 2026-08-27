@@ -38,6 +38,19 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-27
     action: "transitioned working -> review"
+  - date: 2026-08-27
+    action: "attested verification GATE-CI-GREEN by lead"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "e1bdc40618ab8ac93136c8b1c9865bab5ca7170cb2b82934eb92c0dfc9afa8b7"
+    evidence_ref: "Run GitHub Actions 33086611370 sul commit 76b5bd3 di main, che porta la consegna: sei job su sei verdi — Rust (ubuntu-latest), Rust (windows-latest), Tauri desktop (ubuntu-latest), Tauri desktop (windows-latest), Android arm64 + Kotlin bindings, Protocol document guards. Verificato dal Lead interrogando i job della run, non il solo esito complessivo.\n\nVerificato inoltre che i tre passi nuovi introdotti da questa consegna abbiano davvero girato, e non solo di essere stati aggiunti al file: lo sweep esteso in release — cargo test --release --locked -p coblox-core --test consensus_devnet -- --ignored --nocapture — risulta success su Linux e skipped su Windows, che e' il comportamento voluto dalla sua condizione runner.os == 'Linux'; \"The consensus engine has no I/O\" success; \"That lint proved in the negative, three defect classes\" success.\n\nIl controllo sui passi nuovi conta piu' dell'esito complessivo: un passo aggiunto a un workflow che non venga mai eseguito produce una pipeline verde e una guardia inesistente, ed e' la forma di difetto che questa consegna dichiarava di voler evitare quando ha portato lo sweep in CI invece di lasciarne il numero in una trascrizione."
+    id: "SPEC-025-ATTEST-001"
+    requirement_digest: "f8e43a5fdd0ae9021563670cf903511159d3c6e03749a1f62b79d01126d324fd"
+    requirement_id: "GATE-CI-GREEN"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T17:26:29.979625900+02:00"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 
@@ -146,7 +159,7 @@ Da lì il crux di [ADR-018]: con un solo voto firmato un protocollo è sicuro **
 - [x] GATE-NO-IO | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il motore non ha I/O, dimostrato dalla propria interfaccia e non da un'affermazione.
 - [x] GATE-NOTHING-PUBLISHED-CHANGED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il diff non tocca `BlockHeader`, `QuorumCertificate`, il predicato di quorum, né la preimmagine del voto esistente. È la premessa di [ADR-018] e si verifica guardando il diff.
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Passata eseguita, `published_artifacts.py` `PASS`, probe nuove nella prova in negativo.
-- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
+- [x] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **È la superficie di sicurezza più grande che il progetto abbia prodotto finora**: finora il rischio stava nelle regole, da qui sta in un protocollo distribuito con stati, timeout e avversari che tacciono.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente il caso del proponente muto e almeno una esecuzione avversa, invece di prenderli dall'evidenza.
 
