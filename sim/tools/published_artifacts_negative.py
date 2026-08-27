@@ -51,6 +51,11 @@ COPIED_FILES = (
     "SECURITY.md",
     "README.md",
     "AGENTS.md",
+    # C11 walks every markdown under `docs/`, and an `[[unswept]]` entry naming a
+    # file the copy does not have is itself a C11 failure. The runbook is
+    # classified `unswept` by [REVIEW-049] RF-005, so the copy must carry it or
+    # the control run fails on the tool's own staging rather than on a defect.
+    "docs/devnet-runbook.md",
     ".lmbrain/knowledge/threat-model.md",
 )
 

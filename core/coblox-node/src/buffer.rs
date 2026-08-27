@@ -54,7 +54,30 @@ impl FutureHeightBuffer {
     }
 
     /// Prunes any stale messages buffered for heights `< current_height`.
+    ///
+    /// Called at every height advance. `drain_height` removes one exact height,
+    /// so a height the node **skips** — which the `finalized_block` path does by
+    /// construction — would otherwise leave its entry in the map for the life of
+    /// the process. [REVIEW-049] RF-010.
     pub fn prune_before(&mut self, current_height: u64) {
         self.buffer.retain(|&h, _| h >= current_height);
+    }
+
+    /// Total envelopes held, across every buffered height.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.buffer.values().map(Vec::len).sum()
+    }
+
+    /// Whether nothing is buffered.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.buffer.values().all(Vec::is_empty)
+    }
+
+    /// Number of distinct heights with at least one buffered envelope.
+    #[must_use]
+    pub fn height_count(&self) -> usize {
+        self.buffer.len()
     }
 }

@@ -1,7 +1,7 @@
 ---
 id: DEBT-049
 title: "La devnet scrive dentro l'albero sorgente e nulla lo ignora"
-status: open
+status: resolved
 category: "tooling"
 severity: "low"
 origin_severity: null
@@ -15,14 +15,16 @@ related_reviews: ["REVIEW-049"]
 related_decisions: []
 target_specs: []
 blocked_by: []
-resolution_refs: []
+resolution_refs: ["REVIEW-049","SPEC-029"]
 superseded_by: null
 revisit_condition: null
 created: 2026-08-27
 updated: 2026-08-27
 tags: []
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "resolved: Sussunto da [REVIEW-049] RF-005 e chiuso dentro la sua remediation. Il Lead lo aveva aperto come fuori perimetro prima di leggere l'elenco numerato dei rilievi, dove lo stesso fatto era gia' censito con una condizione di chiusura piu' ampia: il debito era percio' un duplicato per meta', ed e' corretto che si chiuda con il rilievo che lo comprende invece di sopravvivergli."
 debt_events:
   - schema_version: "1"
     id: "DEBT-049-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "project-lead"
     rationale: "Dichiarato nel verdetto di REVIEW-049 come fuori perimetro della remediation: non e' un difetto di sicurezza del nodo e non va corretto dentro un ciclo che deve restare concentrato sui due critical. Aperto come debito perche' e' un fatto osservato eseguendo, non una preferenza."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-049-EVENT-002"
+    timestamp: "2026-08-27T21:31:26.610025800+02:00"
+    action: "resolved"
+    from_status: "open"
+    to_status: "resolved"
+    actor_role: "project-lead"
+    actor: "project-lead"
+    rationale: "Sussunto da [REVIEW-049] RF-005 e chiuso dentro la sua remediation. Il Lead lo aveva aperto come fuori perimetro prima di leggere l'elenco numerato dei rilievi, dove lo stesso fatto era gia' censito con una condizione di chiusura piu' ampia: il debito era percio' un duplicato per meta', ed e' corretto che si chiuda con il rilievo che lo comprende invece di sopravvivergli."
+    evidence_refs: ["REVIEW-049", "SPEC-029"]
 ---
 # La devnet scrive dentro l'albero sorgente e nulla lo ignora
 
@@ -59,3 +71,4 @@ Created by project-lead: Dichiarato nel verdetto di REVIEW-049 come fuori perime
 
 ## Resolution evidence
 
+Verificato dal Lead il 2026-08-27 sull'albero dopo la remediation di AGENT-001, non sulle sue affermazioni. `.gitignore` righe 56-57 portano `data/` e `data-val*.log`, con sopra la ragione scritta per esteso. `core/coblox-node/src/main.rs:41-42` mostra che `data_dir` e' passato da un `default_value` dentro l'albero sorgente a `#[arg(long)]` senza default, cioe' obbligatorio: la strada piu' forte fra le due che il criterio ammetteva, perche' elimina il default invece di spostarlo. `git status --porcelain` dopo il giro di runbook rieseguito dallo specialista non mostra alcuna directory `data/` ne' alcun `data-val*.log`, che era la condizione di chiusura richiesta.

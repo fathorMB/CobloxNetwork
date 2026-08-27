@@ -124,6 +124,20 @@ pub enum ConsensusError {
     ProposalValidRoundNotBelowRound { round: u64, valid_round: u64 },
     /// A proposer offered a value for a `(height, round)` it is not proposing.
     UnsolicitedValue { height: u64, round: u64 },
+    /// A restored lock names a round without a block, or a block without a
+    /// round.
+    ///
+    /// `lockedRound_p` and `lockedValue_p` are one fact in two fields, and a
+    /// caller that restores half of it after a restart would start a node that
+    /// believes it is unlocked at a round it is locked at. Failing at
+    /// construction says so once; dropping the half-specified lock would not say
+    /// it at all. See [REVIEW-049] RF-002.
+    IncompleteRestoredLock {
+        /// Whether `locked_round` was supplied.
+        has_round: bool,
+        /// Whether `locked_block_id` was supplied.
+        has_block_id: bool,
+    },
 }
 
 /// Reasons a single-key transaction authorization is rejected.

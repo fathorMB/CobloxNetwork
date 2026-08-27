@@ -25,12 +25,20 @@ enum Command {
         #[arg(long, default_value_t = 0)]
         seed_index: u8,
 
-        /// Custom 32-byte hex seed (overrides `seed_index` if specified)
+        /// Custom 32-byte (64 hex digit) seed, overriding `seed_index`.
+        ///
+        /// Read from the command line, where every local user can see it in the
+        /// process table. Acceptable only because a devnet key is a public
+        /// constant to begin with; see the runbook.
         #[arg(long)]
         seed_hex: Option<String>,
 
-        /// Directory for WAL and block storage
-        #[arg(long, default_value = "./data/val-000")]
+        /// Directory for WAL and block storage. Required: there is no default,
+        /// and the reason is that the previous one — `./data/val-000` — put a
+        /// validator's signed votes inside the source tree of a public
+        /// repository, one `git add -A` away from being published, and left the
+        /// working tree dirty after every run. [REVIEW-049] RF-005, [DEBT-049].
+        #[arg(long)]
         data_dir: PathBuf,
 
         /// Multiaddress to listen on (e.g. /ip4/127.0.0.1/tcp/9001)
@@ -66,8 +74,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let signing_key = if let Some(hex_str) = seed_hex {
                 let bytes = hex::decode(&hex_str)?;
-                let mut seed = [0u8; 32];
-                seed.copy_from_slice(&bytes[..32]);
+                // A 31-byte seed used to panic on the slice index.
+                // [REVIEW-049] RF-017.
+                let seed: [u8; 32] = bytes.as_slice().try_into().map_err(|_| {
+                    format!(
+                        "--seed-hex must decode to exactly 32 bytes (64 hex digits); got {} byte(s)",
+                        bytes.len()
+                    )
+                })?;
                 SigningKey::from_seed(&seed)
             } else {
                 let seed = [seed_index + 1; 32];

@@ -3,6 +3,8 @@
 //! Implements RFC 8032 section 5.1.6 Ed25519 signing for consensus votes,
 //! proposals, and wire envelopes.
 
+use core::fmt;
+
 use curve25519_dalek::{edwards::EdwardsPoint, scalar::Scalar};
 use sha2::{Digest, Sha512};
 
@@ -10,11 +12,54 @@ use coblox_core::hash::{ChainId, Digest32, Domain};
 use coblox_core::registry::{block_prevote_preimage, block_vote_preimage, signing_preimage};
 
 /// An Ed25519 signing key, held by secret scalar and prefix.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// Not `Debug`-derived, not `Copy`, and not `PartialEq`, and each omission
+/// answers something [REVIEW-049] RF-009 executed:
+///
+/// - the derived `Debug` printed the secret scalar and the prefix in clear, and
+///   `NodeConfig` derives `Debug` and holds one of these, so any `{:?}` on a
+///   configuration — in a log line or a panic message — published the key;
+/// - `Copy` scattered silent copies of secret material through memory with
+///   nothing to zero;
+/// - the derived `PartialEq` compared secret bytes in variable time.
+///
+/// The scalar and the prefix are zeroed on `Drop`. That closes the lifetime of
+/// *this* copy and not every copy the allocator may have made, which is the
+/// honest limit of doing it without a dedicated crate.
+#[derive(Clone)]
 pub struct SigningKey {
     scalar: Scalar,
     prefix: [u8; 32],
     public_key: [u8; 32],
+}
+
+// `clippy::missing_fields_in_debug` wants every field printed, and printing the
+// two it names is the whole defect this impl exists to close.
+#[allow(clippy::missing_fields_in_debug)]
+impl fmt::Debug for SigningKey {
+    /// Prints the public key and says the rest is withheld.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SigningKey")
+            .field("public_key", &hex_lower(&self.public_key))
+            .field("secret", &"<redacted>")
+            .finish()
+    }
+}
+
+impl Drop for SigningKey {
+    fn drop(&mut self) {
+        self.scalar = Scalar::ZERO;
+        self.prefix.fill(0);
+    }
+}
+
+fn hex_lower(bytes: &[u8; 32]) -> String {
+    let mut out = String::with_capacity(64);
+    for byte in bytes {
+        out.push(char::from_digit(u32::from(byte >> 4), 16).unwrap_or('0'));
+        out.push(char::from_digit(u32::from(byte & 0x0f), 16).unwrap_or('0'));
+    }
+    out
 }
 
 fn sha512(parts: &[&[u8]]) -> [u8; 64] {

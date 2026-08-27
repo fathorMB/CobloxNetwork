@@ -164,40 +164,61 @@ argument that every safety proof in [ADR-018] rests on would no longer hold. Sta
 it with a fresh `--data-dir` and you have not restarted a validator, you have added
 a faulty one.
 
-**What the restart does *not* restore, as of this writing: the lock.**
-`ConsensusEngine` carries `locked: Option<(u64, Value)>` — `lockedValue` and
-`lockedRound` of Algorithm 1 — and it is built as `None` every time
-(`consensus/engine.rs:307`). The string `locked` does not appear anywhere in
-`coblox-node/src`. So a validator that was locked on a value when it died comes
-back **unlocked**, and nothing stops it from prevoting a different value in a
-later round. That is not equivocation, and the WAL is right not to call it one:
-it is a violation of the locking rule, which is a *different* safety argument, and
-it is the one this runbook cannot currently demonstrate holding. The information
-needed to rebuild the lock is in `wal.jsonl` — the highest round with a non-nil
-precommit — but nothing reads it back. Verified by the Lead on 2026-08-27 while
-executing this runbook, independently and before reading the review; [REVIEW-049]
-RF-002 reached the same conclusion with an executed proof of concept, and adds the
-part the Lead had not measured: **with n=4 and f=1, a single `kill -9` spends the
-entire equivocation budget with no adversary present.**
+**The restart restores the lock too, and it says so on its first line.** The
+paragraph that stood here said the opposite, and it was true when it was written:
+`Engine::start` built `locked: None` every time, so a validator that was locked on
+a value when it died came back **unlocked** and could prevote a different value in
+a later round of the same height. That is not equivocation — the WAL is right not
+to call it one — but it violates the locking rule, and [REVIEW-049] RF-002 added
+the part the Lead had not measured: with n=4 and f=1, one `kill -9` spent the
+entire fault budget with no adversary present. The round that makes it reachable
+is not hypothetical either: on this devnet heights routinely finalize at `round=1`
+and `round=2`.
 
-And the round that makes this reachable is not hypothetical. In the Lead's own run
-above, **height 1 finalizes at `round=1`** — the very first height of a healthy
-four-node devnet already goes to a second round.
+It is closed now. `EngineConfig` carries `locked_round` and `locked_block_id`, and
+the node fills them from `wal.jsonl`: the highest round it precommitted in at the
+height it is resuming **is** the round it was locked at, because Algorithm 1 lines
+38-40 lock and precommit in the same step. Nothing new is written to disk — the
+fact was already in the log; nothing read it back. A restart that finds a lock
+prints it:
 
-`wal.jsonl` is append-only and is never rewritten. If a line in it is
-unreadable, the node **fails to start** rather than skipping it: skipping would
-mean coming back up without knowing what it had already signed, which is the one
-thing it must never do.
+```text
+Starting coblox-node validator=val-003 pid=19472
+LOCK_RESTORED node=val-003 height=59 round=0 block_id=Digest32([140, 77, 243, 136, ...])
+```
+
+A restart at a height the node never precommitted in prints nothing and starts
+unlocked, which is Algorithm 1's `lockedRound_p = -1`.
+
+
+`wal.jsonl` is append-only. If a **complete** line in it is unreadable, the node
+**fails to start** rather than skipping it: skipping would mean coming back up
+without knowing what it had already signed, which is the one thing it must never
+do.
+
+There is exactly one exception, and it is the case this whole exercise is about.
+A `kill -9` can land between the write and the `fsync` and leave a final line with
+no newline on it — an interrupted append, not a corrupt record. A vote whose line
+is incomplete never left the process, because `record_vote` returns before the
+send. So the node discards that tail, truncates the file back to the last complete
+record, prints what it did, and starts. Any malformed line that is **not** the last
+one is still fatal: that one has no benign explanation. [REVIEW-049] RF-008.
 
 ## Cleaning up
 
 ```bash
-rm -rf ./data
+rm -rf ./data ./data-val*.log
 ```
 
 Deleting a data directory discards that validator's memory of what it signed.
 Harmless between devnet runs, and never appropriate on a node that has
 participated in a chain you care about.
+
+`data/` and `data-val*.log` are in `.gitignore`, and `--data-dir` has **no
+default**: the node refuses to start without one. Both are [REVIEW-049] RF-005.
+Before them, the default data directory was `./data/val-000` — inside the source
+tree of a public repository — and a run left signed votes untracked in the working
+tree, to be cleaned by hand before every commit.
 
 ## The automated version
 
@@ -215,46 +236,68 @@ sequence works, and a runbook lets a person drive it.
 
 ## Transcripts
 
-From the Lead's own run on 2026-08-27, driven from the commands above — not from
-the automated test. The four nodes were started **without** `--target-height`, so
-they were still running when the kill landed. An earlier attempt with
-`--target-height 12` was discarded: the nodes reached 12 and exited on their own
-before `kill -9` arrived, and it proved nothing.
+Re-executed by AGENT-001 on 2026-08-27 during the remediation of [REVIEW-049],
+from the commands above and not from the automated test. The earlier transcripts
+were the Lead's and were replaced because the behaviour they showed has changed:
+the restart now restores the lock, and that line did not exist when they were
+taken. The four nodes were started **without** `--target-height`, so they were
+still running when the kill landed.
 
-**Growing, then `kill -9` on a live node:**
+On this machine `pgrep` is not available in Git Bash, so the kill used the PID the
+node prints on its first line:
 
 ```text
 prima del kill:
- val-000=51 val-001=51 val-002=51 val-003=52
->>> val-003 ucciso con kill -9 <<<
+ val-000=57 val-001=57 val-002=57 val-003=58
+>>> val-003 (pid=10704) ucciso con taskkill /F <<<
 dopo il kill:
- val-000=98 val-001=99 val-002=99 val-003=52
+ val-000=91 val-001=91 val-002=91 val-003=58
+voti nel WAL di val-003 prima del riavvio: 118
 ```
 
-Three validators carried the chain from 51 to 99 while the fourth stayed at the
-52 it died on. Three of four is exactly the quorum, so there was no margin left:
-a second loss would have stopped it.
+Three validators carried the chain from 57 to 91 while the fourth stayed at the 58
+it died on. Three of four is exactly the quorum, so there was no margin left: a
+second loss would have stopped it.
 
 **Restart on the same data directory:**
 
 ```text
-voti nel WAL di val-003 prima del riavvio: 105
-Starting coblox-node validator=val-003 pid=26140
-SYNC_FINALIZED node=val-003 height=53 block_id=Digest32([53, 188, 149, 247, ...])
-SYNC_FINALIZED node=val-003 height=54 block_id=Digest32([16, 137, 220, 84, ...])
-dopo il riavvio:
- val-000=184 val-001=184 val-002=185 val-003=185
+Starting coblox-node validator=val-003 pid=19472
+LOCK_RESTORED node=val-003 height=59 round=0 block_id=Digest32([140, 77, 243, 136, ...])
+PUBLISH_FAILED message_type=block_proposal: InsufficientPeers
+PUBLISH_FAILED message_type=prevote: InsufficientPeers
+SYNC_FINALIZED node=val-003 height=59 block_id=Digest32([140, 77, 243, 136, ...])
+SYNC_FINALIZED node=val-003 height=60 block_id=Digest32([66, 192, 70, 218, ...])
+t+10s: val-000=150 val-001=150 val-002=150 val-003=150
+t+20s: val-000=191 val-001=192 val-002=192 val-003=192
+t+30s: val-000=233 val-001=233 val-002=233 val-003=233
+t+40s: val-000=274 val-001=274 val-002=275 val-003=275
 ```
 
-It came back with 105 votes already in its log, resumed at height 53 — the one
-after the last it had finalized, not from genesis — and caught the other three.
+Three things in that transcript are worth naming.
 
-**What these transcripts do not show.** The node is killed while the chain is
-running, which is better than the automated test's kill at a height boundary, but
-neither run observes the case that matters most: a node killed *after* it has
-signed a precommit for a height and *before* that height finalizes, restarted, and
-then asked to vote in a later round of the same height. That is where the WAL and
-the missing lock restore would actually be exercised against each other. This
-runbook can start that situation but cannot reliably *hit* it by hand, because the
-window is milliseconds wide. It needs a fault injection point in the node, and
-that does not exist yet.
+**`LOCK_RESTORED`** is the line that did not exist before. val-003 had
+precommitted at height 59 round 0 and died before it finalized; it came back
+locked on the same block, from its own log.
+
+**The two `PUBLISH_FAILED ... InsufficientPeers`** are normal and are not an
+error being swallowed. A node that has just started has no gossip mesh yet, and
+its first proposal and prevote have nowhere to go. They are printed rather than
+discarded because [REVIEW-049] RF-016 found every transmission written as
+`let _ = try_send(...)`, with a full channel dropping an already-durable vote in
+silence.
+
+**It caught up within ten seconds** and then stayed level. Sync answers are
+bounded at eight blocks and throttled to one per requester per second: without
+the throttle the catch-up burst delayed live consensus messages past their own
+expiry and stalled the chain for the whole duration of the sync. That
+amplification was always there — the envelope expiry check of RF-001 is what made
+it visible.
+
+**What this transcript does not show.** The node is killed while the chain is
+running, but the kill is not placed in the window between a vote's `fsync` and its
+transmission: that window is milliseconds wide and cannot be hit by hand. It is
+exercised instead by `core/coblox-node/tests/durable_before_send.rs`, which puts
+the kill on an **instruction** — `std::process::abort()` between `Wal::record_vote`
+and the send, behind `COBLOX_NODE_ABORT_AFTER_WAL_SYNC` — and then checks that the
+vote is in the log while no `VOTE_SENT` line was ever printed.

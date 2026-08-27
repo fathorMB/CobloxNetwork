@@ -46,3 +46,12 @@ opencode.json
 # Python bytecode cache (simulatore economico in sim/)
 __pycache__/
 *.py[cod]
+
+# Devnet runtime state. A validator's --data-dir holds wal.jsonl (its signed
+# votes) and blocks.jsonl (its chain); the per-node logs are the runbook's
+# redirected stdout. Both are produced by running docs/devnet-runbook.md and
+# neither belongs in a public repository. The node no longer defaults --data-dir
+# anywhere, so these patterns cover the paths the runbook itself uses.
+# [REVIEW-049] RF-005, [DEBT-049].
+data/
+data-val*.log

@@ -2900,6 +2900,20 @@ pattern = 'For the devnet seed validator topology, nodes implement the required 
 count = 1
 why = "GATE-SUBSET-DECLARED: wire.md declares the exact transport subset enacted by the devnet seed validators (TCP/Noise/Yamux + GossipSub 1.1) and the explicit exclusions (QUIC, Kademlia DHT, mDNS, AutoNAT, Relay, DCUtR), preventing silent protocol divergence."
 
+[[probe]]
+id = "wire-blocks-topic-separation-normative"
+site = "wire.md"
+pattern = 'The consensus topic is separate from `blocks` and the separation is normative'
+count = 1
+why = "[REVIEW-049] RF-007(a). The devnet published finalized blocks and sync requests on the consensus topic while this sentence declared the separation normative, and the gate's own probe fixed only the sentence about the transport. Pinning this one makes the next divergence between the two topics visible to the sweep rather than to a reviewer."
+
+[[probe]]
+id = "wire-gossipsub-message-id-is-the-verified-id"
+site = "wire.md"
+pattern = "GossipSub's message-ID function MUST use this verified ID"
+count = 1
+why = "[REVIEW-049] RF-007(b). The devnet's message-ID function hashed the raw bytes with std's DefaultHasher — 64-bit and not stable across releases — while this line requires the envelope's own verified message_id. The rule is prose and therefore invisible to the four mechanical classes; a C10 probe is how it gets a witness."
+
 
 # --- markdown outside the sweep, each with its reason ------------------------
 #
@@ -2912,6 +2926,10 @@ why = "GATE-SUBSET-DECLARED: wire.md declares the exact transport subset enacted
 [[unswept]]
 path = "AGENTS.md"
 why = "Operating instructions addressed to agents working in this repository, not to readers of the protocol or of the product. It carries no normative rule and no security claim, and its content is governed by .lmbrain/AGENT.md rather than by this inventory."
+
+[[unswept]]
+path = "docs/devnet-runbook.md"
+why = "Operating instructions for starting a four-validator devnet on one machine: commands, data directories, and the transcripts of a run. It states no rule of the protocol and pins no published value — where it touches a normative fact it points at wire.md and at ADR-018 rather than restating them — so there is nothing here for the five discovery classes to sweep. What it does carry is the declaration that devnet signing keys are derived from --seed-index and are therefore public, which is a property of a devnet configuration and not a claim about the protocol. [REVIEW-049] RF-005 asked for this classification: before it, the document was on disk and in none of the three buckets, and C11 failed."
 
 [[unswept]]
 path = "README.md"

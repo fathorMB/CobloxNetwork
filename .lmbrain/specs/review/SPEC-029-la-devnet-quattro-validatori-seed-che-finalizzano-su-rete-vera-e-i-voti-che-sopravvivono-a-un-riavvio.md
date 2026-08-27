@@ -11,7 +11,12 @@ milestone: M-02
 recommended_agent: AGENT-001
 capability_tier: sol
 thinking_level: maximum
-effort_observations: []
+effort_observations:
+  - timestamp: "2026-08-27"
+    actor: "AGENT-001"
+    observed_tier: "sol"
+    recommended_tier: "sol"
+    note: "Remediation di REVIEW-049: 20 rilievi, 2 critical. Toccati 20 file e aggiunti 7 (1 modulo, 6 file di test), 29 test nuovi (235 -> 264). Attraversa coblox-node, coblox-core/consensus, docs/protocol, il runbook e due strumenti di sim/, quindi resta 'sol' come stimato. Il costo non previsto e' venuto dall'esecuzione e non dalla scrittura: attivare il controllo di scadenza della busta (RF-001) ha reso visibile l'amplificazione di sincronizzazione (RF-006) come uno stallo di liveness durante il catch-up, e ha fatto emergere un difetto non censito - una RequestValue del motore precedente consegnata al motore sostituito, fatale. Nessuno dei due si vede leggendo il codice; si vedono solo eseguendo il runbook."
 depends_on: [SPEC-025]
 dependency_events: []
 parking_events: []
@@ -31,6 +36,8 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-27
     action: "transitioned working -> review"
+  - date: 2026-08-27
+    action: "record effort observation"
 ---
 # La devnet
 
@@ -132,11 +139,26 @@ rete e l'orologio ai due capi e il motore in mezzo, invariato.
       con il verificatore spedito. Non un test in memoria: quattro processi.
 - [x] **Il riavvio non produce equivocazione.** Un nodo e' ucciso mentre l'altezza
       e' in corso e riavviato; la catena prosegue e il nodo riavviato non firma
-      nulla che contraddica il proprio log. **Il caso e' esercitato, non
-      argomentato.**
+      nulla che contraddica il proprio log, **e riprende il lock che aveva**.
+      **Il caso e' esercitato, non argomentato.**
+
+      **Questa casella era `[x]` a torto.** [REVIEW-049] RF-002: era marcata su
+      una proprieta' piu' debole del proprio testo — il nodo non contraddiceva il
+      log, ma tornava **slockato**, e poteva prevotare un valore diverso a un
+      round successivo senza polka. Il testo del criterio e' stato esteso a
+      nominare il lock, perche' era quello che intendeva. Ora e' vero:
+      `consensus_restored_lock.rs` (5 test) e `wal_lock_restore.rs` (5 test),
+      piu' la riga `LOCK_RESTORED` osservata nel giro di runbook.
 - [x] Un voto non e' mai trasmesso prima di essere durevole. Dimostrato da un
       test che uccide il processo fra la scrittura e la trasmissione e verifica
       che al riavvio il voto sia noto.
+
+      **Questa casella era `[x]` a torto.** [REVIEW-049] RF-003: quel test non
+      esisteva. `wal_safety.rs` riapriva il `Wal` nello stesso processo e la
+      devnet uccideva fuori dalla finestra; non c'era finestra, nemmeno
+      probabilistica. Ora esiste: `durable_before_send.rs`, con il punto di
+      uccisione su un'**istruzione** (`std::process::abort()` fra `sync_all` e
+      `try_send`) e un gemello che osserva l'invio avvenire senza di essa.
 - [x] I blocchi finalizzati sopravvivono al riavvio: il nodo riparte dall'altezza
       che aveva, non da genesi.
 - [x] **`FinalizedBlock::verify` ricalcola `transactions_root` dal carico
@@ -154,6 +176,11 @@ rete e l'orologio ai due capi e il motore in mezzo, invariato.
 - [x] **Il buffering fra altezze** e `valid(v)` sono implementati e nominati:
       esiste un test in cui un messaggio di un'altezza futura arriva presto,
       viene trattenuto, e viene consumato quando l'altezza comincia.
+
+      **Questa casella era `[x]` a torto.** [REVIEW-049] RF-004: `buffer.rs` non
+      aveva alcun test e nessun file di test nominava `FutureHeightBuffer`. Ora
+      il test che il criterio descrive esiste ed e' il primo di
+      `future_height_buffer.rs`, con le asserzioni sui tre momenti separate.
 - [x] I tre timeout hanno valori **derivati da una grandezza dichiarata** e non
       scelti, oppure sono dichiarati parametri locali con la ragione. La
       trascrizione nomina la derivazione.
@@ -170,9 +197,9 @@ rete e l'orologio ai due capi e il motore in mezzo, invariato.
 
 - [x] GATE-FOUR-PROCESSES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Quattro **processi separati**, non quattro motori in un test, finalizzano almeno dieci blocchi su rete vera. La trascrizione mostra i PID, gli indirizzi e le altezze.
 - [x] GATE-RESTART-NO-EQUIVOCATION | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Un nodo ucciso a meta' altezza e riavviato non firma nulla che contraddica il proprio log, e il caso e' **eseguito**. E' il criterio di sicurezza di questa spec: senza di esso la devnet e' una dimostrazione e non un nodo.
-- [x] GATE-DURABLE-BEFORE-SEND | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Osservato che un voto non lascia il processo prima di essere durevole, uccidendo il processo nella finestra e verificando al riavvio.
+- [x] GATE-DURABLE-BEFORE-SEND | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Osservato che un voto non lascia il processo prima di essere durevole, uccidendo il processo nella finestra e verificando al riavvio. **Era `[x]` senza il test ([REVIEW-049] RF-003); ora e' `durable_before_send.rs`.**
 - [x] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova osservata fallire su un albero mutato, una mutazione per regola.
-- [x] GATE-ENGINE-UNCHANGED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il diff non modifica `core/coblox-core/src/consensus/`, salvo cio' che [REVIEW-047] ha chiesto. Verificabile guardando il diff.
+- [x] GATE-ENGINE-UNCHANGED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Requisito originale, che resta scritto: il diff non modifica `core/coblox-core/src/consensus/`, salvo cio' che [REVIEW-047] ha chiesto. Verificabile guardando il diff. **DEROGATO dal Lead il 2026-08-27**, non soddisfatto alla lettera: il diff tocca `consensus/engine.rs` (55 inserzioni, 12 cancellazioni; nulla altrove sotto `consensus/`) perche' la remediation di [REVIEW-049] RF-002 lo prescrive, e la clausola di eccezione qui sopra nomina [REVIEW-047] e non [REVIEW-049]. La modifica e' sanzionata dalla catena di governo, ma la gate come scritta e' falsa, e una casella che argomenta contro il proprio testo e' la classe di difetto che questa stessa review ha censito tre volte (RF-003, RF-004, RF-005). Nessun debito: non resta nulla di non fatto. Verificato dal Lead che il restringimento di `locked` a `Digest32` non impedisce a un proposer lockato di riproporre, perche' la ri-proposta passa da `self.valid` (`engine.rs:554`), che conserva il `Value` intero. AGENT-001 aveva lasciato `[x]` argomentando l'intento e ha dichiarato la scelta al Lead invece di nasconderla; la riscrittura del testo di una gate da parte di chi essa vincola resta pero' una decisione del Lead, e questa e' la sua. Ribaltabile dall'operatore.
 - [x] GATE-SUBSET-DECLARED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `wire.md` dichiara quale sottoinsieme della propria baseline la devnet attua, e una probe di [ADR-012] la fissa. Un sottoinsieme non dichiarato e' una divergenza silenziosa.
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Passata eseguita con lo strumento versionato, trascrizione allegata.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **Non e' facoltativa**: questa spec porta le chiavi di firma, la persistenza e la rete nello stesso processo, ed e' la prima volta che un nodo Coblox parla con un altro.
@@ -384,3 +411,562 @@ negative proof: PASS - 17 mutations across 11 defect classes, plus every probe i
 $ python sim/tools/consensus_no_io.py
 consensus engine no-I/O lint: PASS
 ```
+
+---
+
+## Remediation di [REVIEW-049] — AGENT-001, 2026-08-27
+
+`GATE-SECREVIEW` non era passata. Venti rilievi, due `critical` con PoC eseguito.
+Questa sezione dice, per ogni rilievo, se e' chiuso, con quale condizione di
+chiusura e con quale trascrizione — **e dove non lo e', lo dice**.
+
+Prima di tutto il resto, tre affermazioni che vanno lette come tali:
+
+1. **Tre caselle di accettazione erano `[x]` e il test che il loro testo nomina
+   non esisteva.** Il buffering fra altezze (RF-004), la durabilita' prima della
+   trasmissione (RF-003) e il riavvio senza equivocazione (RF-002) erano marcate
+   soddisfatte su nulla, su un test che non uccideva niente, e su una proprieta'
+   piu' debole di quella enunciata. Ora ciascuna ha un test eseguito, nominato
+   qui sotto; ma **erano false quando sono state marcate**, ed e' la classe di
+   difetto piu' grave di questa consegna perche' rende inaffidabile ogni altra
+   casella.
+2. **La regola *durevole prima di trasmettere* non e' stata toccata**, perche'
+   era gia' giusta: `record_vote(...)?` precede il `try_send` su ogni percorso e
+   `sync_all` c'e'. Cio' che mancava non era la durabilita': era **cosa** veniva
+   reso durevole, e quello e' RF-002.
+3. **Un rilievo ha, nella sua condizione di chiusura, una meta' che ritengo
+   sbagliata nel merito.** E' RF-002. Non l'ho aggirata: e' argomentata sotto e
+   riportata al Lead invece che dichiarata soddisfatta.
+
+### I due critical
+
+#### RF-001 — il confine della busta. CHIUSO.
+
+`SignedEnvelope::verify` non aveva un chiamante nel workspace. Ora e' la
+**prima** cosa che accade a ogni busta in arrivo, su ogni `message_type`, in
+`NodeRunner::handle_envelope`, nell'ordine: `network_id`; risoluzione di
+`sender_node_id` a un membro del set; `verify` sotto il `chain_id` locale e la
+`consensus_public_key` di quel membro; cache anti-replay. Solo dopo il payload
+viene guardato, in un `dispatch_envelope` separato.
+
+**Il `chain_id` non e' un campo della busta**, e va detto perche' la frase
+«confronta il `chain_id`» suggerisce un confronto che non c'e' da fare:
+`wire.md` lo lega dentro `message_id` (`"coblox-message-id-v0\0" || chain_id_32`)
+e dentro il dominio della firma. Ricalcolarli sotto il `chain_id` locale **e'**
+il controllo di catena, ed e' piu' forte del confronto di un campo trasportato.
+Il test `an_envelope_of_another_chain_is_refused` lo osserva fallire su
+`message_id mismatch`.
+
+Aggiunti con lo stesso confine, perche' discendono dallo stesso buco:
+
+- scadenza (`now > expires_at_ms`) e finestra di validita' limitata da
+  `MAX_ENVELOPE_VALIDITY_MS`, che porta il nome del parametro firmato che non
+  esiste ancora (`envelope.rs`);
+- `nonce` casuale dal CSPRNG di sistema (`fresh_nonce`) al posto di `[0u8; 16]`
+  in tutti e cinque i siti — senza il quale la cache `(sender_node_id, nonce)`
+  di `wire.md` e' strutturalmente inattuabile;
+- la cache stessa (`replay.rs`), con i due tetti `replay_cache_entries_global` e
+  `replay_cache_entries_per_peer` e **la regola di non-evizione**: una cache
+  piena rifiuta, non sfratta una voce viva.
+
+Una busta rifiutata al confine e' `NodeError::Rejected`, che `NodeError::is_fatal`
+distingue da tutto il resto: il ciclo `run` la registra e prosegue. Un nodo che
+uscisse alla prima busta storta sarebbe fermabile da chiunque; una scrittura
+durevole che fallisce resta invece fatale.
+
+**Condizione di chiusura** («il PoC-1 portato nella suite deve fallire
+l'ingresso — errore e `wal_vote_count()` invariato — e un gemello ben firmato
+deve continuare a passare»):
+
+```text
+$ cargo test -p coblox-node --test envelope_boundary
+running 9 tests
+test a_wal_phase_is_one_of_two ... ok
+test a_signing_key_does_not_print_its_secret ... ok
+test an_envelope_may_not_outlive_max_envelope_validity_ms ... ok
+test an_envelope_from_an_unknown_sender_is_refused ... ok
+test an_envelope_of_another_chain_is_refused ... ok
+test forged_proposal_from_a_non_member_key_is_refused_at_the_boundary ... ok
+test an_expired_envelope_from_a_member_is_refused ... ok
+test a_well_signed_proposal_from_the_legitimate_proposer_is_admitted ... ok
+test the_same_envelope_twice_is_refused_the_second_time ... ok
+
+test result: ok. 9 passed; 0 failed
+```
+
+`forged_proposal_from_a_non_member_key_is_refused_at_the_boundary` e' il PoC-1:
+stessa chiave `SigningKey::from_seed(&[0xAA; 32])`, asserita fuori dal set prima
+di procedere; `sender_node_id` uguale al proposer legittimo di `(1, 0)`;
+`created_at_ms = 0`, cioe' scaduta dal 1970; `state_root` scelto
+dall'attaccante. Asserisce l'errore **e** `wal_vote_count()` invariato a 0.
+`a_well_signed_proposal_from_the_legitimate_proposer_is_admitted` e' il gemello:
+stessa proposta, firmata dal proposer del round, e il nodo produce **un** voto
+durevole.
+
+#### RF-002 — il lock non sopravvive al riavvio. CHIUSO, con una riserva dichiarata.
+
+Presa la strada che la review raccomanda, quella additiva. `EngineConfig` ha due
+campi nuovi, `locked_round` e `locked_block_id`; `Engine::start` li usa invece
+di porre `locked: None` incondizionatamente, e rifiuta un lock a meta' con
+`ConsensusError::IncompleteRestoredLock` invece di scartarlo in silenzio.
+
+Il nodo li riempie da `Wal::locked_at_height(height)`: il precommit di round
+massimo per l'altezza che sta riprendendo. La giustificazione e' che le righe
+38-40 dell'Algoritmo 1 **bloccano e precommittano nello stesso passo**, e mai
+l'uno senza l'altro, quindi il round piu' alto in cui questo nodo ha
+precommittato a quell'altezza *e'* il round a cui era lockato. Nessun dato nuovo
+viene scritto su disco: il fatto era gia' nel log, e nessuno lo rileggeva.
+
+**Una modifica al motore, dichiarata.** `locked` era `Option<(u64, Value)>` ed
+e' ora `Option<(u64, Digest32)>`. Non e' un cambio di comportamento: le uniche
+letture del lock, righe 23 e 29, confrontano `lockedValue_p` con `id(v)`, e cio'
+che viene ri-proposto e' `validValue_p` (riga 16), che continua a portare il
+valore intero. Tenere solo l'ID e' cio' che rende il lock ricostruibile da un
+WAL che registra `(height, round, phase) -> block_id` e nient'altro. Il diff su
+`consensus/` e' 55 inserzioni e 12 cancellazioni in `engine.rs`, e nulla
+altrove: **`GATE-ENGINE-UNCHANGED` va riletta da chi la attesta**, perche' la
+spec escludeva le modifiche al motore e la review ne prescrive una. Il Lead
+giudichi: la strada che non tocca il motore e' l'altra, quella che scrive il
+lock nel WAL e la fa consultare da `can_vote`, e la review l'ha esplicitamente
+sconsigliata.
+
+**Condizione di chiusura, prima meta'** («un test che registra
+`precommit(h, r=1, B)`, ricostruisce il nodo dal disco, e osserva che una
+proposta per `C != B` a `r=2` con `valid_round` assente **non** produce un
+precommit»):
+
+```text
+$ cargo test -p coblox-core --test consensus_restored_lock
+running 5 tests
+test a_restored_lock_is_readable_through_the_accessors ... ok
+test a_half_specified_restored_lock_is_refused_at_construction ... ok
+test the_same_engine_without_the_restored_lock_does_prevote_it ... ok
+test a_lock_restored_on_the_proposed_value_does_not_block_it ... ok
+test a_restored_lock_refuses_a_different_value_at_a_later_round ... ok
+
+test result: ok. 5 passed; 0 failed
+
+$ cargo test -p coblox-node --test wal_lock_restore
+running 5 tests
+test the_lock_is_the_highest_round_precommit_of_the_height ... ok
+test the_lock_survives_reopening_the_log ... ok
+test an_incomplete_trailing_record_is_discarded_and_the_file_truncated ... ok
+test a_malformed_record_that_is_not_the_tail_is_still_fatal ... ok
+test a_node_restarted_at_a_height_it_precommitted_comes_back_locked ... ok
+
+test result: ok. 5 passed; 0 failed
+```
+
+`a_restored_lock_refuses_a_different_value_at_a_later_round` fa esattamente cio'
+che la condizione descrive, e asserisce **ne' prevoto ne' precommit** su C. Ha
+due gemelli, perche' un motore che rifiuta tutto passerebbe il primo:
+`the_same_engine_without_the_restored_lock_does_prevote_it` (senza lock, C viene
+prevotato) e `a_lock_restored_on_the_proposed_value_does_not_block_it` (lockato
+proprio su C, C viene prevotato: riga 23, secondo disgiunto).
+`a_node_restarted_at_a_height_it_precommitted_comes_back_locked` chiude il
+percorso completo: WAL su disco, poi `NodeRunner::new`, poi `runner.locked()`
+vale `(1, B)`.
+
+**Condizione di chiusura, seconda meta': non la soddisfo, e ritengo che sia
+sbagliata.** La review chiede «il PoC-3 invertito, cioe' `can_vote(5, 2,
+Precommit, C)` che restituisce `false`». `can_vote` interroga il WAL, e il WAL
+sa solo se questo nodo ha gia' votato a `(5, 2, Precommit)`. Farlo restituire
+`false` per un `C` diverso dal blocco lockato **romperebbe la liveness e sarebbe
+scorretto**: la riga 29 dell'Algoritmo 1 permette esplicitamente di sbloccarsi e
+precommittare un valore diverso a un round successivo quando esiste una polka
+per quel valore a un `valid_round` non inferiore al proprio `lockedRound`. Un
+`can_vote` che rifiutasse comunque impedirebbe a un nodo lockato di seguire la
+maggioranza, e ogni altezza che va oltre il primo round si fermerebbe. La regola
+del lock **appartiene al motore**, non al log dei voti, ed e' li' che l'ho
+attuata — che e' anche la strada che la review stessa raccomanda nel testo del
+rimedio. Le due meta' della condizione di chiusura appartengono a due rimedi
+diversi, e quella che ho scelto e' quella consigliata. **Riportato, non
+aggirato.**
+
+### Gli high
+
+#### RF-003 — `GATE-DURABLE-BEFORE-SEND` marcata `[x]` senza il test. CHIUSO.
+
+Il punto di uccisione e' **un'istruzione**, non uno `sleep`:
+`std::process::abort()` in `process_actions`, fra il ritorno di
+`Wal::record_vote` (che ha gia' fatto `sync_all`) e il `try_send`, attivo solo
+se `COBLOX_NODE_ABORT_AFTER_WAL_SYNC` e' presente nell'ambiente.
+
+**Condizione di chiusura** («il test esiste, e il punto di uccisione e'
+un'istruzione, non un `sleep`»):
+
+```text
+$ cargo test -p coblox-node --test durable_before_send
+running 2 tests
+test without_the_abort_point_the_same_node_does_send_the_vote ... ok
+test a_vote_is_durable_before_it_is_sent ... ok
+
+test result: ok. 2 passed; 0 failed
+```
+
+`a_vote_is_durable_before_it_is_sent` avvia il **binario** — un processo vero —
+lo osserva morire in modo anomalo, riapre il WAL dalla stessa `data_dir` e
+verifica che `vote_of(1, 0, Prevote)` sia presente; poi verifica che il log del
+processo **non** contenga `VOTE_SENT`, che e' la riga stampata subito **dopo**
+l'invio. Il gemello e' lo stesso comando senza la variabile dell'abort:
+`VOTE_SENT` compare, quindi la sua assenza nel primo caso significa qualcosa.
+
+#### RF-004 — il criterio sul buffering nomina un test che non esiste. CHIUSO.
+
+```text
+$ cargo test -p coblox-node --test future_height_buffer
+running 6 tests
+test a_message_that_arrives_early_is_held_and_then_consumed_at_its_height ... ok
+test messages_beyond_the_lookahead_window_are_dropped ... ok
+test pruning_keeps_the_current_height ... ok
+test messages_of_the_current_height_or_below_are_not_buffered ... ok
+test a_height_holds_no_more_than_its_cap ... ok
+test skipped_heights_do_not_accumulate ... ok
+
+test result: ok. 6 passed; 0 failed
+```
+
+Il primo e' il test che il criterio descrive, con le asserzioni sui tre momenti
+separate. I tre casi di bordo che `insert` conteneva e nessuno osservava sono i
+tre test successivi.
+
+#### RF-005 — runbook, `.gitignore`, `--data-dir`. CHIUSO. E chiude [DEBT-049].
+
+Il runbook e' entrato in `fa99588` per mano del Lead. Restava a me:
+
+- `.gitignore` ha ora `data/` e `data-val*.log`, con la ragione scritta accanto;
+- `--data-dir` **non ha piu' un default**: era `./data/val-000`, dentro l'albero
+  sorgente di un repository pubblico. Ora e' obbligatorio e il nodo non parte
+  senza;
+- `docs/devnet-runbook.md` e' classificato in `published_artifacts.toml` come
+  `[[unswept]]`, con la ragione. Prima era su disco e in nessuno dei tre bucket,
+  e `C11-CLAIMDOC` **falliva**.
+
+**[DEBT-049] e' sussunto da RF-005 e i suoi criteri di risoluzione sono
+soddisfatti**: `.gitignore` copre sia le directory dati sia i log, e
+`--data-dir` ha perso il default dentro l'albero. Non lo chiudo io perche'
+`debt_resolve` e' del Project Lead; **lo dichiaro pronto**.
+
+**Condizione di chiusura** («`git status --porcelain` pulito su un albero dopo
+un giro di runbook»): il giro completo e' stato eseguito — quattro nodi, kill,
+riavvio, catch-up — e dopo `rm -rf ./data ./data-val*.log` l'albero mostra solo
+i file di questa remediation. Vedi *Il giro di runbook* piu' sotto.
+
+Correzione al tool: `published_artifacts_negative.py` copia un sottoinsieme
+dell'albero e non copiava `docs/devnet-runbook.md`; con la nuova voce
+`[[unswept]]` il **control run** falliva su `C11-CLAIMDOC: [[unswept]] names
+'docs/devnet-runbook.md', which is not on disk`, cioe' sulla propria messa in
+scena e non su un difetto. Il file e' stato aggiunto a `COPIED_FILES`.
+
+#### RF-006 — `block_request` come amplificatore. CHIUSO IN PARTE, e dico quale.
+
+Fatto:
+
+- la risposta e' limitata da una costante dichiarata,
+  `MAX_BLOCKS_PER_SYNC_RESPONSE = 8`;
+- un secondo `block_request` dallo stesso mittente entro
+  `MIN_MS_BETWEEN_SYNC_ANSWERS = 1000` non riceve risposta;
+- il `block_request` periodico non e' piu' incondizionato: esce solo se un pari
+  ha annunciato un'altezza che questo nodo non ha.
+
+**Non fatto: la risposta continua ad andare sul topic e non al richiedente.**
+`wire.md` prevede `ledger-sync` come request/response, e portarcelo e' un lavoro
+di trasporto che non e' un giro di remediation. Lo dichiaro non fatto invece di
+dichiararlo fatto.
+
+**Condizione di chiusura** («un test che invia un `block_request` con
+`from_height = 1` su una catena di dieci blocchi e osserva un numero di buste in
+uscita limitato da una costante dichiarata») — soddisfatta, su una catena di
+venti:
+
+```text
+$ cargo test -p coblox-node --test sync_response_bound
+running 2 tests
+test the_bound_is_a_declared_constant ... ok
+test a_block_request_from_height_one_emits_no_more_than_the_bound ... ok
+
+test result: ok. 2 passed; 0 failed
+```
+
+**Il throttle non era nel piano, e' stato imparato eseguendo.** Con la sola
+limitazione a otto blocchi per risposta, il giro di runbook ha mostrato la
+catena **ferma** per tutta la durata del catch-up, e nei log dei nodi sani
+ventidue righe `REJECTED ... envelope expired`. La causa e' la combinazione fra
+il controllo di scadenza che RF-001 accende e l'amplificazione che RF-006
+descrive: tre pari che rispondono a ogni richiesta su un topic che tutti
+ricevono ritardano i messaggi di consenso oltre la loro stessa scadenza.
+L'amplificazione c'era gia'; **il confine e' cio' che l'ha resa visibile**. Col
+throttle, il giro successivo non ha prodotto una sola riga `REJECTED` e il nodo
+riavviato ha raggiunto gli altri in dieci secondi.
+
+#### RF-007 — `GATE-SUBSET-DECLARED`: tre divergenze fra testo e codice. CHIUSO, attuando tutte e tre.
+
+- **(a) il topic dei blocchi.** `network.rs` sottoscrive ora **due** topic e
+  pubblica `finalized_block` e `block_request` su
+  `/coblox/<network_id>/blocks/0.1`, lasciando su `consensus` solo proposte e
+  voti. `wire.md` righe 73-78 dichiara quella separazione normativa; ora il
+  codice la attua.
+- **(b) la funzione di message-ID.** Non piu' `DefaultHasher` sui byte grezzi:
+  la chiave e' il `message_id` della busta, cioe' l'ID verificato che `wire.md`
+  riga 135 impone. Un messaggio i cui byte non sono una busta interpretabile non
+  ha un ID verificato e non puo' averlo, quindi riceve una chiave marcata
+  `unparseable:<sha256>` e viene scartato al confine un istante dopo.
+- **(c) il `nonce`.** Casuale, vedi RF-001.
+
+Due probe nuove in `published_artifacts.toml` fissano cio' che era prosa e
+quindi invisibile alla passata meccanica:
+`wire-blocks-topic-separation-normative` e
+`wire-gossipsub-message-id-is-the-verified-id`. Il conteggio delle probe passa
+da 181 a 183, e la prova in negativo osserva ciascuna delle 183 fallire.
+
+### I medium e i low
+
+- **RF-008 (WAL troncato) — CHIUSO.** `Wal::open` distingue ora una coda
+  troncata da una riga corrotta: **se e solo se** l'ultima riga non termina con
+  un a capo, viene scartata, il file viene troncato all'ultimo record completo e
+  l'evento viene stampato. Una riga malformata che non e' in coda resta un
+  errore fatale. La sezione `# Errors` lo documenta.
+  **Condizione di chiusura** («il PoC-2, invertito — `Wal::open` riesce,
+  `count()` vale 1, e il record troncato non e' nel file dopo la riapertura»):
+  `an_incomplete_trailing_record_is_discarded_and_the_file_truncated` asserisce
+  esattamente i tre fatti, e
+  `a_malformed_record_that_is_not_the_tail_is_still_fatal` e' il gemello.
+- **RF-009 (chiave in `Debug`) — CHIUSO.** `SigningKey` non deriva piu' `Debug`,
+  `Copy` ne' `PartialEq`; il `Debug` manuale stampa la sola chiave pubblica e
+  `secret: "<redacted>"`; scalare e prefisso sono azzerati nel `Drop`. Il limite
+  onesto e' dichiarato accanto: il `Drop` chiude la vita di *questa* copia, non
+  di ogni copia che l'allocatore possa aver fatto.
+  **Condizione di chiusura** («un test che asserisce che `format!("{:?}", key)`
+  non contiene i byte dello scalare»): `a_signing_key_does_not_print_its_secret`.
+  `--seed-hex` **resta** su `argv` e resta leggibile nella tabella dei processi:
+  non fatto, ed e' dichiarato nel runbook che le chiavi della devnet sono
+  costanti pubbliche.
+- **RF-010 (buffer e `prune_before` morto) — CHIUSO IN PARTE.** `prune_before`
+  ha ora due chiamanti, uno a ogni avanzamento di altezza, e
+  `skipped_heights_do_not_accumulate` osserva dieci altezze saltate lasciare il
+  buffer vuoto. Un `finalized_block` di altezza futura e' ora **verificato prima
+  di essere trattenuto**, non dopo. **Non fatto: il tetto in byte.** Il buffer
+  resta limitato in messaggi (20 altezze per 500) e non in byte; col confine di
+  RF-001 il payload arriva ora solo da un membro del set con firma valida, il
+  che stringe molto la superficie ma non e' un tetto. Dichiarato non fatto.
+- **RF-011 (due `# Errors` false del Lead) — CHIUSO.** (a) Il commento di
+  `handle_envelope` dichiarava di scartare buste di un'altra catena: **attuato
+  cio' che la frase dichiarava** invece di ammorbidire la frase, ed e' RF-001.
+  (b) Il commento di `run` dichiarava di errare su una trasmissione che non
+  parte: deciso che **non** e' un errore — un nodo che non e' stato sentito e'
+  ancora corretto — e la frase ora lo dice, mentre l'esito del `try_send` non e'
+  piu' scartato (RF-016).
+- **RF-012 (la ragione dell'`#[allow(too_many_arguments)]`) — CHIUSO.**
+  Riscritta su cio' che la firma e': sette valori che solo il chiamante conosce,
+  una durata da cui `expires_at_ms` si deriva, e la **chiave che firma** — non
+  un verificatore. I tre campi che la funzione produce non sono argomenti.
+- **RF-013 (`now_ms`) — CHIUSO, e il merito prima del commento.** La frase «il
+  valore che arma ogni timeout di consenso» era falsa ed e' stata riscritta su
+  cio' che i cinque siti fanno davvero. Sul merito: `unwrap_or(u64::MAX)`
+  falliva **aperto** — `expires_at_ms` saturava con lui e la busta non scadeva
+  mai, cioe' proprio il controllo che RF-001 accende. `now_ms` restituisce ora
+  `Result` e propaga, in entrambi i rami.
+- **RF-014 (segnaposto non dichiarati) — DICHIARATI QUI**, che e' cio' che
+  `QUALITY.md` §*Shortcuts* chiede. Sono cinque, ciascuno con la condizione che
+  lo chiude:
+
+  | Segnaposto | Dove | Cosa lo chiude |
+  | --- | --- | --- |
+  | `state_root: Digest32::repeated(0x33)` | `node.rs`, `Action::RequestValue` | Un esecutore di stato: finche' non esiste, non c'e' radice da calcolare. |
+  | `consensus_parameters_hash: Digest32::repeated(0x44)` | idem | Un `ConsensusParametersBody` firmato che raggiunga il nodo. Lo stesso che chiude `MAX_ENVELOPE_VALIDITY_MS` e i due tetti della cache anti-replay. |
+  | `timestamp_ms` aritmetico | idem | Un orologio vero e una regola temporale sui blocchi. **Conseguenza da sapere**: nessun test di questa consegna esercita alcuna regola temporale, perche' l'orologio dei blocchi e' finto e monotono nell'altezza. |
+  | `key_binding_signature: [0u8; 64]` | `config.rs`, `devnet_4_validator_set` | L'enrollment: la devnet fabbrica il set invece di leggerlo da una catena. |
+  | I tre valori locali con nomi di parametro firmato | `envelope.rs`, `replay.rs` | Lo stesso documento firmato della seconda riga. Portano il nome del campo apposta, perche' la sostituzione sia una ricerca e non un'indagine. |
+
+- **RF-015 (tre affermazioni false nell'evidenza) — CHIUSO.** (a) Il
+  sottocomando `generate-keys` **non esiste**: `enum Command` ha il solo
+  `Start`. (b) Il buffer non aveva scadenza: ora `prune_before` e' chiamato,
+  quindi l'affermazione e' vera perche' il codice e' cambiato, non perche' la
+  frase e' stata ammorbidita. (c) `SignedEnvelope::verify` non aveva chiamanti:
+  ora ne ha uno, ed e' il confine.
+- **RF-016 (`let _ = try_send`) — CHIUSO PER META'.** Ogni trasmissione passa da
+  `send_envelope`, che registra `SEND_DROPPED` con il tipo di messaggio e la
+  ragione. **Non fatto: il WAL non copre le proposte.** Un proposer che riparte
+  puo' ancora proporre due valori diversi allo stesso `(h, r)`; `wire.md` riga
+  516 dichiara quel caso rilevabile ma non attribuibile e di costo pari a un
+  round. Dichiarato non fatto.
+- **RF-017 (`--seed-hex` corto) — CHIUSO.** `try_into` su `[u8; 32]` con un
+  messaggio che dice quanti byte servono, al posto di
+  `copy_from_slice(&bytes[..32])`.
+- **RF-018 (`finalized_block` che non verifica sparisce) — CHIUSO.** Il rifiuto
+  e' registrato con la ragione, come negli altri tre rami, e ora avviene anche
+  sul percorso di bufferizzazione.
+- **RF-019 (cast `as` non guardato) — CHIUSO.** `u64::try_from` e un errore al
+  posto di `unwrap_or(0)`: un nodo assente dal proprio set non si comporta piu'
+  come indice 0.
+- **RF-020 (la derivazione dei timeout) — CHIUSO, dicendo quale delle due era
+  giusta.** **I valori.** Sono quelli con cui la devnet a quattro processi ha
+  finalizzato dieci altezze; l'aritmetica accanto era stata scritta dopo e mai
+  ricalcolata. I moltiplicatori sono corretti sui valori: `propose = 4*Delta`,
+  `prevote = 3*Delta`, `precommit = 3*Delta`, `round_increment = 2*Delta`, con
+  `Delta_net = 50 ms`.
+
+### Un difetto trovato eseguendo, e corretto
+
+Non e' fra i venti. Il nodo **si fermava** con
+`Error: Core(Consensus(UnsolicitedValue { height: 123, round: 0 }))` durante il
+catch-up di un validatore riavviato. La causa: `process_actions` consuma una
+lista di `Action` prodotta da un motore che una `dispatch_envelope` annidata —
+il ramo `finalized_block` — puo' aver **sostituito** nel frattempo con uno nuovo
+all'altezza successiva. La `RequestValue` del motore vecchio arriva allora al
+motore nuovo, che la rifiuta come non sollecitata, e l'errore e' fatale.
+
+L'ho corretto invece di limitarmi a riportarlo, e dico perche': e' sul percorso
+che questa remediation modifica, si manifesta eseguendo il runbook, e blocca
+`GATE-LEAD-REPRO`. Il rimedio e' di sei righe: una `RequestValue` per una
+`(altezza, round)` che non e' piu' quella del motore e' obsoleta e viene
+scartata con una riga `STALE_VALUE_REQUEST`. **Il Lead lo giudichi come un
+rilievo ventunesimo trattato dentro il giro**, non come una correzione
+silenziosa.
+
+### Il giro di runbook, eseguito
+
+Quattro nodi avviati dai comandi di `docs/devnet-runbook.md`, senza
+`--target-height`; uno ucciso mentre la catena correva; riavviato sulla stessa
+`--data-dir`. Su questa macchina `pgrep` non esiste in Git Bash, quindi il kill
+ha usato il PID che il nodo stampa sulla prima riga.
+
+```text
+prima del kill:
+ val-000=57 val-001=57 val-002=57 val-003=58
+>>> val-003 (pid=10704) ucciso con taskkill /F <<<
+dopo il kill:
+ val-000=91 val-001=91 val-002=91 val-003=58
+voti nel WAL di val-003 prima del riavvio: 118
+
+Starting coblox-node validator=val-003 pid=19472
+LOCK_RESTORED node=val-003 height=59 round=0 block_id=Digest32([140, 77, 243, 136, ...])
+PUBLISH_FAILED message_type=block_proposal: InsufficientPeers
+PUBLISH_FAILED message_type=prevote: InsufficientPeers
+SYNC_FINALIZED node=val-003 height=59 block_id=Digest32([140, 77, 243, 136, ...])
+SYNC_FINALIZED node=val-003 height=60 block_id=Digest32([66, 192, 70, 218, ...])
+t+10s: val-000=150 val-001=150 val-002=150 val-003=150
+t+20s: val-000=191 val-001=192 val-002=192 val-003=192
+t+30s: val-000=233 val-001=233 val-002=233 val-003=233
+t+40s: val-000=274 val-001=274 val-002=275 val-003=275
+
+errori nel log del riavviato: 0
+REJECTED su val-000: 0
+```
+
+`LOCK_RESTORED` e' la riga che prima non esisteva: val-003 aveva precommittato
+all'altezza 59 round 0 ed e' tornato lockato sullo stesso blocco, dal proprio
+log. Le due `InsufficientPeers` sono normali e non sono un errore ingoiato: un
+nodo appena avviato non ha ancora una mesh e la sua prima proposta non ha dove
+andare — sono stampate proprio perche' RF-016 ha trovato ogni trasmissione
+scritta `let _ = try_send(...)`.
+
+`docs/devnet-runbook.md` e' stato aggiornato dove i miei cambiamenti lo rendevano
+falso — il paragrafo sul lock non ripristinato, la regola sul WAL illeggibile, la
+sezione di pulizia — e le trascrizioni sono state **rieseguite**, non ritoccate.
+
+### Il conto della verifica
+
+```text
+$ cargo test --workspace -- --test-threads=1
+TESTS passed: 264 failed: 0        (erano 235; 29 test nuovi)
+
+$ cargo fmt --all --check
+(nessun output)
+
+$ cargo clippy --workspace --all-features --all-targets -- -D warnings
+Finished `dev` profile
+
+$ i nove strumenti di progetto
+published_artifacts                    exit=0
+published_artifacts_negative           exit=0
+protocol_hashes                        exit=0
+non_consensus_containment              exit=0
+consensus_no_io                        exit=0
+consensus_parameters_closure           exit=0
+reward_rules                           exit=0
+threat_model_matrix_coherence          exit=0
+lead_claims_check                      exit=0
+
+$ python sim/tools/published_artifacts.py
+  C10-PROBE        183 candidate(s) checked
+  C11-CLAIMDOC       9 candidate(s) checked
+published-artifact inventory: PASS
+
+$ python sim/tools/published_artifacts_negative.py
+negative proof: PASS - 17 mutations across 11 defect classes, plus every probe
+individually, each observed failing
+```
+
+`cargo deny check` riporta `advisories FAILED, licenses FAILED`. **Non e' una
+regressione di questa remediation**: verificato eseguendolo su `HEAD` con le
+modifiche in `git stash`, l'elenco degli `error[...]` e' identico prima e dopo.
+`Cargo.lock` cresce di **una riga**, perche' `getrandom` era gia' nell'albero
+come dipendenza transitiva e diventa qui diretta.
+
+### La prova in negativo delle regole nuove
+
+`GATE-NEGATIVE-PROOF` chiede che ogni regola nuova sia osservata fallire, una
+mutazione per regola. Per le regole di documento e' la passata di
+`published_artifacts_negative.py` sopra. Per le regole di codice, ogni regola
+nuova ha il proprio gemello, che e' la stessa cosa scritta al contrario:
+
+| Regola nuova | Osservata rifiutare | Gemello che deve passare |
+| --- | --- | --- |
+| Firma della busta | `forged_proposal_from_a_non_member_key_is_refused_at_the_boundary` | `a_well_signed_proposal_from_the_legitimate_proposer_is_admitted` |
+| Mittente nel set | `an_envelope_from_an_unknown_sender_is_refused` | idem |
+| Catena legata | `an_envelope_of_another_chain_is_refused` | idem |
+| Scadenza | `an_expired_envelope_from_a_member_is_refused` | idem |
+| Finestra di validita' | `an_envelope_may_not_outlive_max_envelope_validity_ms` | idem |
+| Anti-replay | `the_same_envelope_twice_is_refused_the_second_time` | la prima consegna, nello stesso test |
+| Lock ripristinato | `a_restored_lock_refuses_a_different_value_at_a_later_round` | `the_same_engine_without_the_restored_lock_does_prevote_it` e `a_lock_restored_on_the_proposed_value_does_not_block_it` |
+| Lock a meta' | `a_half_specified_restored_lock_is_refused_at_construction` | i costruttori con lock completo o assente |
+| Coda WAL troncata | `a_malformed_record_that_is_not_the_tail_is_still_fatal` | `an_incomplete_trailing_record_is_discarded_and_the_file_truncated` |
+| Durevole prima dell'invio | `a_vote_is_durable_before_it_is_sent` | `without_the_abort_point_the_same_node_does_send_the_vote` |
+| Tetto della risposta di sync | la seconda richiesta, che non emette nulla | la prima, che emette otto buste — entrambe in `a_block_request_from_height_one_emits_no_more_than_the_bound` |
+| Segreto nel `Debug` | `a_signing_key_does_not_print_its_secret` | la chiave pubblica, che nello stesso test **deve** comparire |
+
+### File toccati in questa remediation
+
+Modificati: `.gitignore`, `Cargo.lock`, `core/coblox-core/src/consensus/engine.rs`,
+`core/coblox-core/src/error.rs`, `core/coblox-core/tests/consensus_support/devnet.rs`,
+`core/coblox-node/Cargo.toml`,
+`core/coblox-node/src/{buffer,config,envelope,error,lib,main,network,node,signer,wal}.rs`,
+`docs/devnet-runbook.md`, `sim/tools/published_artifacts.toml`,
+`sim/tools/published_artifacts_negative.py`.
+
+Nuovi: `core/coblox-node/src/replay.rs`,
+`core/coblox-core/tests/consensus_restored_lock.rs`,
+`core/coblox-node/tests/{envelope_boundary,wal_lock_restore,future_height_buffer,durable_before_send,sync_response_bound}.rs`.
+
+Nessun commit e nessun push: il push su `main` e' del Lead. `git status
+--porcelain` non mostra artefatti di esecuzione.
+
+### Cosa resta aperto, in una lista sola
+
+1. **RF-006**, la meta' non fatta: la sincronizzazione resta una pubblicazione
+   sul topic invece di un request/response, che e' cio' che `wire.md` prevede
+   per `ledger-sync`.
+2. **RF-010**, la meta' non fatta: il buffer non ha un tetto in byte.
+3. **RF-016**, la meta' non fatta: il WAL non copre `(h, r) -> proposta`.
+4. **RF-009**, la coda: `--seed-hex` resta su `argv`.
+5. **RF-002**, seconda meta' della condizione di chiusura: non soddisfatta di
+   proposito, con la ragione scritta sopra.
+6. **`GATE-ENGINE-UNCHANGED`** va riletta: il diff tocca `consensus/engine.rs`,
+   perche' e' cio' che RF-002 prescrive.
+7. **[DEBT-049]** e' pronto per `debt_resolve`, che e' del Lead.
+
+### Sulla chiusura di questo giro
+
+`spec_submit` **non e' stato possibile e non doveva esserlo**. Eseguito, risponde
+`illegal Spec transition from 'review' to 'review'`, che e' la regola scritta:
+`CONTRACT.md` e `AGENT.md` dicono che durante una remediation la spec **resta in
+`review`**, perche' la remediation e' la continuazione del ciclo di review e non
+un ripristino del ciclo di vita. I verbi che chiudono questo giro sono del Lead:
+`review_remediation` e `review_remediation_verified`.
+
+Registrata invece l'osservazione di sforzo con
+`spec_record_effort_observation` (`sol`, confermato).
+
+Le gate con `owner=lead` — `GATE-SECREVIEW`, `GATE-CI-GREEN`, `GATE-LEAD-REPRO` —
+non sono attestate qui, perche' non sono mie.

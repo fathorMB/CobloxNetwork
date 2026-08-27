@@ -244,7 +244,14 @@ pub struct Engine {
 
     /// Algorithm 1 lines 6-7, `lockedValue_p` and `lockedRound_p`. `None` is
     /// `nil` / `-1`.
-    locked: Option<(u64, Value)>,
+    ///
+    /// The lock holds the value's **ID** and not the value: every rule that
+    /// reads it — lines 23 and 29 — compares `lockedValue_p` to `id(v)`, and
+    /// nothing re-proposes it (line 16 re-proposes `validValue_p`, which does
+    /// keep the whole value). Holding only the ID is what makes the lock
+    /// restorable from a write-ahead log that records `(height, round, phase) ->
+    /// block_id` and nothing else, which is [REVIEW-049] RF-002.
+    locked: Option<(u64, Digest32)>,
     /// Algorithm 1 lines 8-9, `validValue_p` and `validRound_p`.
     valid: Option<(u64, Value)>,
 
@@ -271,6 +278,22 @@ pub struct EngineConfig {
     /// The ID of the block at `height - 1`, which every proposal at `height`
     /// must name as its `previous_block_id`.
     pub previous_block_id: Digest32,
+    /// `lockedRound_p` to start with, for a node resuming `height` after a
+    /// restart. `None` is Algorithm 1's `-1`.
+    ///
+    /// A node that precommitted a block at this height and then died is locked,
+    /// and an engine that starts unlocked will happily prevote a different value
+    /// in a later round of the same height. That is not double-signing — the
+    /// write-ahead log keys votes by round and sees nothing wrong — but it
+    /// breaks the locking rule that the quorum-intersection argument of
+    /// [ADR-018] rests on. See [REVIEW-049] RF-002.
+    ///
+    /// Must be `Some` exactly when `locked_block_id` is; a half-specified lock
+    /// is rejected at construction rather than silently dropped.
+    pub locked_round: Option<u64>,
+    /// `lockedValue_p` to start with, as the block ID the lock is on. See
+    /// [`Self::locked_round`].
+    pub locked_block_id: Option<Digest32>,
 }
 
 impl Engine {
@@ -282,8 +305,22 @@ impl Engine {
     /// member of it. A non-member cannot run this engine: it would prevote and
     /// precommit into a set that will discard every one of its signatures, and
     /// failing at construction says so once instead of once per round.
+    ///
+    /// Also rejects a half-specified restored lock — one of `locked_round` and
+    /// `locked_block_id` without the other.
     pub fn start(config: EngineConfig) -> Result<(Self, Vec<Action>)> {
         config.set.check_structure()?;
+        let locked = match (config.locked_round, config.locked_block_id) {
+            (None, None) => None,
+            (Some(round), Some(block_id)) => Some((round, block_id)),
+            (round, block_id) => {
+                return Err(ConsensusError::IncompleteRestoredLock {
+                    has_round: round.is_some(),
+                    has_block_id: block_id.is_some(),
+                }
+                .into());
+            }
+        };
         if !config
             .set
             .validators
@@ -304,7 +341,7 @@ impl Engine {
             round: 0,
             step: Step::Propose,
             previous_block_id: config.previous_block_id,
-            locked: None,
+            locked,
             valid: None,
             log: HeightLog::default(),
             value_quorum_handled: BTreeSet::new(),
@@ -345,14 +382,20 @@ impl Engine {
 
     /// The round this engine is locked at, if it is locked.
     #[must_use]
-    pub fn locked_round(&self) -> Option<u64> {
-        self.locked.as_ref().map(|(round, _)| *round)
+    pub const fn locked_round(&self) -> Option<u64> {
+        match self.locked {
+            Some((round, _)) => Some(round),
+            None => None,
+        }
     }
 
     /// The block this engine is locked on, if it is locked.
     #[must_use]
-    pub fn locked_block_id(&self) -> Option<Digest32> {
-        self.locked.as_ref().map(|(_, value)| value.block_id)
+    pub const fn locked_block_id(&self) -> Option<Digest32> {
+        match self.locked {
+            Some((_, block_id)) => Some(block_id),
+            None => None,
+        }
     }
 
     /// This node's `validator_id`.
@@ -631,9 +674,9 @@ impl Engine {
 
         let unlocked = match proposal_valid_round {
             // Line 23: `lockedRound_p = -1 ∨ lockedValue_p = v`.
-            None => match &self.locked {
+            None => match self.locked {
                 None => true,
-                Some((_, locked)) => locked.block_id == block_id,
+                Some((_, locked_block_id)) => locked_block_id == block_id,
             },
             // Line 28's guard needs `2f+1` prevotes for `id(v)` at `vr`, and
             // line 29 is `lockedRound_p <= vr ∨ lockedValue_p = v`. See
@@ -642,10 +685,10 @@ impl Engine {
                 if !self.prevote_quorum_for(valid_round, block_id)? {
                     return Ok(false);
                 }
-                match &self.locked {
+                match self.locked {
                     None => true,
-                    Some((locked_round, locked)) => {
-                        *locked_round < valid_round || locked.block_id == block_id
+                    Some((locked_round, locked_block_id)) => {
+                        locked_round < valid_round || locked_block_id == block_id
                     }
                 }
             }
@@ -693,7 +736,7 @@ impl Engine {
         // that — not a detection rule — is what makes a second, different
         // precommit from this node impossible.
         if self.step == Step::Prevote {
-            self.locked = Some((round, value.clone())); // lines 38-39
+            self.locked = Some((round, block_id)); // lines 38-39
             actions.push(Action::Broadcast(Outbound::Vote {
                 phase: VotePhase::Precommit,
                 height: self.height,

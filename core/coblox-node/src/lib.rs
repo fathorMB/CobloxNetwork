@@ -6,6 +6,7 @@ pub mod envelope;
 pub mod error;
 pub mod network;
 pub mod node;
+pub mod replay;
 pub mod signer;
 pub mod store;
 pub mod wal;

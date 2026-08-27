@@ -42,6 +42,28 @@ review_events:
     evidence_refs: ["REVIEW-049", "SPEC-029", "core/coblox-node/src/node.rs", "core/coblox-core/src/consensus/engine.rs", "docs/devnet-runbook.md"]
     implementation_agent: "AGENT-001"
     remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-049-EVENT-004"
+    timestamp: "2026-08-27T21:30:43.671151700+02:00"
+    action: "remediation"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "implementation-specialist"
+    reason: "Remediation eseguita su venti rilievi. Chiusi i due critical: RF-001 porta `SignedEnvelope::verify` come prima operazione di `handle_envelope` su ogni message_type, con risoluzione di `sender_node_id` a un membro del set, scadenza, tetto di validita', nonce casuale e cache anti-replay, e il PoC-1 e' nella suite invertito con il gemello ben firmato. RF-002 ricostruisce `locked_round`/`locked_block_id` da `Wal::locked_at_height` e li passa a `Engine::start` con due campi nuovi di `EngineConfig`, la strada additiva che la review raccomandava. Chiusi RF-003, RF-004, RF-005, RF-007 e tutti i rilievi da RF-008 a RF-020, incluse le tre correzioni di provenienza Lead (RF-011, RF-012, RF-013), con `now_ms` rifatto nel merito e non solo nel commento. Dichiarati non chiusi, apertamente: RF-006 solo in parte (limitato a otto blocchi e regolato a una risposta al secondo per richiedente, ma la sincronizzazione resta pubblicazione sul topic invece che request/response su ledger-sync), RF-010 senza tetto in byte, RF-016 senza copertura WAL della proposta, e la coda di RF-009 con `--seed-hex` ancora su argv. Corrette e dichiarate false nel testo del criterio stesso le tre caselle marcate [x] senza il test che nominavano. Segnalati al Lead due esiti visibili solo eseguendo: accendere la scadenza ha reso l'amplificazione di RF-006 uno stallo di liveness durante il catch-up, e un difetto ventunesimo non censito (`UnsolicitedValue` da azioni di un motore sostituito da una dispatch annidata) e' stato corretto dentro il giro invece che soltanto riportato."
+    evidence_refs: ["REVIEW-049", "SPEC-029", "core/coblox-node/tests/envelope_boundary.rs", "core/coblox-node/tests/wal_lock_restore.rs", "core/coblox-node/tests/durable_before_send.rs"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
+  - schema_version: "1"
+    id: "REVIEW-049-EVENT-005"
+    timestamp: "2026-08-27T21:31:03.567650500+02:00"
+    action: "remediation-verification"
+    from_status: "changes-requested"
+    to_status: "changes-requested"
+    actor_role: "project-lead"
+    reason: "Verifica del Lead eseguita per conto proprio, non sulle affermazioni dello specialista.\n\nEseguito `cargo test --workspace`: 264 passati, 0 falliti, cifra identica a quella dichiarata. Esistono i cinque file di test nuovi (`envelope_boundary.rs`, `wal_lock_restore.rs`, `durable_before_send.rs`, `future_height_buffer.rs`, `sync_response_bound.rs`) e il ripristino del lock e' reale (`node.rs:145` chiama `wal.locked_at_height(start_height)` e traccia `LOCK_RESTORED`).\n\nSul `chain_id`, lo specialista corregge la remediation di RF-001 e ha ragione: la busta non ha un campo `chain_id`, e `envelope.rs:281` ricalcola `message_id(chain_id, ...)` con il `chain_id` legato dentro il preimage. Ricalcolare e' il controllo di catena, ed e' piu' forte del confronto di campo che la review chiedeva.\n\nSulla seconda meta' della condizione di chiusura di RF-002, il Lead da' ragione allo specialista **contro la review**. La review chiedeva `can_vote(5, 2, Precommit, C) == false`. Sarebbe scorretto: la riga 29 dell'Algoritmo 1 permette di sbloccarsi dopo una polka a un `valid_round` adeguato, e `can_vote` interroga il WAL, che non sa nulla delle polka. Farlo rifiutare ogni `C` diverso dal blocco lockato bloccherebbe uno sblocco legittimo e romperebbe la liveness. Quel giudizio spetta al predicato del motore, che il lock restaurato ora alimenta. La condizione apparteneva all'altro rimedio, quello che la review stessa sconsigliava.\n\nVerificato inoltre un rischio che ne' la review ne' lo specialista avevano nominato: il restringimento di `locked` da `Option<(u64, Value)>` a `Option<(u64, Digest32)>` non impedisce a un proposer lockato di riproporre, perche' la ri-proposta segue le righe 15-19 passando da `self.valid` (`engine.rs:554`), che conserva il `Value` intero, mentre `locked` serve al solo predicato di sblocco, per il quale l'ID basta.\n\n`GATE-ENGINE-UNCHANGED` e' stata riportata al suo testo originale e derogata dal Lead: lo specialista l'aveva lasciata [x] argomentando l'intento, e ha dichiarato la scelta invece di nasconderla, ma la clausola di eccezione nomina [REVIEW-047] e non [REVIEW-049], quindi la gate come scritta e' falsa. Riscrivere il testo di una gate da parte di chi essa vincola resta una decisione del Lead. Nessun debito: non resta nulla di non fatto.\n\nI quattro rilievi dichiarati non chiusi restano aperti e vanno portati a debito prima della chiusura della spec."
+    evidence_refs: ["REVIEW-049", "SPEC-029", "core/coblox-core/src/consensus/engine.rs", "core/coblox-node/src/envelope.rs", "core/coblox-node/src/node.rs"]
+    implementation_agent: "AGENT-001"
+    remediation_agent: "AGENT-001"
 links: []
 created: 2026-08-27
 updated: 2026-08-27
@@ -54,6 +76,10 @@ activity:
     action: "corrected implementation_agent AGENT-002 -> AGENT-001"
   - date: 2026-08-27
     action: "transitioned pending -> changes-requested"
+  - date: 2026-08-27
+    action: "recorded review remediation"
+  - date: 2026-08-27
+    action: "recorded review remediation-verification"
 ---
 # Review
 

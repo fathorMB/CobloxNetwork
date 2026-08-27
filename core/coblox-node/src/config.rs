@@ -61,11 +61,23 @@ pub fn devnet_4_validator_set() -> (ValidatorSet, Vec<SigningKey>) {
 
 /// Derives standard devnet timeouts.
 ///
-/// Timeouts are derived from local network RTT estimate (`Delta_net` = 50ms):
-/// - `propose_ms`: 2 * `Delta_net` + 100ms block exec = 200ms
-/// - `prevote_ms`: 2 * `Delta_net` = 100ms
-/// - `precommit_ms`: 2 * `Delta_net` = 100ms
-/// - `round_increment_ms`: `Delta_net` = 50ms
+/// All four are multiples of one declared quantity, `Delta_net` = 50 ms, the
+/// loopback round-trip budget this devnet is tuned for:
+/// - `propose_ms`: 4 * `Delta_net` = 200 ms
+/// - `prevote_ms`: 3 * `Delta_net` = 150 ms
+/// - `precommit_ms`: 3 * `Delta_net` = 150 ms
+/// - `round_increment_ms`: 2 * `Delta_net` = 100 ms
+///
+/// [REVIEW-049] RF-020 found that the multipliers written here did not produce
+/// three of the four values below, and asked which of the two was right. **The
+/// values were**: they are the ones the four-process devnet has actually
+/// finalized ten heights at, and the arithmetic beside them had been written
+/// after the fact and never recomputed. The multipliers above are corrected to
+/// the values, not the other way round.
+///
+/// These are local parameters in the sense [`ConsensusTimeouts`] documents: no
+/// validity rule compares them, and two nodes with different values are both
+/// conformant.
 #[must_use]
 pub fn devnet_timeouts() -> ConsensusTimeouts {
     ConsensusTimeouts {

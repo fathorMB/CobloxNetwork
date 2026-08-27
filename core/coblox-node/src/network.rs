@@ -1,7 +1,5 @@
 //! P2P network implementation using libp2p (TCP + Noise + Yamux + `GossipSub` 1.1).
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -14,12 +12,28 @@ use libp2p::swarm::SwarmEvent;
 use libp2p::{Multiaddr, Swarm};
 use tokio::sync::mpsc;
 
+use coblox_core::hash::Digest32;
+use sha2::{Digest as _, Sha256};
+
 use crate::envelope::SignedEnvelope;
 use crate::error::{NodeError, Result};
+
+/// The message types that travel on the `blocks` topic rather than on
+/// `consensus`.
+///
+/// `wire.md` lines 73-78 declare the separation **normative and not
+/// organizational**, with the reason written beside it: a block on the blocks
+/// topic is already finalized and is a hint, while the consensus topic carries
+/// what decides whether a block exists at all, and dropping the second under the
+/// backpressure rules written for the first stops a node participating while it
+/// looks healthy. Publishing everything on `consensus` was
+/// [REVIEW-049] RF-007(a).
+const BLOCKS_TOPIC_MESSAGE_TYPES: [&str; 2] = ["finalized_block", "block_request"];
 
 pub struct NetworkService {
     swarm: Swarm<Gossipsub>,
     consensus_topic: Topic,
+    blocks_topic: Topic,
     seed_peers: Vec<String>,
     inbound_tx: mpsc::Sender<SignedEnvelope>,
     outbound_rx: mpsc::Receiver<SignedEnvelope>,
@@ -39,12 +53,24 @@ impl NetworkService {
     ) -> Result<Self> {
         let id_keys = libp2p::identity::Keypair::generate_ed25519();
 
-        // Message ID computation for GossipSub deduplication
-        let message_id_fn = |message: &gossipsub::Message| {
-            let mut s = DefaultHasher::new();
-            message.data.hash(&mut s);
-            MessageId::from(s.finish().to_string())
-        };
+        // `wire.md` line 135: "GossipSub's message-ID function MUST use this
+        // verified ID". The ID is the envelope's own `message_id`, which is
+        // SHA-256 over the chain-bound preimage and is recomputed at the
+        // boundary before anything acts on the message; a hash of the raw bytes
+        // is a different function with different collision behaviour, and
+        // `DefaultHasher` is additionally 64-bit and not stable across releases
+        // of `std`. A message whose bytes are not a parseable envelope has no
+        // verified ID and cannot get one, so it is keyed by a marked digest of
+        // its own bytes and dropped at the boundary a moment later.
+        // [REVIEW-049] RF-007(b).
+        let message_id_fn =
+            |message: &gossipsub::Message| match SignedEnvelope::from_slice(&message.data) {
+                Ok(envelope) => MessageId::from(envelope.message_id.to_prefixed()),
+                Err(_) => MessageId::from(format!(
+                    "unparseable:{}",
+                    Digest32::from_bytes(Sha256::digest(&message.data).into()).to_prefixed()
+                )),
+            };
 
         let gossipsub_config = GossipsubConfigBuilder::default()
             .heartbeat_interval(Duration::from_millis(50))
@@ -64,11 +90,14 @@ impl NetworkService {
         )
         .map_err(|e| NodeError::Protocol(format!("failed to initialize gossipsub: {e}")))?;
 
-        let consensus_topic_str = format!("/coblox/{network_id}/consensus/0.1");
-        let consensus_topic = Topic::new(&consensus_topic_str);
-        gossipsub
-            .subscribe(&consensus_topic)
-            .map_err(|e| NodeError::Protocol(format!("failed to subscribe to topic: {e}")))?;
+        let consensus_topic = Topic::new(format!("/coblox/{network_id}/consensus/0.1"));
+        gossipsub.subscribe(&consensus_topic).map_err(|e| {
+            NodeError::Protocol(format!("failed to subscribe to consensus topic: {e}"))
+        })?;
+        let blocks_topic = Topic::new(format!("/coblox/{network_id}/blocks/0.1"));
+        gossipsub.subscribe(&blocks_topic).map_err(|e| {
+            NodeError::Protocol(format!("failed to subscribe to blocks topic: {e}"))
+        })?;
 
         let mut swarm = libp2p::SwarmBuilder::with_existing_identity(id_keys)
             .with_tokio()
@@ -100,6 +129,7 @@ impl NetworkService {
         Ok(Self {
             swarm,
             consensus_topic,
+            blocks_topic,
             seed_peers: seed_peers.to_vec(),
             inbound_tx,
             outbound_rx,
@@ -121,8 +151,28 @@ impl NetworkService {
                 outbound = self.outbound_rx.recv() => {
                     match outbound {
                         Some(envelope) => {
-                            if let Ok(bytes) = envelope.to_jcs() {
-                                let _ = self.swarm.behaviour_mut().publish(self.consensus_topic.clone(), bytes);
+                            let topic = if BLOCKS_TOPIC_MESSAGE_TYPES
+                                .contains(&envelope.message_type.as_str())
+                            {
+                                self.blocks_topic.clone()
+                            } else {
+                                self.consensus_topic.clone()
+                            };
+                            match envelope.to_jcs() {
+                                Ok(bytes) => {
+                                    if let Err(e) =
+                                        self.swarm.behaviour_mut().publish(topic, bytes)
+                                    {
+                                        eprintln!(
+                                            "PUBLISH_FAILED message_type={}: {e}",
+                                            envelope.message_type
+                                        );
+                                    }
+                                }
+                                Err(e) => eprintln!(
+                                    "PUBLISH_ENCODE_FAILED message_type={}: {e}",
+                                    envelope.message_type
+                                ),
                             }
                         }
                         None => break,

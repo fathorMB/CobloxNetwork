@@ -376,6 +376,8 @@ impl Devnet {
                 timeouts: harness_timeouts(),
                 height: 1,
                 previous_block_id: genesis_block_id,
+                locked_round: None,
+                locked_block_id: None,
             })
             .expect("the harness engine must start");
             devnet.nodes.push(Node {
