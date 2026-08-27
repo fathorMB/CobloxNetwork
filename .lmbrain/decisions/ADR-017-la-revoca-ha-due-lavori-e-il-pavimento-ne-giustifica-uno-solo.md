@@ -156,9 +156,59 @@ comunque, e questo parametro non e' piu' la difesa giusta. Cosi' il numero non v
 scelto oggi contro la misura che la sezione *Revisit* dichiara mancante: arriva
 con la taratura di `validator_min_set_size_min`.
 
-`ElectionBounds` porta gia' due pavimenti di questa forma —
-`validator_min_set_size_min` e `validator_min_capture_epochs_min` — quindi
-`revocation_effective_grace_blocks_min` e' il terzo su un pattern esistente.
+> **SECONDA CORREZIONE, del 2026-08-27 — BOZZA, non ancora approvata.**
+> [REVIEW-044] RF-001 e RF-002, due `high`, entrambi contro l'argomento della
+> prima correzione e non contro la sua attuazione.
+
+**L'argomento della rotazione e' ritirato. Era falso su tre gambe su quattro.**
+
+1. **Nessuna regola assegna un proponente.** Lo scrive [ADR-018] punto 7,
+   redatta dal Lead lo stesso giorno di questa correzione: *«Nessuna regola dice
+   chi propone»*. L'argomento presupponeva il contrario di un fatto gia' firmato.
+2. **La sola regola esistente e' a sorteggio pesato, non a rotazione per teste**
+   ([ADR-018] §3), e `voting_power = 1` e' imposto ai soli set **eletti**: il set
+   di genesi, cioe' la devnet di M-02, non e' vincolato. Percio' `k` altezze non
+   sono `k` turni distinti.
+3. **Censura e quorum non sono la stessa soglia.** Sotto il protocollo a due fasi
+   di [ADR-018], oltre **un terzo** del potere fa fallire ogni round trattenendo
+   i precommit; il quorum ne richiede **due terzi**. Sono i due lati della
+   scissione BFT, e l'argomento li dichiarava uguali. Ne segue che **nessuna
+   larghezza di finestra difende sopra un terzo**: il pavimento proteggeva dalla
+   minaccia sbagliata.
+4. Regge invece la quarta gamba, ed e' scritto perche' si sappia che fu chiesto:
+   `G >= G_min` e' imposto, quindi la relazione legava il caso peggiore.
+
+Il vincolo era inoltre ancorato al **pavimento del pavimento**:
+`permissive_bounds()` porta `revocation_effective_grace_blocks_min` e
+`validator_min_set_size_min` entrambi a `1` con set massimo `1000`, quindi
+soddisfa la relazione con `G = 1` — la finestra di due blocchi da cui
+[REVIEW-042] era partita.
+
+**Decisione dell'operatore: il tetto della banda cade sul `reason`
+`key_compromise`.** Su quel `reason` un ritardo di inclusione torna a poter solo
+**rimandare** e mai **distruggere**, com'era nella clausola 4 preesistente. Le
+due gambe cadute smettono di essere portanti perche' non c'e' piu' una finestra
+da difendere sul caso urgente, e [REVIEW-044] RF-002 riottiene il rimedio che il
+tetto aveva tolto: diluire un lotto di `key_compromise` su piu' transizioni con
+`effective_height` distinti.
+
+**Due questioni che questa decisione apre e che NON sono decise:**
+
+- **Che ne e' di `revocation_effective_grace_blocks_min`.** La sua unica
+  giustificazione era l'argomento ritirato. Va tolto, oppure tenuto come limite
+  dichiarato senza la storia della rotazione. Non lo decide il Lead da solo.
+- **Il tetto sui `reason` pianificati.** Resta, e con esso la possibilita' che un
+  ritardo di inclusione distrugga una revoca pianificata. E' lo stesso difetto a
+  severita' minore, o e' accettabile perche' su quei `reason` chi revoca sceglie
+  il momento? Non e' stato attaccato da nessuno.
+
+**Disciplina imposta da questa seconda correzione.** La prima e' diventata testo
+normativo in `ledger.md`, replicato in `README.md` e in `params.rs`, ed e' stata
+**pinnata da una probe**: `published_artifacts.py` era verde su un'affermazione
+di sicurezza falsa. Terza occorrenza della stessa forma nella sola [SPEC-022].
+Nessun argomento di questa correzione diventa normativo prima di essere stato
+attaccato da AGENT-007 come artefatto a se', invece che dopo, quando una gate lo
+tiene gia' fermo.
 
 **Cosa questa correzione non chiude.** Il tetto della banda e' nuovo di
 [SPEC-022]: la clausola 4 preesistente aveva pavimento e nessun tetto, quindi un
