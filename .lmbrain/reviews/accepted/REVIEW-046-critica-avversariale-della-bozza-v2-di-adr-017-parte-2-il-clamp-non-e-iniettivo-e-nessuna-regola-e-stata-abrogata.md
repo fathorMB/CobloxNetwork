@@ -2,7 +2,7 @@
 id: REVIEW-046
 # Note: Quote the title if it contains a colon
 title: "Critica avversariale della BOZZA v2 di ADR-017 parte 2: il clamp non e' iniettivo, e nessuna delle regole che dice di sostituire e' stata abrogata"
-status: pending
+status: accepted
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
 spec: SPEC-022
 reviewer: AGENT-007
@@ -12,7 +12,17 @@ implementation_agent: AGENT-LEAD
 finding_taxonomy_version: 1
 finding_categories: [security-boundary, correctness, robustness, documentation, verification-integrity]
 # Managed append-only history. Use semantic review MCP verbs; do not edit events by hand.
-review_events: []
+review_events:
+  - schema_version: "1"
+    id: "REVIEW-046-EVENT-001"
+    timestamp: "2026-08-27T15:59:00.141154700+02:00"
+    action: "verdict"
+    from_status: "pending"
+    to_status: "accepted"
+    actor_role: "operator"
+    reason: "Accettata su richiesta dell'operatore del 2026-08-27. Come REVIEW-045 e REVIEW-036, e' una critica avversariale di bozza chiesta prima della decisione e non un verdetto su una consegna: ha finito il proprio lavoro.\n\nHa fatto la cosa piu' difficile che le fosse stata chiesta: ha attaccato e rotto la propria proposta. Il clamp e_eff = min(max(e, p+F), p+F+G) era suo, il Lead lo aveva adottato nella bozza, e il Lead gliel'ha indicato come primo bersaglio proprio perche' era entrato senza critica. Il Lead ha verificato il rilievo eseguendo: con F=10 e G=17 un lotto diluito su 110, 115, 120, 125, 128 resta distinto a p=100 e collassa interamente su 128 a p=118, una altezza distinta su cinque. Sotto la banda dura quelle transazioni sarebbero rifiutate, cioe' fallirebbero in modo rumoroso e recuperabile; sotto il clamp vengono accettate collassate e nessun set valido esiste piu'.\n\nDue rilievi correggono errori del Lead e vanno registrati come tali. RF-006: il punto 4 della bozza assegnava l'enumerazione degli artefatti resi falsi allo strumento di ADR-012, che non puo' produrla perche' C10 verifica che una frase esista e non che sia vera; la reviewer lo ha eseguito ottenendo insieme vuoto, e ha prodotto lei l'enumerazione. RF-003: l'affermazione che revocation_effective_grace_blocks_min avesse cambiato mestiere e' della reviewer ma scritta nel ramo in cui il tetto cade, e il Lead l'ha trapiantata nel ramo in cui il tetto resta.\n\nEsiti consumati: ADR-017 v3, dove i punti 1, 2 e 5 sono decisi e approvati dopo essere stati attaccati senza rompersi, il punto 3 e' riaperto con il vincolo che una forma nuova deve rispettare - preservare le altezze distinte - e il punto 4 elenca cio' che non e' stabilito. Ritirato inoltre un paragrafo residuo della v1 che attribuiva al tetto la capacita' di distruggere una revoca: era la premessa falsa, e lasciarla in coda l'avrebbe tenuta nell'ADR.\n\nEsito non consumato e dichiarato: RF-002 chiede una decisione dell'operatore sulla forma del punto 3, e l'incarico e' aperto.</reason>"
+    evidence_refs: ["ADR-017", "SPEC-022", "REVIEW-045", "REVIEW-044", "DEBT-040"]
+    implementation_agent: "AGENT-LEAD"
 links: [DEBT-040, DEBT-033, DEBT-045]
 created: 2026-08-27
 updated: 2026-08-27
@@ -21,6 +31,8 @@ related_decisions: [ADR-017, ADR-018, ADR-010, ADR-012, ADR-013]
 activity:
   - date: 2026-08-27
     action: "created"
+  - date: 2026-08-27
+    action: "transitioned pending -> accepted"
 ---
 # Review
 

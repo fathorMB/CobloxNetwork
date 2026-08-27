@@ -24,6 +24,8 @@ activity:
     action: "corretta la parte 2 su REVIEW-042 RF-001: pavimento di G ancorato in genesi come relazione, decisione dell'operatore"
   - date: 2026-08-27
     action: "correzione della parte 2 approvata dall'operatore dopo lettura"
+  - date: 2026-08-27
+    action: "seconda correzione: punti 1, 2 e 5 approvati dopo REVIEW-046, punto 3 riaperto"
 ---
 # La revoca ha due lavori, e nessuno dei lavori del pavimento riguarda il saldo
 
@@ -156,30 +158,47 @@ comunque, e questo parametro non e' piu' la difesa giusta. Cosi' il numero non v
 scelto oggi contro la misura che la sezione *Revisit* dichiara mancante: arriva
 con la taratura di `validator_min_set_size_min`.
 
-> **SECONDA CORREZIONE, del 2026-08-27 — BOZZA v2, non ancora approvata.**
-> La v1 di questa bozza e' stata attaccata da [REVIEW-045] prima di diventare
-> normativa, ed e' caduta: sei `high`. Questa v2 nasce da quella caduta.
+> **SECONDA CORREZIONE, del 2026-08-27.** I punti 1, 2 e 5 sono **decisi e
+> approvati** dall'operatore dopo che [REVIEW-046] li ha attaccati senza
+> romperli. Il **punto 3 e' riaperto**: la regola che la v2 proponeva e' rotta,
+> e il difetto e' scritto qui sotto invece che altrove.
+>
+> Percorso di questa parte 2, perche' sia leggibile: prima stesura rotta da
+> [REVIEW-036], prima correzione rotta da [REVIEW-044], v1 della seconda rotta da
+> [REVIEW-045], v2 rotta da [REVIEW-046]. Le prime due erano gia' normative
+> quando sono cadute; le ultime due no, ed e' la differenza che la critica
+> avversariale prima della decisione ha prodotto.
 
-**1. L'argomento della rotazione e' ritirato, ma per una ragione sola.**
+### 1. L'argomento della rotazione e' ritirato — DECISO
 
-La v1 elencava tre gambe cadute. [REVIEW-045] ne ha salvate due e demolita la
-descrizione delle altre: la prima citava il punto 7 **di contesto** di [ADR-018]
-mentre la sua §3 assegna un proponente e [SPEC-025] lo portera' in
-`docs/protocol/` — un fatto **con scadenza programmata** usato per un ritiro
-permanente; la seconda chiamava «sorteggio» un round-robin pesato.
+La prima correzione giustificava il pavimento di `G` dicendo che la finestra dura
+almeno **una rotazione completa del set minimo**. L'argomento e' falso e la frase
+e' ritirata.
 
-Resta una gamba, permanente e sufficiente da sola: **censura e quorum non sono la
-stessa soglia.** Sotto il protocollo a due fasi di [ADR-018] oltre **un terzo**
-del potere fa fallire ogni round trattenendo i precommit, mentre il quorum ne
+Regge una gamba sola, e basta da sola: **censura e quorum non sono la stessa
+soglia.** Sotto il protocollo a due fasi di [ADR-018] oltre **un terzo** del
+potere fa fallire ogni round trattenendo i precommit, mentre il quorum ne
 richiede **due terzi**. Ne segue che nessuna larghezza di finestra difende sopra
-un terzo, e l'argomento della rotazione difendeva dalla minaccia sbagliata.
+un terzo: il pavimento proteggeva dalla minaccia sbagliata.
 
-**2. La rimozione del tetto e' RITIRATA. La premessa era falsa.**
+Le altre due gambe che la v1 elencava erano descritte male e non si usano:
+citavano il punto 7 **di contesto** di [ADR-018] mentre la sua §3 assegna un
+proponente e [SPEC-025] lo portera' in `docs/protocol/` — un fatto **con scadenza
+programmata** usato per un ritiro permanente — e chiamavano «sorteggio» un
+round-robin pesato.
+
+Il vincolo era inoltre ancorato al **pavimento del pavimento**:
+`permissive_bounds()` porta `revocation_effective_grace_blocks_min` e
+`validator_min_set_size_min` entrambi a `1` con set massimo `1000`, quindi
+soddisfa la relazione con `G = 1` — la finestra di due blocchi da cui
+[REVIEW-042] era partita.
+
+### 2. La rimozione del tetto e' ritirata — DECISO
 
 La v1 la motivava con «un ritardo di inclusione torna a poter solo rimandare».
-E' falso, e il Lead lo ha verificato eseguendo: con `F=10, G=5, e=100` l'estremo
-**superiore** della finestra di inclusione e' `p = 90` **identico con e senza
-tetto**, e a `p = 91` la revoca e' invalida in entrambi i casi per il **pavimento**
+E' falso, verificato eseguendo: con `F=10, G=5, e=100` l'estremo **superiore**
+della finestra di inclusione e' `p = 90` **identico con e senza tetto**, e a
+`p = 91` la revoca e' invalida in entrambi i casi per il **pavimento**
 `e >= p + F`, cioe' per la clausola 4 preesistente. Il tetto sposta solo
 l'estremo **inferiore**, verso il basso, dove non c'e' avversario.
 
@@ -187,68 +206,98 @@ l'estremo **inferiore**, verso il basso, dove non c'e' avversario.
 [REVIEW-042] RF-001 ed e' stato ripetuto dal Lead in due artefatti senza
 verificarne l'aritmetica.
 
-Cadono con esso le due ragioni che sostenevano la rimozione: [REVIEW-045] RF-004
+Cadono con esso le due ragioni che sostenevano la rimozione. [REVIEW-045] RF-004
 accerta che il tetto **non** toglieva il rimedio della diluizione — servono dieci
-altezze di efficacia distinte nel caso peggiore a `V = 81`, e una sola altezza di
-inclusione ne ammette `G + 1`, cioe' diciotto con i bounds tarati — e che il
-rimedio mancava solo sotto `G = 1`, lo stato che il pavimento di genesi ha
-proibito. E RF-003 accerta che toglierlo **aprirebbe** una buca nuova: resterebbe
-il solo `e >= p + F`, e la chiave compromessa conserverebbe il pieno potere di
-voto per `e − p` blocchi, illimitati e scelti da chi firma.
+altezze distinte nel caso peggiore a `V = 81`, e una sola altezza di inclusione
+ne ammette `G + 1`, cioe' diciotto con i bounds tarati — e che il rimedio mancava
+solo sotto `G = 1`, lo stato che il pavimento di genesi ha proibito. E RF-003
+accerta che toglierlo **aprirebbe** una buca nuova: resterebbe il solo
+`e >= p + F`, e la chiave compromessa conserverebbe il pieno potere di voto per
+`e − p` blocchi, illimitati e scelti da chi firma.
 
-**3. Decisione dell'operatore: l'efficacia si deriva all'inclusione.**
+### 3. Cosa fa un ritardo di inclusione — RIAPERTO
 
-Proposta da AGENT-007 in [REVIEW-045] e scelta dall'operatore il 2026-08-27. Il
-limite non si toglie: si cambia cosa fa un ritardo.
+**La v2 proponeva di derivare l'efficacia all'inclusione**, con
+`e_eff = min(max(e, p + F), p + F + G)`, cosi' che un ritardo spostasse
+l'efficacia invece di invalidare la transazione. La proposta era di AGENT-007,
+adottata dal Lead, e [REVIEW-046] l'ha rotta — attaccando la propria stessa
+proposta, che il Lead le aveva indicato come primo bersaglio proprio perche' era
+entrata senza critica.
 
-```text
-e_eff = min(max(e, p + F), p + F + G)
-```
+**Il clamp non e' iniettivo, e questo distrugge il rimedio che il documento
+dichiara.** Verificato dal Lead eseguendo, con i bounds tarati `F = 10, G = 17`:
+un lotto di `key_compromise` che un quorum onesto ha **correttamente diluito** su
+altezze distinte `110, 115, 120, 125, 128` resta distinto se incluso a `p = 100`,
+e **collassa interamente su `128`** se l'inclusione e' ritardata a `p = 118` —
+una altezza distinta su cinque.
 
-`e` resta il valore firmato e dichiarato dall'autore; `e_eff` e' l'altezza a cui
-la revoca diventa efficace, derivata al momento dell'inclusione. Un ritardo
-**sposta l'efficacia** invece di invalidare la transazione, quindi la censura
-torna a poter solo rimandare — questa volta sul lato giusto — e il tetto continua
-a limitare la discrezione del quorum, che e' il lavoro per cui la parte 2 esiste.
+Il collasso e' peggiore del difetto che il clamp doveva curare. Sotto la banda
+dura quelle transazioni sarebbero **rifiutate**: fallimento rumoroso e
+recuperabile, si rifirma. Sotto il clamp vengono **accettate collassate**, e da
+li' regola 8, regola 2 e regola 10 non ammettono alcun set valido — la catena si
+ferma per sempre. E' [REVIEW-044] RF-002 **peggiorato** invece che risolto, con
+l'innesco spostato dal difensore all'attaccante: basta un terzo bloccante che
+ritardi l'inclusione.
 
-**4. Cosa questa bozza NON stabilisce, e non deve stabilire da sola.**
+**Il vincolo che una forma nuova deve rispettare, e che il clamp violava:
+preservare le altezze distinte.** Il rimedio della diluizione vive esattamente
+li'.
 
-- **L'enumerazione degli artefatti resi falsi.** [REVIEW-045] RF-006 ne elencava
-  dodici *per la decisione ritirata*: quell'insieme non e' questo. L'insieme di
-  questa correzione va prodotto **eseguendo la passata di [ADR-012]** con lo
-  strumento versionato, non derivato a mano. Sono gia' noti e falsi comunque
-  vada: la frase della rotazione in `ledger.md`, la probe
-  `revocation-grace-floor-is-one-rotation-of-the-minimum-set` che la pinna, il
-  paragrafo *«What this floor does not fix»*, e la *Statement* di [DEBT-040].
-- **La sorte di `revocation_effective_grace_blocks_min`.** [REVIEW-045] accerta
-  che **non e' orfano**: ha cambiato mestiere e impone ora la larghezza minima
-  della banda pianificata via `P >= F + G`. La terza via che propone —
-  riderivarlo contro il numero di contrazioni `C(validator_max_set_size_max)` —
-  non e' stata attaccata da nessuno e resta aperta.
+Restano da chiarire, e [REVIEW-046] li elenca come rilievi propri:
+
+- Nessuna regola verrebbe **abrogata**: restano in piedi `ledger.md:795`, la
+  clausola 4, la riga della tabella e il predicato spedito in `identity.rs`. Una
+  correzione che aggiunge senza abrogare non cambia il comportamento.
+- Sotto un clamp il pavimento di `G` **cambia segno**: da larghezza di una
+  finestra difensiva a **latitudine garantita a chi firma**, diciassette blocchi
+  sui bounds tarati.
+- Il light client **non puo' calcolare** un'efficacia derivata, perche' non vede
+  le transazioni: la grandezza operativa smetterebbe di essere impegnata da una
+  firma.
+- La formula non nominava ne' `reason` ne' `P`, mentre la banda e' dichiarata
+  dipendente da `reason`.
+
+### 4. Cosa questa correzione NON stabilisce
+
+- **L'enumerazione degli artefatti resi falsi.** La v2 la assegnava allo
+  strumento di [ADR-012]: **non puo' produrla**, e [REVIEW-046] RF-006 lo ha
+  accertato eseguendolo. `C10` verifica che una frase **esista**, non che sia
+  **vera**, e su questa domanda restituisce insieme vuoto. L'enumerazione e' in
+  [REVIEW-046], prodotta a mano e per gruppi.
+- **La sorte di `revocation_effective_grace_blocks_min`.** La v2 affermava che
+  «ha cambiato mestiere». L'affermazione e' di [REVIEW-045] ma scritta nel ramo
+  in cui il tetto **cade**; la v2 ritira quel ramo e ne trapianta la conclusione.
+  Sotto il tetto che resta, la questione e' aperta.
 - **Il tetto sui `reason` pianificati.** [REVIEW-045] accerta che **non** e' lo
   stesso difetto a severita' minore: il censore naturale e' il bersaglio stesso
   di `validator_misconduct`, gli basta un terzo bloccante, e «chi revoca sceglie
   il momento» non difende, perche' il momento sposta la **posizione** della
-  finestra e non la sua **larghezza**. Resta aperto.
+  finestra e non la sua **larghezza**.
+- **RF-008 di [REVIEW-042]**, cioe' `P = F + G` che rende `reason` letto e
+  inerte. Resta una decisione dell'operatore.
 
-**5. Disciplina, nella forma che [REVIEW-045] RF-008 ha imposto.**
+### 5. Disciplina sulla provenienza degli argomenti — DECISO
 
 La v1 dichiarava che nessun argomento sarebbe diventato normativo prima di essere
-attaccato. RF-008 ha stabilito che quella regola non e' decidibile, non ha
-proprietario, vive in un ADR che nessuno strumento legge, ed e' scritta dalla
-parte che deve rispettarla. La sostituisce una forma verificabile: **ogni `[[probe]]`
-il cui `why` porti un argomento di sicurezza nomina l'ID della review che lo ha
-attaccato**, e lo strumento fallisce se manca. Sarebbe stata rossa sulla probe
-della rotazione il giorno in cui e' entrata.
+attaccato. [REVIEW-045] RF-008 ha stabilito che quella regola non e' decidibile,
+non ha proprietario, vive in un ADR che nessuno strumento legge, ed e' scritta
+dalla parte che deve rispettarla. La sostituisce una forma verificabile: **ogni
+`[[probe]]` il cui `why` porti un argomento di sicurezza nomina l'ID della review
+che lo ha attaccato**, e lo strumento fallisce se manca. Sarebbe stata rossa
+sulla probe della rotazione il giorno in cui e' entrata. E' [SPEC-026].
 
-**Cosa questa correzione non chiude.** Il tetto della banda e' nuovo di
-[SPEC-022]: la clausola 4 preesistente aveva pavimento e nessun tetto, quindi un
-ritardo di inclusione poteva solo rimandare una revoca, e ora puo' distruggerla.
-Ancorare il pavimento toglie al set seduto la possibilita' di stringere la
-finestra, ma non riordina le larghezze fra i `reason`: `key_compromise` resta il
-caso con il margine minore, cioe' l'urgenza piu' alta con la finestra piu'
-stretta. E' [DEBT-040], aperto, con per innesco la stessa misura che la sezione
-*Revisit* nomina.
+
+> **Paragrafo ritirato il 2026-08-27.** Qui stava una nota che attribuiva al
+> **tetto** della banda la possibilita' che un ritardo di inclusione distrugga
+> una revoca. [REVIEW-045] ha accertato che e' falso — il lato che la censura
+> attraversa e' il **pavimento** `e >= p + F`, cioe' la clausola 4 preesistente —
+> e il punto 2 qui sopra riporta l'aritmetica. L'affermazione falsa e' tolta
+> invece che lasciata in coda, perche' era gia' diventata normativa una volta.
+>
+> Cio' che resta vero e' registrato su [DEBT-040]: `key_compromise` conserva il
+> margine minore, cioe' l'urgenza piu' alta con la finestra piu' stretta. La sua
+> *Statement* porta pero' la stessa premessa sbagliata e va riscritta quando il
+> debito viene lavorato.
 
 Senza questo la parte 2 **non toglierebbe la discrezione: la sposterebbe**. Un quorum che vuole latitudine su un `key_compromise` non toccherebbe `effective_height` — la banda glielo stringe — ma pubblicherebbe un `consensus_parameters` con `F` enorme, soddisfacendo ogni vincolo relazionale esistente. Sarebbe la **famiglia 3** alla lettera: vincolata la grandezza nominata, non quella da cui la proprietà dipende. È [REVIEW-036] RF-001, ed è l'obbligo che [ADR-010] impone e che la prima stesura non aveva assolto pur citando quell'ADR.
 
