@@ -2,7 +2,7 @@
 id: SPEC-025
 # Note: Quote the title if it contains a colon
 title: "Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori"
-status: backlog
+status: working
 kind: feature
 priority: high
 area: consensus
@@ -32,6 +32,10 @@ activity:
     action: "set tags"
   - date: 2026-08-27
     action: "set recommended_agent"
+  - date: 2026-08-27
+    action: "transitioned backlog -> ready"
+  - date: 2026-08-27
+    action: "transitioned ready -> working"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 

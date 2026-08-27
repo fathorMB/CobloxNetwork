@@ -9,29 +9,37 @@ updated: 2026-08-27
 
 ## Current focus
 
-M-02 (Ledger vivo: federazione BFT su devnet). Dei quattro esiti che la milestone
-nomina, solo il simulatore economico e' fatto. Non c'e' rete: `libp2p` non e' una
+**M-02, e il progetto e' a un esito su quattro.** La milestone nomina devnet BFT,
+light client con prove Merkle, mint & burn, e simulatore economico. Solo il
+simulatore e' fatto, chiuso il 2026-08-25. Non c'e' rete: `libp2p` non e' una
 dipendenza del workspace.
 
-Cosa esiste: una libreria di regole in `coblox-core` e le specifiche di
-protocollo pubblicate. Ventuno spec `done` hanno prodotto regole scritte,
-applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
+**[SPEC-025] e' in lavorazione** da AGENT-002 dal 2026-08-27: il motore di
+consenso che attua [ADR-018]. E' il primo passo verso il primo esito.
 
-[SPEC-025] e' il prossimo passo verso l'esito della milestone.
+**Rilievo dell'operatore del 2026-08-27, e va tenuto in vista.** La sessione si
+era arenata su questioni che non servivano la milestone: tre spec nuove di cui
+una di M-06, quattro review, otto debiti, tre versioni di una correzione a un ADR
+sulla revoca. [SPEC-025] aveva `depends_on: []` e stava in `backlog` da ore.
+Nulla la bloccava. E' la seconda sessione consecutiva a uscire di strada, ed
+entrambe le volte se n'e' accorto l'operatore per primo.
+
+La 5.1.0 impone di ancorarsi alla roadmap all'apertura di ogni sessione e di dire
+quando il lavoro richiesto non serve la milestone corrente.
 
 ## In progress
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, [REVIEW-044] non superata | AGENT-002 | Due `high`, **nessuno dei due nella remediation**: uno rompe l'argomento del Lead in [ADR-017], l'altro e' una composizione mai attaccata. Entrambi richiedono una decisione dell'operatore prima che ci sia da implementare |
+| [SPEC-025] | **`working`** | AGENT-002 | Dispacciata il 2026-08-27. Motore di consenso per [ADR-018]: prevoto, blocco, catena finalizzata da quattro validatori. **Primo passo verso il primo esito di M-02** |
+| [SPEC-022] | `review`, **congelata** | AGENT-002 | Attende la forma iniettiva del punto 3 di [ADR-017], riaperto da [REVIEW-046]. Nessuno tocca `ledger.md` ne' `core/` per essa: non e' in contesa con [SPEC-025] |
 
-Nessun agente in esecuzione.
+**AGENT-002 in esecuzione su [SPEC-025].**
 
 ## Ready for handoff
 
 | Spec | Stato | Chi | Nota |
 | --- | --- | --- | --- |
-| [SPEC-025] | `backlog`, `sol`/`maximum` | AGENT-002 | Attua [ADR-018]: motore di consenso, catena finalizzata da quattro validatori come prova. Non e' una devnet — rete e persistenza sono la spec successiva |
 | [SPEC-026] | `backlog`, `terra` | AGENT-008 | Rende eseguibili due discipline che oggi sono prosa: review non terminali su spec chiuse, e probe che portano un argomento di sicurezza senza nominare la review che l'ha attaccato |
 | [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
