@@ -42,6 +42,8 @@ activity:
     action: "attested verification GATE-CI-GREEN by lead"
   - date: 2026-08-27
     action: "attested verification GATE-LEAD-REPRO by lead"
+  - date: 2026-08-27
+    action: "attested verification GATE-CI-GREEN by lead"
 verification_attestations:
   - actor: "AGENT-LEAD"
     actor_role: "lead"
@@ -63,6 +65,16 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-27T18:17:24.243203200+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "ebfbf0bd7d7a5181d6279b2089c5c139374962c77aaf2f013217b4da07693d38"
+    evidence_ref: "RIATTESTAZIONE dopo la remediation di REVIEW-047, che sostituisce SPEC-025-ATTEST-001. Quella attestava la run 33086611370 sul commit 76b5bd3; il codice e' cambiato con 31669eb, quindi accettare su quella significherebbe attestare su un albero che non esiste piu'.\n\nRun GitHub Actions 33092387240 sul commit 437f4c4 di main, che porta la remediation e l'attestazione di GATE-LEAD-REPRO: sei job su sei verdi — Rust (ubuntu-latest), Rust (windows-latest), Tauri desktop (ubuntu-latest), Tauri desktop (windows-latest), Android arm64 + Kotlin bindings, Protocol document guards. Verificato dal Lead interrogando i job, non il solo esito complessivo.\n\nVerificato inoltre che i passi introdotti da questa spec abbiano girato su QUESTO commit e non solo sul precedente: lo sweep esteso in release risulta success su Linux e skipped su Windows, che e' il comportamento voluto dalla condizione runner.os == 'Linux'; \"The consensus engine has no I/O\" success; \"That lint proved in the negative, three defect classes\" success.\n\nIl controllo sui passi conta piu' dell'esito complessivo: un passo che non venga eseguito produce una pipeline verde e una guardia inesistente, ed e' la ragione per cui questa consegna ha portato lo sweep in CI invece di lasciarne il numero in una trascrizione."
+    id: "SPEC-025-ATTEST-003"
+    requirement_digest: "f8e43a5fdd0ae9021563670cf903511159d3c6e03749a1f62b79d01126d324fd"
+    requirement_id: "GATE-CI-GREEN"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T18:26:09.905190200+02:00"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 
