@@ -24,9 +24,9 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
 | [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Sbloccata: [ADR-017] e' corretta e approvata. In coda dopo [SPEC-023], perche' toccano `ledger.md` e `core/` entrambe |
-| [SPEC-023] | `review`, quarta remediation in corso | AGENT-002 | Dispacciata il 2026-08-27. Chiudere i rilievi di [REVIEW-041]; le passate 2 e 3 le aveva rimediate il Lead introducendo due `high` |
+| [SPEC-023] | `review`, quarta remediation consegnata | AGENT-002 | Sette rilievi su sette di [REVIEW-041] chiusi. Attende la ri-esecuzione di `GATE-SECREVIEW` da AGENT-007, che l'operatore deve richiedere |
 
-AGENT-002 in esecuzione su [SPEC-023].
+Nessun agente in esecuzione.
 
 ## Ready for handoff
 
@@ -70,7 +70,7 @@ oggi pendente.
 
 ## Debiti aperti
 
-Quindici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
+Sedici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
 a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 
 | ID | Sev | Owner | Questione |
@@ -89,6 +89,7 @@ a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 | [DEBT-035] | medium | AGENT-007 | Dentro la classe 0 l'ordine e' per ID di transazione, e il revocante puo' sfruttarlo |
 | [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
 | [DEBT-040] | medium | AGENT-007 | La finestra di inclusione piu' stretta tocca il `reason` piu' urgente: ordinamento invertito rispetto all'urgenza |
+| [DEBT-041] | medium | AGENT-002 | `ledger.md` si contraddice sull'aggregazione su `K` blocchi: non presa in v0 in una sezione, presa in un'altra |
 | [DEBT-039] | low | AGENT-008 | `glib` resta vulnerabile: `javascriptcore-rs` la pinna esattamente, nessun aggiornamento fino a `wry`. Rischio accettato |
 
 ## Done

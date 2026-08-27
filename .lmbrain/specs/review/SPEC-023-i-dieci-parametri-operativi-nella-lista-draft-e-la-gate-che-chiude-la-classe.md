@@ -457,3 +457,145 @@ Total: 181 passed; 0 failed; 0 ignored
 - **RF-002 (documentation, medium)**: Rimossa tutta la notazione matematica LaTeX (`$D_{\max}$`, `$S_{\max}$`, `$F$`) da `docs/protocol/README.md`. Il simbolo non definito `$F$` è stato sostituito con la dizione in lingua naturale `validator succession coordination margin`.
 - **RF-003 (documentation, low)**: Applicato il vincolo di larghezza a 80 colonne all'intera sezione DRAFT in `docs/protocol/README.md`. Nessuna riga supera gli 80 caratteri, eliminando tutte le 14 righe sovradimensionate.
 - **RF-004 (process, low)**: Cablata l'esecuzione della nuova gate `sim/tools/consensus_parameters_closure.py` e della sua prova in negativo `--negative` nel workflow GitHub Actions `.github/workflows/ci.yml` (job `protocol-docs`). In questo modo la chiusura dello schema `ConsensusParametersBody` viene verificata automaticamente a ogni commit e pull request (inclusi i futuri ampliamenti di parametri in SPEC-022).
+
+### Remediation evidence (REVIEW-041, quarta passata — AGENT-002)
+
+**Perimetro.** Un solo file modificato: `.lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md`. Nessun documento di protocollo, nessun ADR, nessuna altra spec, nessun debito, nessun file di codice, nessun `STATUS.md`. `git status --porcelain` a fine passata riporta esattamente una riga.
+
+**Regola meccanica applicata, ed è la richiesta esplicita di [REVIEW-041] punto 2 dei follow-up.** Ogni rilievo è stato chiuso in **tre luoghi** e la chiusura è verificata in tutti e tre: **(1)** il corpo della sezione del §2, **(2)** la cella della tabella tassonomica del §3, **(3)** il riquadro di correzione della sezione. Le tre righe che nella terza passata erano state corrette nella sola tabella (2, 5–6, 7) sono state riportate in accordo con il proprio corpo, e la tabella porta ora un'avvertenza esplicita: non è autosufficiente, e dove tabella e sezione divergessero **vale la sezione**.
+
+**Regola sulle ancore applicata prima di scrivere.** Per ogni grandezza a cui l'analisi ancora un vincolo è stato verificato **chi la scrive**. L'esito ha cambiato tre conclusioni: la mediana degli undici timestamp è scritta dai validatori e non è un'ancora (riga 1); nessuna costante di genesi conta le identità enrollate, quindi la relazione delle cache non può ancorarsi ad alcuna grandezza esistente (righe 5–6); `block_interval_ms` è dichiarato e non imposto, e sul lato veloce della banda di cadenza il predicato relazionale della riga 7 ammette fino al doppio della finestra reale.
+
+#### Rilievi di REVIEW-041, uno per uno
+
+- **RF-001 (security, high) — chiuso.** *Corpo §1 punto 2:* tre paragrafi nuovi. L'estremo basso della finestra è dichiarato **mediana di undici `timestamp_ms` scritti dai validatori**, con la regola di `ledger.md` §*"Block format"* citata a frase; è dichiarato che v0 **non impone** l'intervallo obiettivo né la distanza fra timestamp consecutivi, con le due frasi che [REVIEW-041] chiedeva e che l'artefatto non portava; è dichiarato che un predicato su quella distanza è **rifiutato e non assente**, con la frase generale di `README.md` §*"Genesis constants"*. Scenario aritmetico completo: rallentamento a `max_ms_per_block` = 20 000 ms, **dentro la banda quindi senza allarme**, mediana a ~120 000 ms, finestra quadruplicata; lato veloce `min_ms_per_block` = 2 500 ms → 15 000 ms. Conclusione dichiarata su tutta la banda. *Corpo §1 punto 3:* aggiunta la distinzione di specie — la banda di cadenza è una **misura**, non un predicato. *Corpo §1 punto 4:* il tetto è dichiarato mitigazione di grado con il **residuo nominato**. *Tabella riga 1:* la cella non attribuisce più il termine dominante a `block_interval_ms`; nomina la mediana, i validatori che la scrivono, il non-enforcement e i due estremi numerici. *Riquadro §1:* la storia del difetto.
+- **RF-002 (security, high) — chiuso.** *Corpo §5 punto 1:* la definizione dice ora **per singolo `sender_node_id`**. *Corpo §5 punto 4:* riscritto in quattro punti. È dichiarato l'errore di categoria con le due frasi di `wire.md` §*"Transport rotation, attribution, and rate limits"* punti 1 e 2 — la cache indossa `(sender_node_id, nonce)` e l'attribuzione non si lega mai al Peer ID di trasporto, quindi il «peer» è un'**identità enrollata** e non un seggio di validatore. È dichiarato che `N_min` **non esiste** in alcun documento né in `core/`, che `validator_min_set_size` è **campo firmato dal quorum** (`README.md` §*"Signed protocol documents"*) e che la costante di genesi è solo il suo pavimento `validator_min_set_size_min` in `ElectionBounds`, con lo scenario di crollo del denominatore. È dichiarato che `README.md` §*"Genesis constants"* contiene **una sola** costante e che nessun documento firmato porta un numero di peer. La relazione è riscritta su **due soli operandi, entrambi campi dello stesso documento**, con il divisore $k$ **dichiarato non deciso** e le due sole forme ammissibili (costante di genesi nuova, o letterale d'ADR) con il loro costo — e la nomina esplicita di ciò che **non** è ammissibile. *Corpo §6 punti 4 e 5:* allineati, con rinvio al §5 e senza duplicare la relazione. *Tabella righe 5 e 6:* `N_min` sostituito, la colonna «ambito» porta ora `sender_node_id` con le due esclusioni, la colonna del vincolo porta $k$ e il fatto che nessuna grandezza esistente serve. *Riquadro §5:* copre entrambe le righe; §6 rinvia a esso.
+- **RF-003 (correctness, medium) — chiuso.** *Corpo §1 punto 4:* l'argomento è riscritto come **aritmetico** — a tetto zero la finestra è già dentro la banda, e il termine di questo parametro è additivo su uno che lo domina — e la **regola generale è ritirata esplicitamente**, con la constatazione che pavimento e tetto di questa riga **non** sono in conflitto fra loro. Nessun'altra riga dell'artefatto invoca quella regola: verificato per assenza della stringa.
+- **RF-004 (correctness, medium) — chiuso nell'analisi; la parte su DEBT-038 è riportata e non applicata.** *Corpo §1 punto 4:* le tre vie di chiusura sono ora enumerate con il proprio stato. L'aggregazione su `K` blocchi è dichiarata **presa**, con la frase della sezione della regola di elezione citata per intero e `K = election_entropy_blocks`; è dichiarato che la §*"Challenge evidence"* la elenca **ancora** come non presa, quindi che **il documento di protocollo si contraddice** — rilievo sul protocollo, **non corretto qui** perché `docs/protocol/` è fuori perimetro, e riportato al Lead. La quantizzazione allo slot è dichiarata **la sola via residua**. La nota su [DEBT-038] dichiara che la sua portata **va dimezzata**; la correzione del debito è del Lead e non è stata applicata.
+- **RF-005 (documentation, medium) — chiuso.** *Corpo §2 punto 2:* il danno massimo porta ora il **termine di prodotto** (ritenzione × tasso d'inserimento contro le due cache) e le due frasi di `wire.md` sulla ritenzione fino a scadenza e sulla non-evizione; «saturazione irreversibile» è scomparso dal corpo. *Corpo §2 punto 4:* le due proprietà sono separate, e la classificazione è **magnitudine per la prima, relazionale con le due cache per la seconda**, con la nota che i tre operandi stanno nello stesso documento quindi il predicato è valutabile in un solo punto. *Tabella riga 2:* già corretta, ora in accordo col corpo. *Riquadro §2:* aggiunto.
+- **RF-006 (correctness, medium) — chiuso.** *Corpo §7 punto 2:* i due danni sono separati come **(a)** e **(b)**, con le frasi di fonte per ciascuno; è dichiarato esplicitamente che **(b) non è conseguenza di (a)** e che il nesso causale precedente era un non-sequitur; la frase incriminata è stata rimossa. *Corpo §7 punto 4:* due rimedi distinti, e per **(b)** è nominato il modello del protocollo (obbligo di ripubblicazione, sul modello di quello già imposto a ogni revoca). *Tabella riga 7:* la colonna del vincolo porta ora **entrambi** i rimedi, quindi chi compila l'ADR riga per riga ha qualcosa da scrivere anche per (b). *Riquadro §7:* aggiunto, con l'avvertenza che i due danni vanno letti separatamente in tutta la sezione.
+- **RF-007 (documentation, low) — chiuso.** Tutti i riferimenti di review sono stati spostati nei **riquadri di correzione**; nessun rilievo è più citato in linea nella prosa dei punti 1–5 (righe 1, 2, 4, 5, 8, 9, 10 riscritte a questo scopo). **Tutte le attribuzioni di verifica personale sono state rimosse**: `grep -c "Verificato dal Lead"` restituisce `0`, e le formule «verificato in tre punti dell'albero» e «come nota RF-007» sono scomparse. La didascalia della tabella non nomina più le review.
+
+#### Residui delle passate precedenti
+
+- **[REVIEW-038] RF-003 — non chiuso, e correttamente:** è [DEBT-037], dichiarato non rimediabile dentro questa spec dalla reviewer stessa.
+- **[REVIEW-038] RF-009 — non mio:** appartiene alla passata di [ADR-012] su [SPEC-022]. La prosa dell'analisi non conta più i campi (correzione già in albero dalla seconda passata) e lo strumento stampa ora `22`, verificato eseguendolo.
+- **[REVIEW-038] RF-001, RF-002, RF-004, RF-005, RF-006, RF-007, RF-008, RF-010, RF-011** e **[REVIEW-040] NF-01…NF-10:** disposti dalle review successive; i punti riaperti da [REVIEW-041] sono quelli trattati sopra. In più, **la riga 9 è stata allineata al proprio corpo di propria iniziativa**: la cella scioglieva l'«oppure» di NF-04 mentre il §9 punto 4 lo portava ancora. Non era un rilievo di [REVIEW-041] — che giudica la riga 9 utilizzabile — ma è la stessa forma di difetto che RF-005 e RF-006 censurano, quindi è stata chiusa nello stesso giro.
+
+#### Difetti trovati da questa passata e non corretti qui
+
+1. **`docs/protocol/ledger.md` si contraddice sull'aggregazione su `K` blocchi.** La §*"Challenge evidence"* la elenca fra le riduzioni *"available and are not taken in v0"*; la sezione della regola di elezione dichiara *"the reduction this document deferred to 'the dedicated randomness beacon' and takes here"*. È **famiglia 2** — un'affermazione rimasta indietro rispetto alla regola — in un documento di protocollo. Fuori dal perimetro di scrittura di questa spec. **Aperto come rilievo al Lead.**
+2. **Sotto-affermazione inesatta in [REVIEW-041] RF-002.** La review scrive che la cache è indicizzata *"per peer wire, non per validatore"*. La seconda metà è esatta e portante; **la prima no**: `wire.md` §*"Transport rotation, attribution, and rate limits"* punto 1 dichiara che l'attribuzione si lega a `sender_node_id` e **mai** al Peer ID di trasporto. L'indice è **l'identità enrollata**. Il rilievo **regge e si rafforza** — il denominatore corretto non è né il set di validatori né il numero di connessioni, ed è una grandezza che il protocollo non nomina affatto — ma l'artefatto è stato scritto sul fatto verificato, non sulla formulazione della review.
+3. **L'incoerenza `block_interval_ms` / `block_interval_seconds`** fra la tabella delle costanti di genesi di `README.md` e l'uso in `ledger.md` e nella §*"Cadence band"*. Preesistente e già registrata da [REVIEW-041]; non toccata.
+
+### Verification transcript (quarta passata)
+
+#### 1. Risolutore di citazioni: ogni frase citata dall'analisi contro le proprie fonti
+
+Verifica della **presenza letterale** di ogni frase fra virgolette dell'analisi in uno dei cinque documenti sorgente, con normalizzazione degli spazi bianchi e spogliatura dell'enfasi Markdown. Perimetro dichiarato: **presenza**, non fedeltà di significato.
+
+```text
+$ python /tmp/chk2.py
+quoted phrases found: 132
+unresolved: 0
+```
+
+Una prima esecuzione ne riportava **una** non risolta, ed era un difetto reale introdotto da questa passata: le virgolette interne della citazione sull'aggregazione erano state scritte con `\"`, e le barre rovesciate rompevano la frase. Corretto e rieseguito.
+
+Verifica mirata, prima di scrivere, delle **22 frasi e valori portanti** su cui poggiano le correzioni di RF-001, RF-002, RF-004 e RF-006:
+
+```text
+$ python /tmp/chk.py
+OK   docs/protocol/ledger.md :: The target block interval is 5 seconds, and v0 does not enforce it.
+OK   docs/protocol/ledger.md :: No v0 validity rule constrains the distance between consecutive `timestamp_ms` values.
+OK   docs/protocol/README.md :: a rule on the distance between consecutive `timestamp_ms` values is **rejected** rather than merely absent
+OK   docs/protocol/README.md :: `block_interval_seconds = 5` is declared, not enforced.
+OK   docs/protocol/ledger.md :: MUST be greater than the median of the previous 11 finalized blocks and no more than the active maximum clock drift after the proposal is received
+OK   docs/protocol/ledger.md :: Aggregating `election_entropy_blocks` consecutive blocks raises the cost of controlling the *whole* window to holding consecutive proposal slots
+OK   docs/protocol/ledger.md :: the reduction this document deferred to "the dedicated randomness beacon" and takes here
+OK   docs/protocol/ledger.md :: Two reductions are available and are not taken in v0: quantizing `timestamp_ms` to the consensus slot
+OK   docs/protocol/ledger.md :: with the dedicated randomness beacon, which is M-02 work under
+OK   docs/protocol/ledger.md :: the mitigation of this grinding
+OK   docs/protocol/wire.md :: They cache message IDs and `(sender_node_id, nonce)` until expiry
+OK   docs/protocol/wire.md :: The replay cache indexes `(sender_node_id, nonce)` pairs up to `replay_cache_entries_per_peer`
+OK   docs/protocol/wire.md :: `sender_node_id`, never to ephemeral transport Peer IDs
+OK   docs/protocol/wire.md :: an insertion that would exceed either cap rejects the new envelope as `rate_limited` and MUST NOT evict a still-live entry
+OK   docs/protocol/README.md :: the value a client uses at step 1 of the light-client algorithm is **the one in the signed checkpoint**, never one learned from a peer
+OK   docs/protocol/README.md :: Once the client has an authenticated header it MUST check that the two agree and fail closed if they do not
+OK   docs/protocol/ledger.md :: A network MUST publish a fresh checkpoint on any validator revocation rather than waiting for its ordinary release cadence
+OK   docs/protocol/ledger.md :: its exposure window is at most `max_weak_subjectivity_age_ms` and it then fails closed
+OK   docs/protocol/README.md :: "validator_min_set_size_min":u64-string
+OK   docs/protocol/README.md :: "validator_min_set_size":u64-string
+OK   docs/protocol/README.md :: | `min_ms_per_block` | `2500` |
+OK   docs/protocol/README.md :: | `max_ms_per_block` | `20000` |
+
+failures: 0
+```
+
+#### 2. Enumerazione di `N_min`: il simbolo non esiste
+
+```text
+$ grep -rn "N_min" docs/protocol/ core/
+(nessun risultato)
+```
+
+Zero occorrenze in tutti i documenti di protocollo e in tutto `core/`. Il candidato più vicino ha invece **due** occorrenze con **due ruoli distinti**:
+
+```text
+$ grep -n "validator_min_set_size" docs/protocol/README.md
+826:  "validator_min_set_size":u64-string          <- ConsensusParametersBody: scritto dal quorum
+1043:  "validator_min_set_size_min":u64-string     <- ElectionBounds: costante di genesi, solo pavimento
+```
+
+#### 3. Enumerazione completa delle costanti di genesi
+
+`docs/protocol/README.md`, §*"Genesis constants"*, tabella letta per intero: **una sola riga**, `block_interval_seconds` = `5`, non governata. Nessuna costante conta peer, connessioni o identità enrollate. È il fatto su cui poggia la conclusione di RF-002 che la relazione delle cache **non ha oggi alcuna ancora disponibile**.
+
+#### 4. Assenza dei termini ritirati
+
+```text
+$ grep -c "Verificato dal Lead"                    -> 0
+$ grep -c "in combinazione col fail-closed"        -> 0
+$ grep -c "Un vincolo i cui due lati"              -> 0
+$ grep -c "saturazione irreversibile"              -> 1  (solo dentro il riquadro §2, come storia del difetto)
+$ grep -c "N_min"                                  -> 3  (solo riquadro §5, corpo §5 come negazione, cella 5 come negazione)
+$ grep -c "N_peers"                                -> 2  (solo riquadro §5 e cella 5, come negazioni)
+```
+
+Le occorrenze residue sono state ispezionate una per una: nessuna afferma il termine ritirato, tutte lo negano o ne registrano la storia.
+
+#### 5. Gate di progetto rieseguite dopo la modifica
+
+```text
+$ python sim/tools/consensus_parameters_closure.py
+PASS: all 22 ConsensusParametersBody fields are covered by constraint block or DRAFT list.
+
+$ python sim/tools/consensus_parameters_closure.py --negative
+ok   unmutated copy passes
+ok   C1-SCHEMA-NOT-COVERED caught schema field missing from both lists
+ok   C2-ORPHAN-PARAM caught orphan parameter in DRAFT list
+Negative proof: PASS - all defect classes observed failing.
+
+$ python sim/tools/published_artifacts.py
+published-artifact inventory: PASS
+```
+
+#### 6. Perimetro del diff
+
+```text
+$ git status --porcelain
+ M .lmbrain/knowledge/analisi-dieci-parametri-operativi-consensus.md
+```
+
+Nessuna suite Rust rieseguita: **nessun file di codice è stato toccato**, e la trascrizione della terza passata resta la prova valida per `cargo`. È una scelta dichiarata, non un'omissione.
+
+### Limiti noti di questa passata
+
+1. **Il divisore $k$ della relazione delle cache non è deciso.** L'analisi enumera le due sole forme ammissibili con il loro costo e dichiara che la scelta è dell'operatore. **Non è una lacuna: è il perimetro della spec** — «prepara la decisione e non la prende». Ma significa che le righe 5 e 6 non sono utilizzabili verbatim in un ADR senza quella scelta.
+2. **Nessuno scenario è stato eseguito.** Il rallentamento a 20 000 ms per blocco, l'arretramento della mediana e il DoS incrociato sulla cache sono **derivati da regole lette e da aritmetica su costanti dichiarate**, mai osservati su una catena in esecuzione. Non esiste in questo repository un simulatore di consenso in grado di produrli.
+3. **La fedeltà di significato delle 132 citazioni non è verificata meccanicamente.** Il risolutore prova che ogni frase **esiste** dove l'analisi dice; non prova che dica ciò che l'analisi le fa dire. L'intorno è stato letto per le circa venticinque citazioni su cui poggia una correzione di questa passata; sulle altre la verifica è di presenza.
+4. **`threat-model.md` non è stato letto**, e TM-37 (riga 3) non è stato riverificato in questa passata.
+5. **[ADR-010], [ADR-013], [ADR-015], [ADR-016], [ADR-017] non sono stati riletti per intero.** Le conseguenze citate sono state verificate sui documenti di protocollo e su `params.rs`.
+6. **Se `election_entropy_blocks` sia implementato in codice non è stato verificato.** La conclusione di RF-004 poggia sul solo documento, come già dichiarato da [REVIEW-041].
+7. **Le righe 3 e 8 non sono state riesaminate nel merito.** [REVIEW-041] le giudica utilizzabili così; su di esse questa passata ha toccato soltanto la forma (riquadro della riga 8, etichetta di deduzione nella cella).
+8. **Il residuo di ancoraggio della riga 7 è stato trovato da questa passata e non da una review**, quindi non ha avuto verifica indipendente: `block_interval_ms` è dichiarato e non imposto, e sul lato veloce della banda di cadenza il predicato relazionale ammette fino al doppio della finestra reale di successione. È scritto come residuo di grado con il fattore limitato dalla banda. **Va attaccato nella prossima passata**, insieme al suo riflesso sulla riga 10.
