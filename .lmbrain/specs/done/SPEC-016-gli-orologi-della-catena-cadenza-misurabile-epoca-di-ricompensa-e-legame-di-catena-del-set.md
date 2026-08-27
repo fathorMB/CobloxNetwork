@@ -20,8 +20,8 @@ verification_gates: []
 related_decisions: [ADR-012, ADR-013, ADR-010]
 links: []
 created: 2026-08-26
-updated: 2026-08-26
-tags: [consensus, governance, light-client]
+updated: 2026-08-27
+tags: [governance, light-client]
 activity:
   - date: 2026-08-26
     action: "transitioned backlog -> ready"
@@ -33,6 +33,8 @@ activity:
     action: "attested verification GATE-SECREVIEW by lead"
   - date: 2026-08-26
     action: "transitioned review -> done"
+  - date: 2026-08-27
+    action: "set tags"
 verification_attestations:
   - actor: "AGENT-LEAD"
     actor_role: "lead"

@@ -20,7 +20,7 @@ verification_gates: []
 related_decisions: [ADR-012]
 links: []
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [conformance, ledger, rust, security]
 activity:
   - date: 2026-08-26
@@ -33,6 +33,8 @@ activity:
     action: "attested verification GATE-SECREVIEW by lead"
   - date: 2026-08-26
     action: "transitioned review -> done"
+  - date: 2026-08-27
+    action: "waived acceptance criterion 5 against DEBT-029"
 verification_attestations:
   - actor: "AGENT-LEAD"
     actor_role: "lead"
@@ -129,7 +131,7 @@ Il tipo deve rendere impossibile — o almeno rilevabile — usare una preimmagi
 - [x] Due derivazioni indipendenti dalla stessa distribuzione di genesi producono lo stesso `chain_id`, e la seconda è fatta **senza riusare il codice della prima**.
 - [x] Esiste l'elenco dei valori che entrano in una preimmagine **senza essere derivabili in un solo modo**, anche se vuoto.
 - [x] Una preimmagine costruita per un dominio o una catena non è utilizzabile in un altro senza che qualcosa lo dica, **oppure** la ragione per cui non serve è scritta accanto al tipo.
-- [ ] Se la forma scelta è di compilazione, il caso sbagliato **non compila**, e la trascrizione riporta l'errore. — **non applicabile**: la forma scelta è a runtime, e la casella resta vuota invece di essere spuntata a vuoto. Vedi *Deviations* 5 e la trascrizione del rifiuto in *Verification transcript*.
+- [~] Se la forma scelta è di compilazione, il caso sbagliato **non compila**, e la trascrizione riporta l'errore. La forma scelta è a runtime: `GATE-WRONG-CONTEXT-REJECTED` è soddisfatta nel ramo *«e rifiutata»*, e il recinto a compilazione resta non imposto. Vedi *Deviations* 5 e la trascrizione del rifiuto in *Verification transcript*. | waived=DEBT-029
 - [x] La logica di verifica delle firme è **invariata**: i dodici vettori upstream e i sette di estensione danno gli stessi esiti di prima.
 - [x] La gate di [ADR-012] è eseguita e la trascrizione allegata.
 
