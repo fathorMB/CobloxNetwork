@@ -1,7 +1,7 @@
 ---
 id: DEBT-033
 title: "effective_height non ha tetto, e il campo reason che porterebbe la distinzione e' inerte"
-status: open
+status: planned
 category: "security"
 severity: "high"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-001"
 related_specs: ["SPEC-019"]
 related_reviews: ["REVIEW-033"]
 related_decisions: ["ADR-010"]
-target_specs: []
+target_specs: ["SPEC-022"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","ledger","identity"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito e' l'oggetto stesso della parte 2 di ADR-017, che SPEC-022 attua e che e' in revisione aperta. Il tetto su `effective_height` e l'inerzia del campo `reason` sono esattamente cio' che la banda e la sua correzione stanno decidendo, e REVIEW-045 ha stabilito che l'inerzia di `reason` ha una forma piu' precisa di quella scritta qui: sotto `P = F + G` il campo e' letto e impegnato nell'ID e non seleziona nulla, ed e' RF-008 di REVIEW-042, la decisione dell'operatore ancora in sospeso.\n\nInstradato su SPEC-022 e non su una spec nuova perche' risolverlo altrove significherebbe decidere due volte la stessa cosa in due artefatti, che e' la forma di difetto da cui e' nato DEBT-045."
 debt_events:
   - schema_version: "1"
     id: "DEBT-033-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead perche' chiudere SPEC-019 senza registrarlo avrebbe fatto sparire la superficie insieme al debito che la nominava.\n\nVale la pena registrare la forma, perche' e' la seconda volta in poche ore che si presenta. In SPEC-017 il difetto stava fra le due meta': comporre DEBT-020 e DEBT-021 apriva una finestra che nessuno dei due guardava. Qui il difetto e' salito di un livello: chiudere l'asimmetria fra le quattro righe di autorizzazione ha spostato il peso su effective_height, e quella grandezza non era vincolata perche' fino a ieri non portava questo peso.\n\nNon e' un difetto introdotto da SPEC-019: e' un difetto che SPEC-019 ha reso visibile e rilevante. Una chiusura corretta puo' rendere critica una grandezza che prima non lo era, e nessuna gate lo cerca, perche' la grandezza non e' cambiata - e' cambiato cio' che vi poggia sopra."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-033-EVENT-002"
+    timestamp: "2026-08-27T15:01:57.681903400+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito e' l'oggetto stesso della parte 2 di ADR-017, che SPEC-022 attua e che e' in revisione aperta. Il tetto su `effective_height` e l'inerzia del campo `reason` sono esattamente cio' che la banda e la sua correzione stanno decidendo, e REVIEW-045 ha stabilito che l'inerzia di `reason` ha una forma piu' precisa di quella scritta qui: sotto `P = F + G` il campo e' letto e impegnato nell'ID e non seleziona nulla, ed e' RF-008 di REVIEW-042, la decisione dell'operatore ancora in sospeso.\n\nInstradato su SPEC-022 e non su una spec nuova perche' risolverlo altrove significherebbe decidere due volte la stessa cosa in due artefatti, che e' la forma di difetto da cui e' nato DEBT-045."
+    evidence_refs: ["SPEC-022"]
 ---
 # effective_height non ha tetto, e il campo reason che porterebbe la distinzione e' inerte
 

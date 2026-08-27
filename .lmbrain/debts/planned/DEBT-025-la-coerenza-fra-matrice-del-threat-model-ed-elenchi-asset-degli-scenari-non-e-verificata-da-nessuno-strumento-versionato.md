@@ -1,7 +1,7 @@
 ---
 id: DEBT-025
 title: "La coerenza fra matrice del threat model ed elenchi asset degli scenari non e' verificata da nessuno strumento versionato"
-status: open
+status: planned
 category: "verification"
 severity: "medium"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "controllo di coerenza, otto disallineamenti"
 related_specs: ["SPEC-018"]
 related_reviews: []
 related_decisions: ["ADR-012"]
-target_specs: []
+target_specs: ["SPEC-026"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["verification-gap","threat-model","documentation"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito e' gia' soddisfatto in parte e il residuo coincide con lo scope di SPEC-026. Verificato dal Lead il 2026-08-27: `sim/tools/threat_model_matrix_coherence.py` esiste versionato, gira, e riporta \"matrice e scenari coerenti\" con 104 celle, 97 coperte, 7 n/a e 43 scenari — quindi gli otto disallineamenti che il debito voleva sanati prima del cablaggio sono sanati.\n\nRestano esattamente due cose, ed entrambe sono cio' che SPEC-026 fa per la propria famiglia di controlli: la prova in negativo — oggi `--negative` e' ignorato e produce lo stesso output del comando nudo, quindi lo strumento non ha mai dimostrato di vedere — e il cablaggio in CI, oggi assente. Il debito avverte che uno strumento cablato mentre e' rosso viene disattivato, \"il modo in cui una guardia muore\": qui e' verde, quindi il cablaggio e' sicuro."
 debt_events:
   - schema_version: "1"
     id: "DEBT-025-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su raccomandazione esplicita di AGENT-007, che ha stabilito la distinzione giusta e si e' fermata alla decisione invece di prenderla: la **correttezza semantica** di una cella non e' meccanizzabile e resta giudizio, la **coerenza fra matrice ed elenchi** lo e'. Meccanizzare la seconda non pretende di aver meccanizzato la prima, ed e' la ragione per cui questo debito e' scrivibile senza scivolare in una promessa piu' grande.\n\nNon chiuso dentro [SPEC-018] perche' quella spec, per costruzione, non ha la gate di [ADR-012] e non tocca la strumentazione: aggiungerle uno strumento versionato le avrebbe fatto acquistare il perimetro che le era stato deliberatamente tolto."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-025-EVENT-002"
+    timestamp: "2026-08-27T15:00:55.259007400+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito e' gia' soddisfatto in parte e il residuo coincide con lo scope di SPEC-026. Verificato dal Lead il 2026-08-27: `sim/tools/threat_model_matrix_coherence.py` esiste versionato, gira, e riporta \"matrice e scenari coerenti\" con 104 celle, 97 coperte, 7 n/a e 43 scenari — quindi gli otto disallineamenti che il debito voleva sanati prima del cablaggio sono sanati.\n\nRestano esattamente due cose, ed entrambe sono cio' che SPEC-026 fa per la propria famiglia di controlli: la prova in negativo — oggi `--negative` e' ignorato e produce lo stesso output del comando nudo, quindi lo strumento non ha mai dimostrato di vedere — e il cablaggio in CI, oggi assente. Il debito avverte che uno strumento cablato mentre e' rosso viene disattivato, \"il modo in cui una guardia muore\": qui e' verde, quindi il cablaggio e' sicuro."
+    evidence_refs: ["SPEC-026"]
 ---
 # La coerenza fra matrice del threat model ed elenchi asset degli scenari non e' verificata da nessuno strumento versionato
 

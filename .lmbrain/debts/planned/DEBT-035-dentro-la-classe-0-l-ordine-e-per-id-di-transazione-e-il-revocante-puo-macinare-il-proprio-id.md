@@ -1,7 +1,7 @@
 ---
 id: DEBT-035
 title: "Dentro la classe 0 l'ordine e per ID di transazione, e il revocante puo macinare il proprio ID"
-status: open
+status: planned
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-006"
 related_specs: ["SPEC-019"]
 related_reviews: ["REVIEW-036"]
 related_decisions: ["ADR-017"]
-target_specs: []
+target_specs: ["SPEC-022"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","consensus","ledger"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito e' gia' affrontato dalla consegna di SPEC-022 e chiude con la sua accettazione, non prima. REVIEW-042 aveva accertato che non e' sfruttabile perche' il predicato e' insensibile all'ordine intra-blocco — la terza opzione, che la spec non enumerava — e la remediation del 2026-08-27 ha scritto quella conseguenza dove serve: `core/coblox-core/src/authorization.rs:31` dichiara che DEBT-035 non e' sfruttabile attraverso questa regola, e la riscrittura di RF-002 ha portato la granularita' di altezza nel testo normativo come ragione, non come coincidenza.\n\nNon lo risolvo adesso perche' SPEC-022 e' in `review` con REVIEW-044 in changes-requested: chiudere un debito sulla base di lavoro non ancora accettato sarebbe la pretesa che corre avanti alla regola."
 debt_events:
   - schema_version: "1"
     id: "DEBT-035-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su finding di AGENT-007 in [REVIEW-036], perche' non ha casa dentro [ADR-017] e rinviarlo alla spec ripeterebbe l'errore che lo ha prodotto.\n\nLa prima stesura di [ADR-017] dichiarava aperta la scelta fra mordere a `h` o a `h+1` e diceva che l'implementatore doveva guardarla con il codice sotto mano. Quella questione era gia' chiusa da `ledger.md:2819`, e dichiararla aperta ha distolto lo sguardo dal punto in cui l'ordinamento e' davvero indeterminato — dentro la classe 0.\n\nVale la pena registrare la forma: **una questione dichiarata aperta a torto costa quanto una dichiarata chiusa a torto**, perche' manda chi legge a cercare dove non serve. E' la variante attenuata dell'impossibilita' dichiarata a torto che `recurring-defects.md` classifica come la peggiore della famiglia 2."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-035-EVENT-002"
+    timestamp: "2026-08-27T15:01:46.945552200+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito e' gia' affrontato dalla consegna di SPEC-022 e chiude con la sua accettazione, non prima. REVIEW-042 aveva accertato che non e' sfruttabile perche' il predicato e' insensibile all'ordine intra-blocco — la terza opzione, che la spec non enumerava — e la remediation del 2026-08-27 ha scritto quella conseguenza dove serve: `core/coblox-core/src/authorization.rs:31` dichiara che DEBT-035 non e' sfruttabile attraverso questa regola, e la riscrittura di RF-002 ha portato la granularita' di altezza nel testo normativo come ragione, non come coincidenza.\n\nNon lo risolvo adesso perche' SPEC-022 e' in `review` con REVIEW-044 in changes-requested: chiudere un debito sulla base di lavoro non ancora accettato sarebbe la pretesa che corre avanti alla regola."
+    evidence_refs: ["SPEC-022"]
 ---
 # Dentro la classe 0 l'ordine e per ID di transazione, e il revocante puo macinare il proprio ID
 

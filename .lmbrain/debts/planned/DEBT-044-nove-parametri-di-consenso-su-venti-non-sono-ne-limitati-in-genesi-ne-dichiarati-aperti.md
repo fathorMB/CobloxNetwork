@@ -1,7 +1,7 @@
 ---
 id: DEBT-044
 title: "Nove parametri di consenso su venti non sono ne' limitati in genesi ne' dichiarati aperti"
-status: open
+status: planned
 category: "security"
 severity: "high"
 origin_severity: null
@@ -13,7 +13,7 @@ origin_ref: null
 related_specs: ["SPEC-023","SPEC-022"]
 related_reviews: ["REVIEW-043"]
 related_decisions: ["ADR-017","ADR-010"]
-target_specs: []
+target_specs: ["SPEC-027"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
@@ -22,7 +22,9 @@ created: 2026-08-27
 updated: 2026-08-27
 tags: ["consensus","governance","security"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: SPEC-027 nasce per chiudere esattamente questa classe: per ciascuno dei nove, limite di genesi con valore derivato oppure dichiarazione aperta con la ragione. E' il primo debito di questo progetto a ricevere una spec bersaglio: fino al 2026-08-27 la cartella `planned` era vuota e nessun debito era mai stato instradato, quindi i diciotto aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.\n\nLa spec porta anche la taratura che l'operatore aveva rimandato in attesa dell'analisi di SPEC-023, perche' e' la stessa decisione: fissare un limite e fissare un valore di lancio sono lo stesso atto su questi parametri."
 debt_events:
   - schema_version: "1"
     id: "DEBT-044-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Creato come successore invece di correggere DEBT-036 a mano perche' i debiti sono artefatti governati e la supersessione e' l'unica mutazione che il contratto ammette per cambiarne la portata: e' mutua e atomica, e lascia leggibile su entrambi i lati che il conteggio e' cambiato perche' un parametro e' uscito dalla classe, non perche' qualcuno abbia riscritto un numero. Il titolo di DEBT-036 diceva \"dieci\" e sarebbe rimasto falso in ogni digest."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-044-EVENT-002"
+    timestamp: "2026-08-27T15:04:39.619667700+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "SPEC-027 nasce per chiudere esattamente questa classe: per ciascuno dei nove, limite di genesi con valore derivato oppure dichiarazione aperta con la ragione. E' il primo debito di questo progetto a ricevere una spec bersaglio: fino al 2026-08-27 la cartella `planned` era vuota e nessun debito era mai stato instradato, quindi i diciotto aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.\n\nLa spec porta anche la taratura che l'operatore aveva rimandato in attesa dell'analisi di SPEC-023, perche' e' la stessa decisione: fissare un limite e fissare un valore di lancio sono lo stesso atto su questi parametri."
+    evidence_refs: ["SPEC-027"]
 ---
 # Nove parametri di consenso su venti non sono ne' limitati in genesi ne' dichiarati aperti
 

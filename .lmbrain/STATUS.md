@@ -68,31 +68,33 @@ oggi pendente.
    [DEBT-039]. Nessun percorso di aggiornamento e nessuna esposizione del
    codice di progetto, entrambi accertati eseguendo.
 
-## Debiti aperti
+## Debiti
 
-Diciotto aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
-a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
+Passata di triage il 2026-08-27, la prima del progetto: fino a quel giorno la
+cartella `planned` era vuota e nessun debito era mai stato instradato. I diciotto
+aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 
-| ID | Sev | Owner | Questione |
-| --- | --- | --- | --- |
-| [DEBT-028] | high | AGENT-002 | `election_epoch` dipende da un parametro governato senza che il documento lo dichiari |
-| [DEBT-033] | high | AGENT-002 | `effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione non e' vincolato |
-| [DEBT-034] | high | AGENT-007 | Un verdetto locale del ricevente puo' entrare in catena |
-| [DEBT-044] | high | AGENT-002 | **Nove** parametri di consenso su venti non sono ne' limitati in genesi ne' dichiarati aperti. Successore di [DEBT-036], che diceva dieci |
-| [DEBT-037] | high | AGENT-007 | Tre campi di `EnrollmentParametersBody` non sono ne' limitati ne' validati |
-| [DEBT-024] | medium | AGENT-007 | `ComputeAssignment` lascia al validatore la scelta del modulo |
-| [DEBT-025] | medium | AGENT-007 | Coerenza fra matrice del threat model ed elenchi asset degli scenari |
-| [DEBT-027] | medium | AGENT-LEAD | Trentasei superlativi non enumerati in artefatti del Lead |
-| [DEBT-029] | medium | AGENT-001 | Il legame di contesto della preimmagine non e' imposto da nulla |
-| [DEBT-031] | medium | AGENT-001 | La documentazione di modulo del crate fa affermazioni normative non garantite |
-| [DEBT-032] | medium | AGENT-006 | Le probe della guida vedono la pagina allontanarsi da se stessa, non dal protocollo |
-| [DEBT-035] | medium | AGENT-007 | Dentro la classe 0 l'ordine e' per ID di transazione, e il revocante puo' sfruttarlo |
-| [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
-| [DEBT-040] | medium | AGENT-007 | La finestra di inclusione piu' stretta tocca il `reason` piu' urgente: ordinamento invertito rispetto all'urgenza |
-| [DEBT-043] | medium | AGENT-007 | Le righe 2, 4, 5 e 6 dell'analisi non hanno mai avuto un attacco nel merito in quattro passate |
-| [DEBT-045] | medium | AGENT-002 | Il verificatore dei vincoli nel simulatore non conosce la revoca, e la sua intestazione promette di trascrivere tutto |
-| [DEBT-041] | medium | AGENT-002 | `ledger.md` si contraddice sull'aggregazione su `K` blocchi: non presa in v0 in una sezione, presa in un'altra |
-| [DEBT-039] | low | AGENT-008 | `glib` resta vulnerabile: `javascriptcore-rs` la pinna esattamente, nessun aggiornamento fino a `wry`. Rischio accettato |
+| Stato | N | Nota |
+| --- | --- | --- |
+| `planned` | 11 | Ognuno ha una spec bersaglio |
+| `open` | 5 | Nessuno `high`; tre aspettano una decisione dell'operatore |
+| `deferred` | 2 | [DEBT-010] a M-07, [DEBT-027] a innesco |
+| `accepted-risk` | 1 | [DEBT-039], `glib` |
+| `resolved` | 18 | 9 il 25 agosto, 9 il 26, zero il 27 |
+
+**Instradati:** [DEBT-033], [DEBT-035], [DEBT-040] su [SPEC-022] — [DEBT-029],
+[DEBT-034] su [SPEC-025] — [DEBT-028], [DEBT-037], [DEBT-043], [DEBT-044] su
+[SPEC-027] — [DEBT-025] su [SPEC-026] — [DEBT-032] su [SPEC-024].
+
+**Restano `open`, e tre aspettano l'operatore:** [DEBT-024] (la scelta congiunta
+in `ComputeAssignment` e' deliberata?), [DEBT-041] (in quale verso si risolve la
+contraddizione di `ledger.md`?), [DEBT-031] (quali affermazioni di `src/` sono
+normative?). Gli altri due sono [DEBT-038], che dipende dal verso di [DEBT-041],
+e [DEBT-045], che non ha ancora una spec che lo copra.
+
+**Avvertenza su [DEBT-040]:** la sua *Statement* poggia su una premessa che
+[REVIEW-045] ha accertato falsa. Va riscritta quando il debito viene lavorato,
+non chiusa sulla motivazione attuale.
 
 ## Done
 

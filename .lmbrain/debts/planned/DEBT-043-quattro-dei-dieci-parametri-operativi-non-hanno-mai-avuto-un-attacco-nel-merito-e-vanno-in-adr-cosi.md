@@ -1,7 +1,7 @@
 ---
 id: DEBT-043
 title: "Quattro dei dieci parametri operativi non hanno mai avuto un attacco nel merito, e vanno in ADR cosi'"
-status: open
+status: planned
 category: "correctness"
 severity: "medium"
 origin_severity: null
@@ -13,7 +13,7 @@ origin_ref: null
 related_specs: ["SPEC-023"]
 related_reviews: ["REVIEW-043","REVIEW-041","REVIEW-038"]
 related_decisions: []
-target_specs: []
+target_specs: ["SPEC-027"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
@@ -22,7 +22,9 @@ created: 2026-08-27
 updated: 2026-08-27
 tags: ["governance","conformance"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: I criteri di questo debito dicono che le quattro righe vanno attaccate nel merito \"prima o durante la stesura dell'ADR che fissera' i parametri\". SPEC-027 e' quell'ADR, e l'attacco e' il suo primo passo dichiarato non saltabile, con una gate propria — GATE-FOUR-ROWS-ATTACKED — che chiede alla trascrizione di mostrare l'ordine.\n\nE' il debito con l'innesco piu' preciso dei diciotto: non una data ma un evento, e quell'evento e' stato appena creato."
 debt_events:
   - schema_version: "1"
     id: "DEBT-043-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto su decisione esplicita dell'operatore del 2026-08-27, contestualmente all'accettazione di REVIEW-043. L'alternativa scartata era accettare e basta, lasciando il buco registrato solo dentro la review: alla stesura dell'ADR nessun artefatto attivo avrebbe segnalato che quattro righe su dieci non erano state esaminate, e la dimenticanza sarebbe dipesa dalla memoria di chi scrive. L'altra alternativa scartata era una quinta passata prima di accettare: non e' un giro di remediation sullo stesso rilievo ma l'esame di righe mai esaminate, quindi sarebbe stata legittima, ed e' stata rifiutata per non tenere ferme SPEC-022 e SPEC-025 su superfici che la reviewer stessa giudica le piu' piccole. L'innesco non e' una data ma la stesura dell'ADR."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-043-EVENT-002"
+    timestamp: "2026-08-27T15:05:10.312551800+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "I criteri di questo debito dicono che le quattro righe vanno attaccate nel merito \"prima o durante la stesura dell'ADR che fissera' i parametri\". SPEC-027 e' quell'ADR, e l'attacco e' il suo primo passo dichiarato non saltabile, con una gate propria — GATE-FOUR-ROWS-ATTACKED — che chiede alla trascrizione di mostrare l'ordine.\n\nE' il debito con l'innesco piu' preciso dei diciotto: non una data ma un evento, e quell'evento e' stato appena creato."
+    evidence_refs: ["SPEC-027"]
 ---
 # Quattro dei dieci parametri operativi non hanno mai avuto un attacco nel merito, e vanno in ADR cosi'
 

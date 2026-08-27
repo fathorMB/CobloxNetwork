@@ -1,7 +1,7 @@
 ---
 id: DEBT-034
 title: "Un verdetto locale del ricevente puo' entrare in catena attraverso una firma di quorum"
-status: open
+status: planned
 category: "security"
 severity: "high"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-006"
 related_specs: ["SPEC-019","SPEC-013"]
 related_reviews: ["REVIEW-033"]
 related_decisions: []
-target_specs: []
+target_specs: ["SPEC-025"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","consensus","identity"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito chiede di stabilire quale delle due regole ceda fra la raggiungibilita' ancorata alla vista locale del ricevente e cio' che una firma di quorum puo' portare in catena. E' il confine fra stato locale e stato finalizzato, cioe' il perimetro del motore di consenso: SPEC-025 e' la prima consegna in cui quel confine esiste come codice invece che come prosa.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va quindi affrontata con il motore davanti, non ricostruita a memoria."
 debt_events:
   - schema_version: "1"
     id: "DEBT-034-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su finding di AGENT-007, ma cio' che lo rende importante e' come e' stato trovato, e l'implementatrice lo ha riconosciuto per prima.\n\nLa sua classificazione di identity.md:614 era corretta per il perimetro guardato: ha dimostrato che quella regola non e' una regola di validita' su un blocco, e ne ha concluso che quindi non produce due verdetti. La seconda cosa non segue dalla prima, e la strada per cui non segue - un verdetto locale riciclato in catena attraverso una firma di quorum - e' una forma che questo progetto non aveva mai visto.\n\nVale la pena tenerlo accanto all'errore che AGENT-007 ha commesso e ammesso nella stessa spec, perche' sono la stessa lezione da due lati. Lei ha motivato sul margine dove la proprieta' era disponibile; AGENT-002 ha dimostrato la proprieta' su un perimetro piu' stretto di quello vero e ha letto la dimostrazione come conclusiva. In entrambi i casi il ragionamento era valido e la conclusione no, e in entrambi i casi il difetto stava nel confine dell'argomento e non nell'argomento.\n\nLa regola che ne discende, e che vale oltre questo debito: una dimostrazione e' conclusiva solo quanto il perimetro su cui e' fatta, e il perimetro va dichiarato insieme alla dimostrazione."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-034-EVENT-002"
+    timestamp: "2026-08-27T15:01:36.093566600+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito chiede di stabilire quale delle due regole ceda fra la raggiungibilita' ancorata alla vista locale del ricevente e cio' che una firma di quorum puo' portare in catena. E' il confine fra stato locale e stato finalizzato, cioe' il perimetro del motore di consenso: SPEC-025 e' la prima consegna in cui quel confine esiste come codice invece che come prosa.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va quindi affrontata con il motore davanti, non ricostruita a memoria."
+    evidence_refs: ["SPEC-025"]
 ---
 # Un verdetto locale del ricevente puo' entrare in catena attraverso una firma di quorum
 

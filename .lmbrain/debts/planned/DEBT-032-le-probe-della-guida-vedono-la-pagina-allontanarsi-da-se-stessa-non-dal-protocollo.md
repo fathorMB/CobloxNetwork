@@ -1,7 +1,7 @@
 ---
 id: DEBT-032
 title: "Le probe della guida vedono la pagina allontanarsi da se stessa, non dal protocollo"
-status: open
+status: planned
 category: "verification"
 severity: "medium"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-002"
 related_specs: ["SPEC-015","SPEC-016","SPEC-021"]
 related_reviews: ["REVIEW-031"]
 related_decisions: ["ADR-012"]
-target_specs: []
+target_specs: ["SPEC-024"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["verification-gap","documentation"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito chiede un controllo che fallisca quando la regola citata da una probe si muove, non quando la frase sparisce. E' la stessa distinzione che SPEC-024 esiste per portare: un risolutore di citazioni che leghi una frase alla sua fonte e faccia fallire quando la fonte non la porta piu', invece di saltarla.\n\nIl 2026-08-27 il difetto si e' manifestato tre volte nella stessa giornata, due delle quali contro il Lead: una probe pinnava un'affermazione di sicurezza falsa e `published_artifacts.py` era verde su di essa, e il Lead ha sbagliato tre verifiche di citazione perche' cercava a riga singola frasi che attraversavano un a capo — il caso che `GATE-WRAPPED-PHRASE` di SPEC-024 nomina per esteso."
 debt_events:
   - schema_version: "1"
     id: "DEBT-032-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead chiudendo [DEBT-023], perche' quel debito conteneva due cose e ne discharge una sola.\n\nL'obbligo - la review prima della pubblicazione - e' soddisfatto. La clausola \"con la versione definitiva del protocollo sotto mano\" **non lo e' alla lettera**, perche' il protocollo non e' definitivo, e non lo sara' per parecchie milestone. Chiudere [DEBT-023] senza registrare quella meta' avrebbe fatto sparire con esso il rischio che quella clausola intercettava, che e' il gesto che questo progetto censisce come famiglia 2.\n\nIl rischio non e' pero' lo stesso e non ha lo stesso rimedio: [DEBT-023] chiedeva **un evento** che e' avvenuto, questo chiede **un meccanismo** che non esiste. Tenerli in un debito solo li avrebbe fatti chiudere insieme al primo dei due."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-032-EVENT-002"
+    timestamp: "2026-08-27T15:01:05.335425600+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito chiede un controllo che fallisca quando la regola citata da una probe si muove, non quando la frase sparisce. E' la stessa distinzione che SPEC-024 esiste per portare: un risolutore di citazioni che leghi una frase alla sua fonte e faccia fallire quando la fonte non la porta piu', invece di saltarla.\n\nIl 2026-08-27 il difetto si e' manifestato tre volte nella stessa giornata, due delle quali contro il Lead: una probe pinnava un'affermazione di sicurezza falsa e `published_artifacts.py` era verde su di essa, e il Lead ha sbagliato tre verifiche di citazione perche' cercava a riga singola frasi che attraversavano un a capo — il caso che `GATE-WRAPPED-PHRASE` di SPEC-024 nomina per esteso."
+    evidence_refs: ["SPEC-024"]
 ---
 # Le probe della guida vedono la pagina allontanarsi da se stessa, non dal protocollo
 

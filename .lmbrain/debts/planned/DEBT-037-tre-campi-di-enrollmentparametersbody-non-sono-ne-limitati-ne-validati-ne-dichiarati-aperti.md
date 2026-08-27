@@ -1,7 +1,7 @@
 ---
 id: DEBT-037
 title: "Tre campi di EnrollmentParametersBody non sono ne limitati, ne validati, ne dichiarati aperti"
-status: open
+status: planned
 category: "security"
 severity: "high"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-003"
 related_specs: ["SPEC-023"]
 related_reviews: ["REVIEW-038"]
 related_decisions: ["ADR-007","ADR-010","ADR-012"]
-target_specs: []
+target_specs: ["SPEC-027"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","governance","identity"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Stessa forma di DEBT-044 su un corpo diverso: tre campi ne' limitati, ne' validati, ne' dichiarati aperti. Instradato sulla stessa spec perche' separarli significherebbe decidere due volte lo stesso criterio — limite di genesi contro dichiarazione esplicita — in due artefatti, che e' la forma di difetto da cui nasce DEBT-045.\n\nI criteri del debito chiedono tre lavori, e il terzo chiude la forma invece dell'occorrenza: e' coerente con l'obiettivo di SPEC-027, che e' chiudere la classe e non le singole righe."
 debt_events:
   - schema_version: "1"
     id: "DEBT-037-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su finding di AGENT-007 in [REVIEW-038] RF-003, e tenuto separato da [DEBT-036] invece che fuso in esso, per due ragioni.\n\nLa prima e' pratica: [DEBT-036] ha gia' una spec che ne chiude la prima meta', e allargargli il perimetro a lavoro in corso renderebbe ambiguo cosa quella spec abbia chiuso.\n\nLa seconda e' che la forma va registrata da sola. **[DEBT-036] e' stato aperto guardando la classe invece dell'occorrenza, e la classe che ha guardato era ancora troppo stretta.** Il Lead aveva enumerato i venti campi di `ConsensusParametersBody` e concluso che quello fosse l'insieme; AGENT-007 ha chiesto se l'insieme dei **corpi firmati** fosse a sua volta enumerato, e non lo era.\n\nE' la settima occorrenza della famiglia dell'insieme dichiarato, ed e' la prima in cui **il difetto sta nell'insieme di insiemi**. La lezione che ne discende, e che vale oltre questo debito: **guardare la classe invece dell'occorrenza non basta se la classe e' a sua volta un'occorrenza.** Chi enumera deve dichiarare anche il perimetro dentro cui ha enumerato, che e' la stessa disciplina gia' scritta per le dimostrazioni."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-037-EVENT-002"
+    timestamp: "2026-08-27T15:04:51.400701+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Stessa forma di DEBT-044 su un corpo diverso: tre campi ne' limitati, ne' validati, ne' dichiarati aperti. Instradato sulla stessa spec perche' separarli significherebbe decidere due volte lo stesso criterio — limite di genesi contro dichiarazione esplicita — in due artefatti, che e' la forma di difetto da cui nasce DEBT-045.\n\nI criteri del debito chiedono tre lavori, e il terzo chiude la forma invece dell'occorrenza: e' coerente con l'obiettivo di SPEC-027, che e' chiudere la classe e non le singole righe."
+    evidence_refs: ["SPEC-027"]
 ---
 # Tre campi di EnrollmentParametersBody non sono ne limitati, ne validati, ne dichiarati aperti
 

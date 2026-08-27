@@ -1,7 +1,7 @@
 ---
 id: DEBT-028
 title: "election_epoch dipende da un parametro governato senza che il documento dica quale versione valga"
-status: open
+status: planned
 category: "correctness"
 severity: "high"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "elenco delle derivazioni non univoche, voce aperta"
 related_specs: ["SPEC-016","SPEC-017","SPEC-006"]
 related_reviews: []
 related_decisions: ["ADR-012"]
-target_specs: []
+target_specs: ["SPEC-027"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["consensus","governance","light-client"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Il debito chiede che il documento dica quale documento di parametri governa un'epoca di elezione, con una regola che un verificatore che rigioca la catena possa applicare. E' la stessa domanda che SPEC-027 deve risolvere per poter fissare i limiti: senza sapere quale versione dei parametri vale a una data altezza, un limite di genesi non ha un oggetto su cui mordere.\n\nInstradato qui e non su SPEC-025 perche' e' governance dei parametri e non meccanica del consenso: SPEC-025 usa la risposta, non la produce."
 debt_events:
   - schema_version: "1"
     id: "DEBT-028-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su segnalazione di AGENT-001, che lo ha trovato facendo il lavoro che la spec chiedeva — l'elenco delle derivazioni non univoche — e non il lavoro che la spec nominava.\n\nVale la pena registrarlo come conferma di una scommessa: [SPEC-017] chiedeva quell'elenco «anche se vuoto», e il Lead aveva scritto di aspettarsene piu' che dalla fixture, sulla base di [SPEC-010], dove l'elenco delle preimmagini scoperte valse piu' della fixture che quella spec doveva aggiungere. E' andata di nuovo cosi': la fixture di `chain_id` era il lavoro, questo debito e' il ritrovamento.\n\nE' inoltre la **terza porta** sullo stesso difetto: [DEBT-012] era un valore che entra in una preimmagine e che nessun documento fissa, [DEBT-020] era la circolarita' di `chain_id`, e questo e' un denominatore di epoca che dipende da quando lo si legge. La famiglia e' sempre quella: **una preimmagine i cui ingressi non sono derivabili in un solo modo**."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-028-EVENT-002"
+    timestamp: "2026-08-27T15:05:00.468508400+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il debito chiede che il documento dica quale documento di parametri governa un'epoca di elezione, con una regola che un verificatore che rigioca la catena possa applicare. E' la stessa domanda che SPEC-027 deve risolvere per poter fissare i limiti: senza sapere quale versione dei parametri vale a una data altezza, un limite di genesi non ha un oggetto su cui mordere.\n\nInstradato qui e non su SPEC-025 perche' e' governance dei parametri e non meccanica del consenso: SPEC-025 usa la risposta, non la produce."
+    evidence_refs: ["SPEC-027"]
 ---
 # election_epoch dipende da un parametro governato senza che il documento dica quale versione valga
 

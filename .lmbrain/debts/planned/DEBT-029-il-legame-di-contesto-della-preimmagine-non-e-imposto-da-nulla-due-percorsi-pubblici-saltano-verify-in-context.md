@@ -1,7 +1,7 @@
 ---
 id: DEBT-029
 title: "Il legame di contesto della preimmagine non e' imposto da nulla: due percorsi pubblici saltano verify_in_context"
-status: open
+status: planned
 category: "security"
 severity: "medium"
 origin_severity: null
@@ -13,16 +13,18 @@ origin_ref: "RF-001"
 related_specs: ["SPEC-014","SPEC-017"]
 related_reviews: ["REVIEW-022","REVIEW-029"]
 related_decisions: []
-target_specs: []
+target_specs: ["SPEC-025"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","api","rust"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: L'evento di apertura di questo debito dice perche' non fu chiuso dentro SPEC-017: \"il recinto giusto non e' determinabile oggi: non esiste un chiamante di consenso, e sceglierne la forma contro un chiamante immaginario e' la classe di errore che questo progetto ha gia' pagato\". SPEC-025 e' quel chiamante — il motore di consenso — quindi e' la consegna in cui la condizione diventa vera.\n\nI criteri chiedono che il caso corretto sia quello che un chiamante di consenso raggiunge senza sforzo e che la via corta gli costi qualcosa: e' un giudizio che si puo' dare solo avendo davanti il chiamante reale, non prima."
 debt_events:
   - schema_version: "1"
     id: "DEBT-029-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead invece di essere chiuso dentro [SPEC-017], su indicazione esplicita all'implementatore. La ragione e' che il recinto giusto non e' determinabile oggi: non esiste un chiamante di consenso, e sceglierne la forma contro un chiamante immaginario e' la classe di errore che questo progetto ha gia' pagato.\n\nCio' che invece e' stato chiesto subito, perche' costa una riga e chiude la meta' peggiore del difetto, e' **nominare la scappatoia nel commento** accanto alla preimmagine. Una convenzione che il proprio file non esemplifica non e' una convenzione: e' una preferenza dell'autore che il lettore successivo non ha modo di conoscere."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-029-EVENT-002"
+    timestamp: "2026-08-27T15:01:15.286117600+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "L'evento di apertura di questo debito dice perche' non fu chiuso dentro SPEC-017: \"il recinto giusto non e' determinabile oggi: non esiste un chiamante di consenso, e sceglierne la forma contro un chiamante immaginario e' la classe di errore che questo progetto ha gia' pagato\". SPEC-025 e' quel chiamante — il motore di consenso — quindi e' la consegna in cui la condizione diventa vera.\n\nI criteri chiedono che il caso corretto sia quello che un chiamante di consenso raggiunge senza sforzo e che la via corta gli costi qualcosa: e' un giudizio che si puo' dare solo avendo davanti il chiamante reale, non prima."
+    evidence_refs: ["SPEC-025"]
 ---
 # Il legame di contesto della preimmagine non e' imposto da nulla: due percorsi pubblici saltano verify_in_context
 

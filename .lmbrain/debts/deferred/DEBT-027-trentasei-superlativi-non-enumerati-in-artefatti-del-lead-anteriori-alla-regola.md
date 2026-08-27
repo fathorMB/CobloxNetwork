@@ -1,7 +1,7 @@
 ---
 id: DEBT-027
 title: "Trentasei superlativi non enumerati in artefatti del Lead anteriori alla regola"
-status: open
+status: deferred
 category: "documentation"
 severity: "medium"
 origin_severity: null
@@ -17,12 +17,14 @@ target_specs: []
 blocked_by: []
 resolution_refs: []
 superseded_by: null
-revisit_condition: null
+revisit_condition: "Due inneschi, e il primo puo' scattare in qualunque momento. **Primo:** una spec o un ADR nuovo cita uno degli artefatti dell'arretrato — a quel punto il superlativo smette di essere storico e diventa ereditato, che e' l'ordine di priorita' che i criteri di questo debito dichiarano. **Secondo:** la chiusura di M-02, dove le ADR accettate vanno rilette comunque prima che la milestone successiva vi si appoggi. Non e' una data: e' il momento in cui l'arretrato smette di essere inerte."
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["documentation","verification-gap"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "deferred: Differito dal Lead il 2026-08-27, e la ragione va scritta per intero perche' e' una promessa non mantenuta. Nella stessa sessione il Lead aveva detto all'operatore che avrebbe chiuso questo debito da se', trattandolo come igiene rapida. Non lo e': `lead_claims_check.py` conta i trentasei ma non li espone, quindi la passata richiede di enumerarli rileggendo dodici artefatti, e farla in coda a una sessione lunga significherebbe farla male. Chiudere un debito sul proprio lavoro con una passata frettolosa e' esattamente la forma che questo debito descrive.\n\nIl difetto e' contenuto e misurato, non sanguinante: lo strumento esclude l'arretrato per data, dichiara l'esclusione, e passa. Quindi non e' un rischio silenzioso ma un arretrato tracciato.\n\nIl 2026-08-27 la sua priorita' e' pero' salita, e va detto. In questa sessione le affermazioni del Lead sono state trovate false tre volte da una reviewer — l'argomento della rotazione in ADR-017, la premessa della caduta del tetto, e il conteggio dei dieci parametri — e in due casi il testo era gia' diventato normativo. Un superlativo non enumerato e' la stessa famiglia in forma piu' piccola: un'affermazione piu' forte del fatto che la sostiene."
 debt_events:
   - schema_version: "1"
     id: "DEBT-027-EVENT-001"
@@ -33,6 +35,16 @@ debt_events:
     actor_role: "project-lead"
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead su se stesso, il giorno in cui ha scritto lo strumento che lo ha contato.\n\nL'arretrato poteva restare invisibile scegliendo RULE_DATE e non guardando indietro. E' stato contato e stampato perche' una deroga silenziosa e' precisamente cio' che questo strumento cerca: la stessa notte SECURITY.md e' rimasto fuori dall'inventario di ADR-012 per tutta la vita di quello strumento senza che nulla lo dicesse, ed e' costato un finding medium e una classe di controllo nuova.\n\nMilestone M-03 e non M-02: nessuno dei falsi accertati blocca la devnet, e anticiparlo sottrarrebbe tempo a SPEC-019, che invece riguarda un fork."
+    evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-027-EVENT-002"
+    timestamp: "2026-08-27T15:06:03.449756800+02:00"
+    action: "deferred"
+    from_status: "open"
+    to_status: "deferred"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Differito dal Lead il 2026-08-27, e la ragione va scritta per intero perche' e' una promessa non mantenuta. Nella stessa sessione il Lead aveva detto all'operatore che avrebbe chiuso questo debito da se', trattandolo come igiene rapida. Non lo e': `lead_claims_check.py` conta i trentasei ma non li espone, quindi la passata richiede di enumerarli rileggendo dodici artefatti, e farla in coda a una sessione lunga significherebbe farla male. Chiudere un debito sul proprio lavoro con una passata frettolosa e' esattamente la forma che questo debito descrive.\n\nIl difetto e' contenuto e misurato, non sanguinante: lo strumento esclude l'arretrato per data, dichiara l'esclusione, e passa. Quindi non e' un rischio silenzioso ma un arretrato tracciato.\n\nIl 2026-08-27 la sua priorita' e' pero' salita, e va detto. In questa sessione le affermazioni del Lead sono state trovate false tre volte da una reviewer — l'argomento della rotazione in ADR-017, la premessa della caduta del tetto, e il conteggio dei dieci parametri — e in due casi il testo era gia' diventato normativo. Un superlativo non enumerato e' la stessa famiglia in forma piu' piccola: un'affermazione piu' forte del fatto che la sostiene."
     evidence_refs: []
 ---
 # Trentasei superlativi non enumerati in artefatti del Lead anteriori alla regola

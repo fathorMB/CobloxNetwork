@@ -1,7 +1,7 @@
 ---
 id: DEBT-040
 title: "La finestra di inclusione piu' stretta tocca il reason piu' urgente: l'ordinamento e' invertito rispetto all'urgenza"
-status: open
+status: planned
 category: "security"
 severity: "medium"
 origin_severity: "high"
@@ -13,7 +13,7 @@ origin_ref: "RF-001"
 related_specs: ["SPEC-022"]
 related_reviews: ["REVIEW-042","REVIEW-036"]
 related_decisions: ["ADR-017"]
-target_specs: []
+target_specs: ["SPEC-022"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
@@ -22,7 +22,9 @@ created: 2026-08-27
 updated: 2026-08-27
 tags: ["security","consensus","governance"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "planned: Instradato su SPEC-022 perche' e' la consegna in cui la banda vive, ma con un'avvertenza che va letta prima di lavorarci: **la Statement di questo debito e' scritta su una premessa che REVIEW-045 ha accertato falsa**. Dice che la finestra piu' stretta e' la superficie che la censura attraversa; non lo e'. Chi ritarda l'inclusione spinge `p` verso l'alto e incontra il pavimento `e >= p + F`, cioe' la clausola 4 preesistente, non il tetto. Verificato dal Lead eseguendo: con `F=10, G=5, e=100` l'estremo superiore della finestra e' `p = 90` identico con e senza tetto.\n\nL'ordinamento invertito rispetto all'urgenza resta un fatto — `key_compromise` ha comunque il margine minore — ma la ragione per cui conta va riscritta quando questo debito viene lavorato, insieme alla bozza v2 di ADR-017. Chiuderlo sulla motivazione attuale propagherebbe l'errore una quarta volta."
 debt_events:
   - schema_version: "1"
     id: "DEBT-040-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead il 2026-08-27 su decisione dell'operatore, contestualmente alla scelta di correggere ADR-017 con il solo pavimento relazionale. L'operatore ha scelto la correzione minima che chiude il high e mantiene la promessa gia' scritta in ADR-017; questo debito esiste perche' la seconda meta' del finding — l'ordinamento invertito — non e' chiusa da quella correzione e sparirebbe insieme al finding se non le si desse un artefatto proprio. La condizione di riesame non e' una data ma la disponibilita' della misura, ed e' la stessa che ADR-017 dichiara gia' nella propria sezione Revisit."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-040-EVENT-002"
+    timestamp: "2026-08-27T15:02:10.178994800+02:00"
+    action: "planned"
+    from_status: "open"
+    to_status: "planned"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Instradato su SPEC-022 perche' e' la consegna in cui la banda vive, ma con un'avvertenza che va letta prima di lavorarci: **la Statement di questo debito e' scritta su una premessa che REVIEW-045 ha accertato falsa**. Dice che la finestra piu' stretta e' la superficie che la censura attraversa; non lo e'. Chi ritarda l'inclusione spinge `p` verso l'alto e incontra il pavimento `e >= p + F`, cioe' la clausola 4 preesistente, non il tetto. Verificato dal Lead eseguendo: con `F=10, G=5, e=100` l'estremo superiore della finestra e' `p = 90` identico con e senza tetto.\n\nL'ordinamento invertito rispetto all'urgenza resta un fatto — `key_compromise` ha comunque il margine minore — ma la ragione per cui conta va riscritta quando questo debito viene lavorato, insieme alla bozza v2 di ADR-017. Chiuderlo sulla motivazione attuale propagherebbe l'errore una quarta volta."
+    evidence_refs: ["SPEC-022"]
 ---
 # La finestra di inclusione piu' stretta tocca il reason piu' urgente: l'ordinamento e' invertito rispetto all'urgenza
 
