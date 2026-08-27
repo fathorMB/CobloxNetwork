@@ -23,7 +23,7 @@ verification_gates: []
 related_decisions: [ADR-001, ADR-003, ADR-007]
 links: [SPEC-001, SPEC-002, SPEC-006]
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-27
 tags: [rust, ledger, conformance, merkle]
 activity:
   - date: 2026-08-25
@@ -42,6 +42,8 @@ activity:
     action: "attested verification GATE-LEAD-REPRO by lead"
   - date: 2026-08-25
     action: "transitioned review -> done"
+  - date: 2026-08-27
+    action: "attested verification GATE-CI-GREEN by lead"
 mutation_overrides:
   - schema_version: "1"
     id: "SPEC-008-OVERRIDE-001"
@@ -62,6 +64,16 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-25T16:06:49.945880600+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "4f061328d0d6510069082d901712aaf44ab94864d56427cbc43d4a34a4aad153"
+    evidence_ref: "Soddisfatta, non derogata. Run 33051858034 sul commit 43801e9 di main, che contiene il codice di questa spec: sei job su sei verdi (Rust windows/ubuntu, Tauri desktop windows/ubuntu, Android arm64 + Kotlin bindings, Protocol document guards). Sei e non cinque perche' Protocol document guards e' successivo alla consegna. Attestata dal Lead: la gate diceva owner=agent | before-submit e chiedeva la pipeline verde sul commit consegnato, ma il mandato della spec vietava ogni commit, quindi era insoddisfacibile per costruzione. Riformulata a owner=lead | before-done, la forma che SPEC-002 usa gia' per questa gate. DEBT-001, citato nel testo, riguarda SPEC-002 ed e' resolved."
+    id: "SPEC-008-ATTEST-002"
+    requirement_digest: "924ed20f5c5a9f6df84640964ff33246225b76e1cce75cfc309a873171d6cc9f"
+    requirement_id: "GATE-CI-GREEN"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T10:02:05.542059900+02:00"
 ---
 # Core del ledger in Rust: serializzazione canonica, hash, Merkle, set di validatori
 
@@ -147,7 +159,7 @@ Sui parametri: entrano come configurazione validata contro il blocco di vincoli,
 
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
 - [x] GATE-FIXTURES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Un test riproduce **ogni** valore del registro di conformità, con l'atteso citato dal documento. Incollare l'esecuzione reale e il conteggio. Una fixture non coperta va dichiarata con la ragione, non omessa in silenzio.
-- [ ] GATE-CI-GREEN | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La pipeline è verde su tutti e cinque i job sul commit consegnato, con `clippy -D warnings` e `cargo-deny` eseguiti. Il progetto ha già pagato una volta il prezzo di un gate di CI derogato ([DEBT-001]): qui non si deroga.
+- [x] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | La pipeline è verde su tutti e cinque i job sul commit consegnato, con `clippy -D warnings` e `cargo-deny` eseguiti. Il progetto ha già pagato una volta il prezzo di un gate di CI derogato ([DEBT-001]): qui non si deroga.
 - [x] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue la suite e verifica per campione che gli attesi provengano dal documento e non dall'implementazione. Un test che confronta il codice con sé stesso passa sempre ed è la modalità di fallimento specifica di questa spec.
 
 ## Production quality and documentation

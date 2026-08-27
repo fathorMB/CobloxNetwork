@@ -20,7 +20,7 @@ verification_gates: []
 related_decisions: [ADR-007, ADR-009, ADR-012, ADR-014, ADR-015]
 links: []
 created: 2026-08-25
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [design-system, documentation, security]
 activity:
   - date: 2026-08-25
@@ -35,6 +35,8 @@ activity:
     action: "attested verification GATE-OPERATOR-LOOK by operator (out-of-band, recorded by AGENT-LEAD via conversation)"
   - date: 2026-08-26
     action: "transitioned review -> done"
+  - date: 2026-08-27
+    action: "attested verification GATE-SECREVIEW by lead"
 verification_attestations:
   - actor: "operator"
     actor_role: "operator"
@@ -59,6 +61,16 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-26T00:25:29.998809600+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "c2c0c1869743b894e29305aa18f80af43a2cdc099f295fbd0f798dd6719a60f2"
+    evidence_ref: "Soddisfatta, non derogata. REVIEW-031 (accepted, AGENT-007) e' la security review della guida: ha trovato tre high che il 2026-08-25 non esistevano, e chiude DEBT-023, il debito che portava il nome di questa gate. La casella era rimasta indietro rispetto alla risoluzione del debito il 2026-08-26. Caveat gia' registrato nella chiusura di DEBT-023: la clausola \"con la versione definitiva del protocollo sotto mano\" e' soddisfatta in sostanza e non alla lettera, perche' M-02 e' in corso; il rischio residuo — la guida invecchia quando il protocollo si muove e nessuna probe se ne accorge — e' passato su DEBT-032, aperto."
+    id: "SPEC-015-ATTEST-003"
+    requirement_digest: "705068dcbed132cd51f502712778f38291b5465aecbf4a0fe2919bc8fb1eea7a"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T10:00:25.027320700+02:00"
 mutation_overrides:
   - schema_version: "1"
     id: "SPEC-015-OVERRIDE-001"
@@ -174,7 +186,7 @@ Costruiti con i token del design system, senza risorse esterne, leggibili in bia
 - [x] GATE-CLAIMS-ANCHORED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni affermazione di proprietà del filo ha la propria probe, l'elenco affermazione → regola è nell'evidenza, e **almeno una probe è provata in negativo** cambiando la regola a cui punta e osservando la guida diventare rossa. Una probe che non si è mai vista fallire non è un ancoraggio: è un commento.
 - [x] GATE-HARD-TRUTHS-IN-THE-THREAD | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il filo principale, letto con **tutti i blocchi apribili chiusi**, dice già le tre cose scomode di *Context*. Incollare il testo del solo filo. È il criterio che distingue questa guida da un testo di marketing, e non è sostituibile da un conteggio di menzioni.
 - [x] GATE-NOTHING-INVENTED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | L'elenco delle affermazioni **tolte o riscritte** perché nessuna regola le teneva è riportato, anche se vuoto. Un elenco vuoto è un'informazione; un elenco assente è una domanda non posta.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha riletto le affermazioni di sicurezza nella loro forma semplificata e il Lead ha accettato la review. Una posizione di sicurezza detta in parole semplici è la forma in cui è più facile prometterla più forte di com'è, ed è la sua materia da quattro spec.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | AGENT-007 ha riletto le affermazioni di sicurezza nella loro forma semplificata e il Lead ha accettato la review. Una posizione di sicurezza detta in parole semplici è la forma in cui è più facile prometterla più forte di com'è, ed è la sua materia da quattro spec.
 - [x] GATE-OPERATOR-LOOK | kind=operator | owner=operator | phase=before-done | evidence=observation | L'operatore ha letto la guida e giudicato il tono. È un giudizio che non spetta né al Lead né all'implementatrice: la pagina esiste per parlare a chi entra, e se il tono è sbagliato nessuna verifica meccanica se ne accorge. Il precedente è [SPEC-003], dove questa gate ha funzionato come doveva.
 
 ## Production quality and documentation
