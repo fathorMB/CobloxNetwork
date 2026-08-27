@@ -151,8 +151,24 @@ impl Domain {
     pub const SIG_PROTOCOL_DOCUMENT: Self = Self("coblox-protocol-document-v0");
     /// Ledger transaction authorization signature.
     pub const SIG_LEDGER_TRANSACTION: Self = Self("coblox-ledger-transaction-v0");
-    /// Block finality vote.
+    /// Block finality vote, the **precommit** of the two-phase protocol.
+    ///
+    /// [ADR-018] establishes that this domain, which predates the consensus
+    /// protocol, is the second phase and not a phase of its own: a
+    /// `QuorumCertificate` is a set of signatures under this domain, and a
+    /// block carries one, so a block on the wire is already final. The name is
+    /// not changed, because the string is a published artifact.
     pub const SIG_BLOCK_VOTE: Self = Self("coblox-block-vote-v0");
+    /// Block **prevote**, the first phase [ADR-018] adds.
+    ///
+    /// Same preimage shape as [`Domain::SIG_BLOCK_VOTE`] and a different
+    /// domain string, so a prevote can never be counted as a precommit: the
+    /// two are the same six fields under two separators, which is exactly what
+    /// domain separation is for. More than two thirds of prevotes for a block
+    /// is what makes a validator *lock*, and a lock is the whole of the safety
+    /// argument, so a signature that could be replayed across the two phases
+    /// would let one message do the work of two.
+    pub const SIG_BLOCK_PREVOTE: Self = Self("coblox-block-prevote-v0");
     /// Validator consensus key binding proof of possession.
     pub const SIG_CONSENSUS_KEY_BINDING: Self = Self("coblox-consensus-key-binding-v0");
     /// Transport key attestation signature.

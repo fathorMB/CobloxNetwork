@@ -29,6 +29,15 @@ jobs:
           workspaces: ". -> target"
       - run: cargo build --locked --workspace
       - run: cargo test --locked --workspace
+      # [SPEC-025] GATE-SAFETY-UNDER-ADVERSARY. The always-on sweep runs inside
+      # `cargo test` above; this is the large one, and it is `#[ignore]`d there
+      # because every message in it costs a real Ed25519 verification and the
+      # debug profile makes that about a hundred times slower than the release
+      # profile. Running it here, once, on Linux, is what keeps the declared
+      # number a guard the pipeline re-runs rather than a figure from a
+      # transcript.
+      - if: runner.os == 'Linux'
+        run: cargo test --release --locked -p coblox-core --test consensus_devnet -- --ignored --nocapture
       - if: runner.os == 'Linux'
         run: cargo fmt --all -- --check
       - if: runner.os == 'Linux'
@@ -105,6 +114,15 @@ jobs:
         run: python3 sim/tools/consensus_parameters_closure.py
       - name: ConsensusParametersBody closure proved in the negative
         run: python3 sim/tools/consensus_parameters_closure.py --negative
+      # [SPEC-025] GATE-NO-IO. The primary demonstration is the engine's own
+      # interface -- `step_event` takes an `Event` and returns `Vec<Action>`, so
+      # there is no seam to route a socket through. This is the second half, for
+      # the reason [REVIEW-022] gave about `pub(crate)`: a guarantee held by a
+      # name is one that a single line undoes without failing any build.
+      - name: The consensus engine has no I/O
+        run: python3 sim/tools/consensus_no_io.py
+      - name: That lint proved in the negative, three defect classes
+        run: python3 sim/tools/consensus_no_io.py --negative
 
   android:
     name: Android arm64 + Kotlin bindings

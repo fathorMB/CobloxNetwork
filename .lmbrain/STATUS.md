@@ -9,13 +9,16 @@ updated: 2026-08-27
 
 ## Current focus
 
-**M-02, e il progetto e' a un esito su quattro.** La milestone nomina devnet BFT,
+**M-02, e il primo esito ha ora un motore.** La milestone nomina devnet BFT,
 light client con prove Merkle, mint & burn, e simulatore economico. Solo il
 simulatore e' fatto, chiuso il 2026-08-25. Non c'e' rete: `libp2p` non e' una
 dipendenza del workspace.
 
-**[SPEC-025] e' in lavorazione** da AGENT-002 dal 2026-08-27: il motore di
-consenso che attua [ADR-018]. E' il primo passo verso il primo esito.
+**[SPEC-025] e' consegnata** e in `review` dal 2026-08-27. Quattro validatori
+producono una catena di dieci blocchi finalizzati con certificati veri che il
+verificatore esistente accetta: il primo consenso reale del progetto. Non e'
+ancora una devnet — rete, persistenza e ciclo di vita del nodo sono la spec
+successiva, e `coblox-node/src/main.rs` e' intatto.
 
 **Rilievo dell'operatore del 2026-08-27, e va tenuto in vista.** La sessione si
 era arenata su questioni che non servivano la milestone: tre spec nuove di cui
@@ -31,10 +34,10 @@ quando il lavoro richiesto non serve la milestone corrente.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-025] | **`working`** | AGENT-002 | Dispacciata il 2026-08-27. Motore di consenso per [ADR-018]: prevoto, blocco, catena finalizzata da quattro validatori. **Primo passo verso il primo esito di M-02** |
+| [SPEC-025] | **`review`** | AGENT-002 | Consegnata il 2026-08-27. Tredici criteri su tredici, sette gate `owner=agent` spuntate. Attende `GATE-SECREVIEW` da AGENT-007, che l'operatore deve richiedere |
 | [SPEC-022] | `review`, **congelata** | AGENT-002 | Attende la forma iniettiva del punto 3 di [ADR-017], riaperto da [REVIEW-046]. Nessuno tocca `ledger.md` ne' `core/` per essa: non e' in contesa con [SPEC-025] |
 
-**AGENT-002 in esecuzione su [SPEC-025].**
+Nessun agente in esecuzione.
 
 ## Ready for handoff
 

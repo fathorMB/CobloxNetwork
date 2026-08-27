@@ -88,6 +88,21 @@ conformance-testing = []
 # not exist for anything a user of this library builds.
 coblox-core = { path = ".", features = ["conformance-testing"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["alloc"] }
+# The two primitive crates the library already depends on, re-declared for the
+# test targets. `SPEC-025` needs a *signer*: a consensus engine that produces a
+# real chain has to be driven by validators that really sign, and the library
+# ships verification only.
+#
+# It is a dev-dependency and not a dependency, and it is the same two crates
+# already in `Cargo.lock`, so no package enters the graph a production build
+# links. The signer itself is `tests/common/ed25519_signer.rs`, written from RFC
+# 8032 section 5.1.6 and checked against the three Ed25519 vectors of RFC 8032
+# section 7.1 before any test uses it; its output is then verified by the
+# shipped `ConsensusVerifier`, which is an independent reading of the same
+# curve. Adding a signing library instead would have introduced an unaudited
+# major version for the sake of code that never reaches production.
+curve25519-dalek = { version = "5.0.0", default-features = false, features = ["digest"] }
+sha2 = { version = "0.11.0", default-features = false }
 
 [lints]
 workspace = true

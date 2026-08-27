@@ -516,6 +516,16 @@ pub fn signing_preimage(domain: Domain, chain_id: &ChainId, payload: &[u8]) -> S
 }
 
 /// The exact bytes a finality vote signs.
+///
+/// `ledger.md#what-validators-sign`, quoted whole because it is four lines and
+/// this function is the only place the protocol's bytes become Rust:
+///
+/// > `"coblox-block-vote-v0\0" || chain_id_32 || u64be(height) ||
+/// > u64be(round) || raw_32_bytes(block_id)`
+///
+/// Under [ADR-018] this is the **precommit** of the two-phase protocol. The
+/// bytes are unchanged and the domain string is unchanged; what changed is that
+/// the protocol now says which of the two votes it is.
 #[must_use]
 pub fn block_vote_preimage(
     chain_id: &ChainId,
@@ -523,11 +533,48 @@ pub fn block_vote_preimage(
     round: u64,
     block_id: &Digest32,
 ) -> SigningPreimage {
+    signing_preimage(
+        Domain::SIG_BLOCK_VOTE,
+        chain_id,
+        &vote_payload(height, round, block_id),
+    )
+}
+
+/// The exact bytes a **prevote** signs.
+///
+/// `wire.md#prevote`, and [ADR-018] §1:
+///
+/// > `"coblox-block-prevote-v0\0" || chain_id_32 || u64be(height) ||
+/// > u64be(round) || raw_32_bytes(block_id)`
+///
+/// The payload is byte-identical to [`block_vote_preimage`]'s and the domain
+/// separator is not, which is deliberate and is the reason both call
+/// [`vote_payload`] rather than each writing the six fields out: two hand-written
+/// copies of one field order is how the two phases would eventually disagree
+/// about a field width, and a prevote that hashed differently from a precommit
+/// over the same `(height, round, block_id)` would be a silent protocol fork.
+#[must_use]
+pub fn block_prevote_preimage(
+    chain_id: &ChainId,
+    height: u64,
+    round: u64,
+    block_id: &Digest32,
+) -> SigningPreimage {
+    signing_preimage(
+        Domain::SIG_BLOCK_PREVOTE,
+        chain_id,
+        &vote_payload(height, round, block_id),
+    )
+}
+
+/// `u64be(height) || u64be(round) || raw_32_bytes(block_id)`, the payload both
+/// vote domains carry after their own separator and the chain ID.
+fn vote_payload(height: u64, round: u64, block_id: &Digest32) -> Vec<u8> {
     let mut payload = Vec::with_capacity(8 + 8 + 32);
     payload.extend_from_slice(&height.to_be_bytes());
     payload.extend_from_slice(&round.to_be_bytes());
     payload.extend_from_slice(block_id.as_bytes());
-    signing_preimage(Domain::SIG_BLOCK_VOTE, chain_id, &payload)
+    payload
 }
 
 /// The exact bytes a transport key attestation signs.

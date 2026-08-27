@@ -30,6 +30,7 @@
 //! | [`election`] | validator election and rotation |
 //! | [`light_client`] | light-client balance verification, set composition |
 //! | [`verifier`] | consensus-critical Ed25519 verification |
+//! | [`consensus`] | the two-phase consensus protocol of [ADR-018], `wire.md`'s three consensus messages, and the `QuorumCertificate` |
 //!
 //! # Three conventions the rest of the project inherits
 //!
@@ -134,6 +135,7 @@
 pub mod authorization;
 pub mod block;
 pub mod cadence;
+pub mod consensus;
 pub mod election;
 pub mod encoding;
 pub mod error;

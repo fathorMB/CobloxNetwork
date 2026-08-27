@@ -44,8 +44,72 @@ pub enum Error {
     Authorization(AuthorizationError),
     /// An identity revocation violated its validity rules or reason-dependent effective height band.
     Revocation(RevocationError),
+    /// A quorum certificate or a consensus message was rejected.
+    Consensus(ConsensusError),
     /// A checked `u128` intermediate overflowed, or a total power was zero.
     Arithmetic(&'static str),
+}
+
+/// Reasons a quorum certificate or a consensus message is rejected.
+///
+/// These are the rejections of the two-phase protocol of [ADR-018] and of the
+/// `QuorumCertificate` rules of `ledger.md#what-validators-sign`. They are a
+/// family of their own and not variants of [`SetError`], because a certificate
+/// naming the wrong set and a *set document* with a mismatched previous hash are
+/// different findings that happen to compare two digests: the first is a
+/// certificate a verifier must discard, the second is a transition a verifier
+/// must reject, and a shared variant would make a log line ambiguous about which
+/// happened.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ConsensusError {
+    /// The certificate's `validator_set_hash` is not the hash of the set it was
+    /// verified against.
+    CertificateNamesAnotherSet {
+        expected: crate::hash::Digest32,
+        actual: crate::hash::Digest32,
+    },
+    /// The certificate finalizes a different block than the one it is attached
+    /// to.
+    CertificateForAnotherBlock {
+        expected: crate::hash::Digest32,
+        actual: crate::hash::Digest32,
+    },
+    /// The certificate's height is not the header's.
+    CertificateHeightMismatch { header: u64, certificate: u64 },
+    /// The certificate carries no signatures.
+    ///
+    /// "An empty or duplicate signature entry invalidates the certificate."
+    CertificateEmpty,
+    /// The certificate's signatures are not strictly sorted by `validator_id`,
+    /// which covers both halves of "unique and sorted".
+    CertificateNotSortedOrUnique,
+    /// A `validator_id` in the certificate is not a member of the set.
+    NotAMember { validator_id: String },
+    /// A signature failed verification under the member's consensus key, in the
+    /// certificate's own domain and chain.
+    InvalidSignature { validator_id: String },
+    /// The signed power does not satisfy the strict quorum predicate.
+    BelowQuorum { signed_power: u64, total_power: u64 },
+    /// A message arrived from a node that is not a member of the active set.
+    SenderNotAMember { validator_id: String },
+    /// A proposal arrived from a node that is not the proposer of its
+    /// `(height, round)` under the round-robin rule.
+    NotTheProposer {
+        height: u64,
+        round: u64,
+        expected: String,
+        actual: String,
+    },
+    /// A proposal's `block_id` is not the hash of the header it carries.
+    ProposalBlockIdMismatch,
+    /// A proposal's header does not carry the `(height, round)` the message
+    /// claims.
+    ProposalHeaderMismatch { field: &'static str },
+    /// A proposal's `valid_round` is not below its own round.
+    ProposalValidRoundNotBelowRound { round: u64, valid_round: u64 },
+    /// A proposer offered a value for a `(height, round)` it is not proposing.
+    UnsolicitedValue { height: u64, round: u64 },
 }
 
 /// Reasons a single-key transaction authorization is rejected.
@@ -383,6 +447,7 @@ impl fmt::Display for Error {
             Self::Cadence(e) => write!(f, "chain cadence rejected: {e:?}"),
             Self::Authorization(e) => write!(f, "transaction authorization rejected: {e:?}"),
             Self::Revocation(e) => write!(f, "identity revocation rejected: {e:?}"),
+            Self::Consensus(e) => write!(f, "consensus message rejected: {e:?}"),
             Self::Arithmetic(ctx) => write!(f, "checked arithmetic failed in {ctx}"),
         }
     }
@@ -441,5 +506,11 @@ impl From<AuthorizationError> for Error {
 impl From<RevocationError> for Error {
     fn from(value: RevocationError) -> Self {
         Self::Revocation(value)
+    }
+}
+
+impl From<ConsensusError> for Error {
+    fn from(value: ConsensusError) -> Self {
+        Self::Consensus(value)
     }
 }

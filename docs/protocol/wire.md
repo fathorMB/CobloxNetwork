@@ -57,6 +57,14 @@ scope. Nodes SHOULD randomize reconnect backoff and bound address-book entries.
 | ledger status and synchronization | `/coblox/ledger-sync/0.1.0` | request/response |
 | block announcements | `/coblox/<network_id>/blocks/0.1` | GossipSub |
 | challenge-evidence announcements | `/coblox/<network_id>/evidence/0.1` | GossipSub |
+| consensus proposals and votes | `/coblox/<network_id>/consensus/0.1` | GossipSub |
+
+The consensus topic is separate from `blocks` and the separation is normative,
+not organizational: a `block_announcement` carries a block that is **already
+finalized** and is explicitly a hint, while the consensus topic carries the
+messages that decide whether a block will exist at all. A node that dropped
+consensus messages under the backpressure rules written for hints would stop
+participating in consensus while appearing healthy.
 
 The enrollment stream accepts unauthenticated transport peers; all other
 Coblox protocols require a valid finalized enrollment certificate and a valid
@@ -116,7 +124,8 @@ The complete v0 enum is `enrollment_admission_request`,
 `enrollment_admission_challenge`, `enrollment_request`, `enrollment_response`,
 `challenge_request`, `challenge_response`, `ledger_status_request`,
 `ledger_status_response`, `ledger_range_request`, `ledger_range_response`,
-`balance_proof_request`, `balance_proof_response`, `block_announcement`, and
+`balance_proof_request`, `balance_proof_response`, `block_proposal`, `prevote`,
+`precommit`, `block_announcement`, and
 `challenge_evidence_announcement`. Any other value is `unsupported_version`.
 
 Canonical serialized example:
@@ -385,6 +394,150 @@ parameters, and queries independently operated enrolled peers for corroboration.
 Proof validation is defined step by
 step in [ledger.md](ledger.md#light-client-balance-verification).
 
+### The three consensus messages
+
+Gossip topic: `consensus`. Three payloads — `block_proposal`, `prevote`,
+`precommit` — carry the two-phase consensus protocol of [ADR-018]. They travel
+on the `SignedEnvelope` above like every other message, so none of them repeats
+`network_id`, `nonce`, `created_at_ms` or `expires_at_ms`; those are the
+envelope's fields, and a payload that carried its own copy would give a receiver
+two answers to one question.
+
+Only a member of the active validator set may send any of the three. A receiver
+establishes the sender from the envelope's `sender_node_id` and resolves it to a
+`validator_id` in the set named by the height's `validator_set_hash`; a message
+from a non-member is `unauthorized`.
+
+#### Who proposes
+
+The proposer of `(height, round)` is fixed by a rule and is not announced, so
+every node computes it and no node is told it:
+
+> Walk the active validator set in `validator_id` order, accumulating
+> `voting_power`. The proposer is the member whose accumulated range contains
+> `(height + round) mod total_voting_power`, with the sum and the modulus taken
+> over an integer width that cannot wrap.
+
+The index is `(height, round)` and **nothing else**. In particular it is not
+derived from any value a participant supplies: [ADR-018] §3 requires this, and
+gives the reason — the ledger has already established, in the revocation
+analysis, that a participant able to grind an input it chooses will grind it, and
+the prize here is the right to propose.
+
+Two consecutive rounds at the same height therefore step one unit along the
+power ladder and cannot name the same member while an unvisited one remains,
+which is what makes a height survive a proposer that says nothing.
+
+#### `block_proposal`
+
+```text
+{
+  "height": u64-string,
+  "round": u64-string,
+  "valid_round": u64-string,        // omitted at the first proposal of a value
+  "header": BlockHeader,
+  "transactions": [Transaction]
+}
+```
+
+A proposal is **not** a `Block`: it carries no `quorum_certificate`, because
+nothing has certified it yet. That asymmetry is the protocol's, not this
+message's — a `Block` carries its own certificate and is therefore always
+already final.
+
+`header.height` MUST equal `height`. `header.round` is the round at which this
+value was **first proposed** and MUST NOT be rewritten when the value is
+re-proposed in a later round: `block_id` covers the header, and a rewritten
+header would be a different block, which would strand every prevote already cast
+for the value and make a locked validator unable to vote for the only block it is
+allowed to vote for.
+
+`valid_round` is present exactly when the proposer is re-proposing a value it
+has seen more than two thirds of prevotes for at an earlier round; it MUST then
+be strictly below `round`, and a receiver acts on the proposal only once it has
+itself seen more than two thirds of prevotes for `block_id` at `valid_round`.
+Its absence means the value is fresh.
+
+A proposal carries no signature of its own. Its authenticity is the envelope's,
+which binds `sender_node_id`. A consequence a reader should not have to derive:
+a proposer that sends two different proposals in one round is **detectable** by
+anyone who receives both and is **not attributable** from a payload in
+isolation, so proposal equivocation does not become evidence the way a double
+precommit does. Nothing decides on a proposal alone, so a forged or doubled
+proposal costs a round and no more.
+
+#### `prevote`
+
+```text
+{
+  "height": u64-string,
+  "round": u64-string,
+  "block_id": sha256-string,
+  "validator_id": string,
+  "signature": base64url(64 bytes)
+}
+```
+
+The prevote signature domain is `coblox-block-prevote-v0` and uses the global
+chain binding. Each prevote signs exactly:
+
+```text
+"coblox-block-prevote-v0\0" || chain_id_32 || u64be(height)
+|| u64be(round) || raw_32_bytes(block_id)
+```
+
+This is the same six fields, in the same order and the same widths, as the
+finality vote of [ledger.md](ledger.md#what-validators-sign), under a different
+domain separator. The repetition is deliberate: the two phases must be
+impossible to confuse, and one separator is the whole of what distinguishes
+them. More than two thirds of the voting power prevoting one `block_id` at a
+round is what makes a validator **lock**, and a signature that could be
+presented as either phase would let one message both lock a validator and count
+towards finalizing a block.
+
+#### `precommit`
+
+```text
+{
+  "height": u64-string,
+  "round": u64-string,
+  "block_id": sha256-string,
+  "validator_id": string,
+  "signature": base64url(64 bytes)
+}
+```
+
+The precommit signature domain is `coblox-block-vote-v0` — the finality vote
+that [ledger.md](ledger.md#what-validators-sign) has always specified, unchanged
+in every byte. A `QuorumCertificate` is the set of precommits over one
+`(height, round, block_id)`, so a `precommit` payload's `validator_id` and
+`signature` are exactly one entry of one, and a node assembling a certificate
+copies them rather than re-deriving anything.
+
+A validator MUST NOT sign two different precommits for the same
+`(height, round)`. A receiver counts the **first** precommit it accepted from a
+validator at a round and discards a later one for a different block, so a
+validator's power reaches at most one `block_id` per round in any honest node's
+tally, whether or not the equivocation is ever noticed.
+
+There is **no nil vote** in either phase. A validator that will not vote for a
+block sends nothing, and a round that produces no quorum ends on a timeout.
+
+#### The consensus timeouts are local
+
+Three durations govern how long a node waits at each step —
+`propose_timeout_ms`, `prevote_timeout_ms`, `precommit_timeout_ms`, each growing
+with the round number.
+
+**They are local parameters of a node, and this document fixes neither their
+values nor a band for them.** They are not carried by any signed document and
+are not genesis constants, so no validity rule of this protocol can compare them:
+a rule on them would have to compare a node's private setting to something, and
+there is nothing on-chain to compare it to. Two nodes running different values
+are both conformant, and a node whose values are too small for its network
+wastes rounds rather than producing an invalid one. They are named here, with
+that consequence, rather than left for a reader to infer from their absence.
+
 ### `block_announcement`
 
 Gossip topic: `blocks`. Payload:
@@ -427,6 +580,12 @@ Nodes validate topic/network, canonical envelope, size, ID, signature,
 certificate, expiry, replay cache, and payload schema before accepting gossip.
 Block announcements additionally require a valid quorum certificate. Evidence
 announcements require an enrolled validator sender but are treated as hints.
+Consensus messages additionally require a sender that is a member of the active
+validator set, a `prevote` or `precommit` signature that verifies under its own
+domain against that member's `consensus_public_key`, and — for a
+`block_proposal` — a sender that is the proposer of its `(height, round)`.
+Unlike a block announcement, a consensus message is **not** a hint and MUST NOT
+be shed as one.
 Application objects MUST NOT use libp2p's anonymous author mode.
 
 ### Transport rotation, attribution, and rate limits

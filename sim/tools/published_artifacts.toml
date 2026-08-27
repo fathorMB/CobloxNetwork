@@ -48,10 +48,16 @@ site = "README.md"
 purpose = "block_id"
 
 [[domain]]
+name = "coblox-block-prevote-v0"
+kind = "signature-domain"
+site = "wire.md"
+purpose = "consensus prevote, the first phase of [ADR-018]"
+
+[[domain]]
 name = "coblox-block-vote-v0"
 kind = "signature-domain"
 site = "ledger.md"
-purpose = "finality vote"
+purpose = "finality vote, the precommit of [ADR-018]"
 
 [[domain]]
 name = "coblox-chain-id-v0"
@@ -1434,6 +1440,41 @@ equal_fields = ["body.challenge_id", "body.request_hash"]
 rule = "README.md#hash-preimage-registry: `challenge_id` MUST equal `request_hash`"
 
 # --- hand-pinned normative passages ----------------------------------------
+
+[[probe]]
+id = "consensus-prevote-preimage"
+site = "wire.md"
+pattern = '"coblox-block-prevote-v0\\0" \|\| chain_id_32 \|\| u64be\(height\)'
+count = 1
+why = "The prevote preimage is the one signature domain [ADR-018] adds. Its field order and widths are what make a prevote impossible to present as a precommit; a document that lost this block would leave the domain string with nothing behind it."
+
+[[probe]]
+id = "consensus-proposer-index-is-not-chosen"
+site = "wire.md"
+pattern = 'The index is `\(height, round\)` and \*\*nothing else\*\*\.'
+count = 1
+why = "[ADR-018] section 3 fixes the proposer index by what a participant cannot choose, on the precedent of the ground transaction ID in [DEBT-035]. A proposer rule that kept the round-robin and lost this sentence would invite the next author to mix in a value somebody supplies."
+
+[[probe]]
+id = "consensus-header-round-not-rewritten"
+site = "wire.md"
+pattern = '\*\*first proposed\*\* and MUST NOT be rewritten when the value is'
+count = 1
+why = "Re-proposing a carried-over value with a rewritten header changes block_id, strands the prevotes that justify it, and makes a locked validator unable to vote for the only block it may vote for. It reads like a tidiness rule and it is the one that keeps locking reachable."
+
+[[probe]]
+id = "consensus-has-no-nil-vote"
+site = "wire.md"
+pattern = 'There is \*\*no nil vote\*\* in either phase\.'
+count = 1
+why = "The published vote preimage carries a block_id and no nil encoding, so the absence is a consequence of [ADR-018]'s premise that nothing published changes. An implementer who did not find it stated would spell nil as 32 zero bytes and give a published preimage a second meaning."
+
+[[probe]]
+id = "consensus-timeouts-are-local"
+site = "wire.md"
+pattern = 'no validity rule of this protocol can compare them'
+count = 1
+why = "[ADR-018] section 5 and the acceptance-predicate criterion: the three timeouts are carried by no signed document and are no genesis constant, so a rule on them cannot be written. Naming it costs a line now and cost three review passes when it was discovered late on ten other parameters."
 
 [[probe]]
 id = "block-interval-genesis-constant"
