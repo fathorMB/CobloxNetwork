@@ -40,6 +40,8 @@ activity:
     action: "transitioned working -> review"
   - date: 2026-08-27
     action: "attested verification GATE-CI-GREEN by lead"
+  - date: 2026-08-27
+    action: "attested verification GATE-LEAD-REPRO by lead"
 verification_attestations:
   - actor: "AGENT-LEAD"
     actor_role: "lead"
@@ -51,6 +53,16 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-27T17:26:29.979625900+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "8f1b18a180623661258f92e19e45402e21b61d183ba4f311d10c80de00c169a8"
+    evidence_ref: "Riprodotta dal Lead sull'albero dopo la remediation, in tre parti.\n\nPROPONENTE MUTO. Eseguito `cargo test -p coblox-core --test consensus_devnet -- --nocapture` e letta la trascrizione reale: \"proposer of (height 1, round 0) is val-001, silenced. Height 1 finalized at round 1 proposed by val-002, after 46 scheduled events and 300 ms of virtual clock.\" E' il caso che ADR-018 dichiara fatale per l'alternativa a una fase, quindi il caso che giustifica l'architettura scelta, e finalizza.\n\nESECUZIONE AVVERSA. Dalla stessa esecuzione: \"8 conflicting precommits injected under val-000's real key across 4 rounds; chain length 10, no height with two block IDs, no certificate with a repeated signer\". Piu' la catena piena: \"4 validators, 375 scheduled events, virtual clock 101 ms, 320 messages admitted through the boundary, 40 certificates verified\".\n\nMUTAZIONE, che e' la parte indipendente. Il Lead ha disattivato il legame fra carico e blocco introdotto dalla remediation di RF-001 - la guardia `computed_root != proposal.header.transactions_root` in `consensus/messages.rs` - e ha eseguito le due suite di consenso. Falliscono esattamente i due test che quella regola esiste per tenere e nessun altro: `one_header_with_two_payloads_does_not_produce_two_blocks`, cioe' E5 invertito nel banco a quattro nodi, e `a_proposal_whose_payload_does_not_reproduce_its_root_is_refused`, cioe' il controllo al confine. Fuori da quelli, 24 passati su 25 in consensus_rules e 9 su 10 in consensus_devnet. Albero ripristinato con git checkout dal commit 31669eb e riverificato pulito.\n\nContorno rieseguito dal Lead e dichiarato per quello che e' - riesecuzione, non riproduzione indipendente: 230 test verdi 0 falliti, clippy --workspace --all-features --all-targets -D warnings pulito, cargo fmt --all --check pulito, nove strumenti di progetto a exit 0, probe da 172 a 180."
+    id: "SPEC-025-ATTEST-002"
+    requirement_digest: "8b9cd405aa8b58392ee05c084d4f0336ad506a94518d39d3e911c2a5fa99e882"
+    requirement_id: "GATE-LEAD-REPRO"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T18:17:24.243203200+02:00"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 
@@ -161,7 +173,7 @@ Da lì il crux di [ADR-018]: con un solo voto firmato un protocollo è sicuro **
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Passata eseguita, `published_artifacts.py` `PASS`, probe nuove nella prova in negativo.
 - [x] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **È la superficie di sicurezza più grande che il progetto abbia prodotto finora**: finora il rischio stava nelle regole, da qui sta in un protocollo distribuito con stati, timeout e avversari che tacciono.
-- [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente il caso del proponente muto e almeno una esecuzione avversa, invece di prenderli dall'evidenza.
+- [x] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente il caso del proponente muto e almeno una esecuzione avversa, invece di prenderli dall'evidenza.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
