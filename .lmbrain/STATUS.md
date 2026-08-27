@@ -20,9 +20,9 @@ finalizzati con certificati che il verificatore spedito accetta, la regola di
 blocco e' presa da arXiv:1807.04938 e verificata, e il carico di un blocco e'
 legato al blocco al confine della proposta.
 
-**Il passo che chiude l'esito e' [SPEC-029]**, la devnet: rete, persistenza e
-ciclo di vita del nodo sopra questo motore. E' scritta e in `backlog`, dipende da
-[SPEC-025] che ora e' chiusa, quindi e' dispacciabile.
+**[SPEC-029] e' `ready`**, ed e' il passo che chiude l'esito: rete, persistenza e
+ciclo di vita del nodo sopra questo motore. La dipendenza da [SPEC-025] e'
+soddisfatta. **La dispaccia l'operatore.**
 
 Non e' ancora una devnet — rete, persistenza e ciclo di vita del nodo sono la
 spec successiva, e `coblox-node/src/main.rs` e' intatto.
@@ -50,7 +50,7 @@ Nessun agente in esecuzione.
 | Spec | Stato | Chi | Nota |
 | --- | --- | --- | --- |
 | [SPEC-026] | `backlog`, `terra` | AGENT-008 | Rende eseguibili due discipline che oggi sono prosa: review non terminali su spec chiuse, e probe che portano un argomento di sicurezza senza nominare la review che l'ha attaccato |
-| [SPEC-029] | `backlog`, `sol`/`maximum` | AGENT-001 | **La devnet.** Quattro processi separati su rete vera, i voti durevoli prima di essere trasmessi, un nodo ucciso e riavviato che non equivoca. Dipende da [SPEC-025]: chiude il **primo esito di M-02** |
+| [SPEC-029] | **`ready`**, `sol`/`maximum` | AGENT-001 | **La devnet, e chiude il primo esito di M-02.** Quattro processi separati su rete vera, i voti durevoli prima di essere trasmessi, un nodo ucciso e riavviato che non equivoca. Porta anche il criterio di [DEBT-047] e il recinto di [DEBT-029]. Dispacciata dall'operatore |
 | [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
 Sequenziare, non parallelizzare: la remediation di [SPEC-022] tocca `ledger.md` e

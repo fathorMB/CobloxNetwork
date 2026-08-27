@@ -2,7 +2,7 @@
 id: SPEC-029
 # Note: Quote the title if it contains a colon
 title: "La devnet: quattro validatori seed che finalizzano su rete vera, e i voti che sopravvivono a un riavvio"
-status: backlog
+status: ready
 kind: feature
 priority: high
 area: core
@@ -25,6 +25,8 @@ tags: [rust, p2p, devnet]
 activity:
   - date: 2026-08-27
     action: "created"
+  - date: 2026-08-27
+    action: "transitioned backlog -> ready"
 ---
 # La devnet
 
