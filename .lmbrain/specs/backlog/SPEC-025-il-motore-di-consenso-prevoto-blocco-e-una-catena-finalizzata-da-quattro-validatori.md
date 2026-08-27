@@ -8,7 +8,7 @@ priority: high
 area: consensus
 milestone: M-02
 # References use IDs only (e.g. [SPEC-001]); use [[wikilinks]] in prose
-recommended_agent: AGENT-001
+recommended_agent: AGENT-002
 # Implementation estimate. Required before this spec can become `ready`.
 # capability_tier: luna | terra | sol   (expected change footprint)
 # thinking_level: minimal | standard | extended | maximum (defaults from the tier)
@@ -30,6 +30,8 @@ activity:
     action: "created"
   - date: 2026-08-27
     action: "set tags"
+  - date: 2026-08-27
+    action: "set recommended_agent"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 

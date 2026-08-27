@@ -7,7 +7,7 @@ role: ledger-consensus-specialist
 activation: manual
 can_implement: true
 can_review: false
-domains: [consensus, bft, ledger, token-economy, simulation]
+domains: [consensus, bft, ledger, token-economy, simulation, governance]
 primary_files: ["ledger/", "sim/"]
 review_focus: []
 context_pack: spec
@@ -19,13 +19,15 @@ allowed_mcp: []
 knowledge: []
 links: [ADR-001, ADR-005]
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-27
 tags: [ledger, consensus, economy]
 activity:
   - date: 2026-08-25
     action: "created"
   - date: 2026-08-25
     action: "transitioned proposed -> active"
+  - date: 2026-08-27
+    action: "added domain governance on operator authorization: the profile prose already declared governance dei parametri (SPEC-023)"
 ---
 # Ledger, Consenso & Token Economy Specialist
 

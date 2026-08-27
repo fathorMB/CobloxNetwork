@@ -7,7 +7,7 @@ role: devops-specialist
 activation: manual
 can_implement: true
 can_review: false
-domains: [ci, build, release, packaging, devnet]
+domains: [ci, build, release, packaging, devnet, tooling]
 primary_files: [".github/", "scripts/", "infra/"]
 review_focus: []
 context_pack: spec
@@ -19,13 +19,15 @@ allowed_mcp: []
 knowledge: []
 links: [ADR-003]
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-27
 tags: [devops, ci, release]
 activity:
   - date: 2026-08-25
     action: "created"
   - date: 2026-08-25
     action: "transitioned proposed -> active"
+  - date: 2026-08-27
+    action: "added domain tooling on operator authorization: internal tooling had no owner (SPEC-024)"
 ---
 # DevOps, CI & Release Specialist
 

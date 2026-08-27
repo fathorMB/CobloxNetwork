@@ -32,12 +32,13 @@ Nessun agente in esecuzione.
 
 | Spec | Stato | Chi | Nota |
 | --- | --- | --- | --- |
-| [SPEC-025] | `backlog`, `sol`/`maximum` | AGENT-001 | Attua [ADR-018]: motore di consenso, catena finalizzata da quattro validatori come prova. Non e' una devnet — rete e persistenza sono la spec successiva |
+| [SPEC-025] | `backlog`, `sol`/`maximum` | AGENT-002 | Attua [ADR-018]: motore di consenso, catena finalizzata da quattro validatori come prova. Non e' una devnet — rete e persistenza sono la spec successiva |
 | [SPEC-024] | `backlog` | AGENT-008 | Igiene sulle citazioni: una frase che non si trova deve far fallire, non essere saltata |
 
 Sequenziare, non parallelizzare: la remediation di [SPEC-022] tocca `ledger.md` e
-`core/`, gli stessi file di [SPEC-025]. Due remediation parallele hanno gia' fatto
-scadere le citazioni di una mentre venivano scritte.
+`core/`, gli stessi file di [SPEC-025], e dal 2026-08-27 sono entrambe di AGENT-002.
+Due remediation parallele hanno gia' fatto scadere le citazioni di una mentre
+venivano scritte.
 
 ## Blockers and risks
 
