@@ -133,6 +133,18 @@ rete e l'orologio ai due capi e il motore in mezzo, invariato.
       che al riavvio il voto sia noto.
 - [ ] I blocchi finalizzati sopravvivono al riavvio: il nodo riparte dall'altezza
       che aveva, non da genesi.
+- [ ] **`FinalizedBlock::verify` ricalcola `transactions_root` dal carico
+      portato** e rifiuta se non riproduce quello dell'header, con la stessa
+      definizione di `tx_id` che il confine della proposta gia' usa. Chiude
+      [DEBT-047]. Un test osserva il rifiuto su un blocco con **certificato
+      genuino** e carico divergente.
+
+      Non e' un'aggiunta di comodo: [SPEC-025] ha messo il legame al confine
+      della **proposta**, e finche' non esistono rete e persistenza nessun
+      `Block` arriva da altrove. Questa spec introduce **entrambi** i percorsi che
+      lo portano — un blocco letto da disco al riavvio, uno ricevuto da un pari
+      in sincronizzazione — quindi il buco diventa raggiungibile qui e in nessun
+      posto prima.
 - [ ] **Il buffering fra altezze** e `valid(v)` sono implementati e nominati:
       esiste un test in cui un messaggio di un'altezza futura arriva presto,
       viene trattenuto, e viene consumato quando l'altezza comincia.

@@ -1,7 +1,7 @@
 ---
 id: DEBT-034
 title: "Un verdetto locale del ricevente puo' entrare in catena attraverso una firma di quorum"
-status: planned
+status: deferred
 category: "security"
 severity: "high"
 origin_severity: null
@@ -17,7 +17,7 @@ target_specs: ["SPEC-025"]
 blocked_by: []
 resolution_refs: []
 superseded_by: null
-revisit_condition: null
+revisit_condition: "La scomposizione di M-03 in spec. La milestone e' \"Presenza dimostrata: challenge di availability e reddito di esistenza\", ed e' la consegna in cui il percorso della sfida passa da prosa a codice: e' li' che si decide se un `challenge_evidence` possa portare in catena un verdetto che dipende dalla vista locale di chi lo emette. **Non e' una data ma un evento**, e l'evento e' la prima spec di M-03 che tocchi l'evidenza di sfida."
 created: 2026-08-26
 updated: 2026-08-27
 tags: ["security","consensus","identity"]
@@ -25,6 +25,8 @@ links: []
 activity:
   - date: 2026-08-27
     action: "planned: Il debito chiede di stabilire quale delle due regole ceda fra la raggiungibilita' ancorata alla vista locale del ricevente e cio' che una firma di quorum puo' portare in catena. E' il confine fra stato locale e stato finalizzato, cioe' il perimetro del motore di consenso: SPEC-025 e' la prima consegna in cui quel confine esiste come codice invece che come prosa.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va quindi affrontata con il motore davanti, non ricostruita a memoria."
+  - date: 2026-08-27
+    action: "deferred: Differito il 2026-08-27 perche' il suo bersaglio precedente, SPEC-025, e' `done` e non lo ha toccato — correttamente, perche' non era nel suo perimetro.\n\nIl Lead ha riletto il debito prima di instradarlo altrove, invece di spostarlo sulla spec successiva per comodita': la superficie e' il **percorso della sfida**, dove due auditor con altezze finalizzate diverse registrano `no_response` contro `passed` sullo stesso peer e quell'esito finisce in un `challenge_evidence` firmato a quorum. Non e' materia di devnet. SPEC-029 costruisce rete, persistenza e ciclo di vita del nodo, e non tocca l'evidenza di sfida: instradarlo li' avrebbe prodotto un bersaglio che non lo avrebbe chiuso, cioe' la stessa forma di difetto che il triage del 2026-08-27 ha appena corretto sui diciotto debiti senza `target_specs`.\n\nM-03 non ha ancora alcuna spec, quindi non esiste un bersaglio valido da assegnare oggi: differire con un innesco preciso e' l'unica via onesta fra le quattro disponibili.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va affrontata con il percorso della sfida davanti, non ricostruita a memoria."
 debt_events:
   - schema_version: "1"
     id: "DEBT-034-EVENT-001"
@@ -46,6 +48,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Il debito chiede di stabilire quale delle due regole ceda fra la raggiungibilita' ancorata alla vista locale del ricevente e cio' che una firma di quorum puo' portare in catena. E' il confine fra stato locale e stato finalizzato, cioe' il perimetro del motore di consenso: SPEC-025 e' la prima consegna in cui quel confine esiste come codice invece che come prosa.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va quindi affrontata con il motore davanti, non ricostruita a memoria."
     evidence_refs: ["SPEC-025"]
+  - schema_version: "1"
+    id: "DEBT-034-EVENT-003"
+    timestamp: "2026-08-27T18:44:42.275506+02:00"
+    action: "deferred"
+    from_status: "planned"
+    to_status: "deferred"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Differito il 2026-08-27 perche' il suo bersaglio precedente, SPEC-025, e' `done` e non lo ha toccato — correttamente, perche' non era nel suo perimetro.\n\nIl Lead ha riletto il debito prima di instradarlo altrove, invece di spostarlo sulla spec successiva per comodita': la superficie e' il **percorso della sfida**, dove due auditor con altezze finalizzate diverse registrano `no_response` contro `passed` sullo stesso peer e quell'esito finisce in un `challenge_evidence` firmato a quorum. Non e' materia di devnet. SPEC-029 costruisce rete, persistenza e ciclo di vita del nodo, e non tocca l'evidenza di sfida: instradarlo li' avrebbe prodotto un bersaglio che non lo avrebbe chiuso, cioe' la stessa forma di difetto che il triage del 2026-08-27 ha appena corretto sui diciotto debiti senza `target_specs`.\n\nM-03 non ha ancora alcuna spec, quindi non esiste un bersaglio valido da assegnare oggi: differire con un innesco preciso e' l'unica via onesta fra le quattro disponibili.\n\nLa sostanza di questo debito viene dalla parte 3 di ADR-017, tolta dalla prima stesura dopo la critica di REVIEW-036 perche' non chiudeva la superficie che diceva di chiudere. Va affrontata con il percorso della sfida davanti, non ricostruita a memoria."
+    evidence_refs: []
 ---
 # Un verdetto locale del ricevente puo' entrare in catena attraverso una firma di quorum
 

@@ -9,21 +9,20 @@ updated: 2026-08-27
 
 ## Current focus
 
-**M-02, e il primo esito ha ora un motore.** La milestone nomina devnet BFT,
+**M-02, e il motore di consenso e' chiuso.** La milestone nomina devnet BFT,
 light client con prove Merkle, mint & burn, e simulatore economico. Solo il
 simulatore e' fatto, chiuso il 2026-08-25. Non c'e' rete: `libp2p` non e' una
 dipendenza del workspace.
 
-**[SPEC-025] e' consegnata** e in `review`. Quattro validatori producono una
-catena di dieci blocchi finalizzati con certificati veri che il verificatore
-esistente accetta: il primo consenso reale del progetto, e **la regola di blocco
-regge** — [REVIEW-047] l'ha verificata invece di crederle.
+**[SPEC-025] e' `done`** dal 2026-08-27, dopo due passate di `GATE-SECREVIEW` e
+un giro di remediation. Quattro validatori producono una catena di dieci blocchi
+finalizzati con certificati che il verificatore spedito accetta, la regola di
+blocco e' presa da arXiv:1807.04938 e verificata, e il carico di un blocco e'
+legato al blocco al confine della proposta.
 
-[REVIEW-047] chiede pero' modifiche su tre punti, e il piu' grave non e' nel
-consenso ma in cio' che il consenso lascia libero: `transactions` non e' legato a
-`header.transactions_root` da nessuna parte, quindi due nodi onesti possono
-tenere `Block` diversi allo stesso `block_id` finalizzato, entrambi accettati dal
-verificatore. Il rimedio e' gia' nel crate.
+**Il passo che chiude l'esito e' [SPEC-029]**, la devnet: rete, persistenza e
+ciclo di vita del nodo sopra questo motore. E' scritta e in `backlog`, dipende da
+[SPEC-025] che ora e' chiusa, quindi e' dispacciabile.
 
 Non e' ancora una devnet — rete, persistenza e ciclo di vita del nodo sono la
 spec successiva, e `coblox-node/src/main.rs` e' intatto.
@@ -42,7 +41,6 @@ quando il lavoro richiesto non serve la milestone corrente.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-025] | `review`, [REVIEW-047] non superata | AGENT-002 | Tre bloccanti, **nessuno nella regola di blocco**, che regge. Il piu' grave: `transactions` non e' legato a `header.transactions_root`, quindi due nodi onesti possono tenere `Block` diversi allo stesso `block_id`. `GATE-CI-GREEN` attestata |
 | [SPEC-022] | `review`, **congelata** | AGENT-002 | Attende la forma iniettiva del punto 3 di [ADR-017], riaperto da [REVIEW-046]. Nessuno tocca `ledger.md` ne' `core/` per essa: non e' in contesa con [SPEC-025] |
 
 Nessun agente in esecuzione.
@@ -96,9 +94,9 @@ aperti si chiudevano solo come effetto collaterale di lavoro fatto per altro.
 
 | Stato | N | Nota |
 | --- | --- | --- |
-| `planned` | 16 | Ognuno ha una spec bersaglio |
+| `planned` | 17 | Ognuno ha una spec bersaglio |
 | `open` | 0 | La cartella e' vuota per la prima volta |
-| `deferred` | 2 | [DEBT-010] a M-07, [DEBT-027] a innesco |
+| `deferred` | 3 | [DEBT-010] a M-07, [DEBT-027] e [DEBT-034] a innesco |
 | `accepted-risk` | 1 | [DEBT-039], `glib` |
 | `resolved` | 18 | 9 il 25 agosto, 9 il 26, zero il 27 |
 | `superseded` | 2 | [DEBT-036] e [DEBT-041], entrambi per un conteggio o una diagnosi del Lead sbagliati |
@@ -129,11 +127,12 @@ non chiusa sulla motivazione attuale.
 
 ## Done
 
-Ventidue spec, tutte con la propria review. Storia e finding stanno nella spec e
+Ventitre spec, tutte con la propria review. Storia e finding stanno nella spec e
 nella sua review, non qui.
 
 | Spec | Chi | Chiusa |
 | --- | --- | --- |
+| [SPEC-025] Il motore di consenso: prevoto, blocco, catena finalizzata da quattro validatori | AGENT-002 | 2026-08-27 |
 | [SPEC-023] I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe | AGENT-002 | 2026-08-27 |
 | [SPEC-021] I valori della banda di cadenza nei documenti e nell'ancora di genesi | AGENT-002 | 2026-08-26 |
 | [SPEC-020] L'orologio su cui si misura la scadenza di un'attestazione | AGENT-001 | 2026-08-26 |

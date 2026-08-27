@@ -2,7 +2,7 @@
 id: SPEC-025
 # Note: Quote the title if it contains a colon
 title: "Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori"
-status: review
+status: done
 kind: feature
 priority: high
 area: consensus
@@ -44,6 +44,10 @@ activity:
     action: "attested verification GATE-LEAD-REPRO by lead"
   - date: 2026-08-27
     action: "attested verification GATE-CI-GREEN by lead"
+  - date: 2026-08-27
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-27
+    action: "transitioned review -> done"
 verification_attestations:
   - actor: "AGENT-LEAD"
     actor_role: "lead"
@@ -75,6 +79,16 @@ verification_attestations:
     result: "passed"
     schema_version: "1"
     timestamp: "2026-08-27T18:26:09.905190200+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "b1728c3745d68f7bc58b4bc281d7b8979f946e4986d4da0b4484ab9b32bb5237"
+    evidence_ref: "REVIEW-048, accepted, di AGENT-007: seconda esecuzione della gate sull'albero dopo la remediation. La prima passata, REVIEW-047, aveva chiesto modifiche su tre bloccanti; questa li dichiara tutti e tre chiusi e lo stabilisce mutando l'albero invece di leggere l'evidenza.\n\nLa gate e' stata rieseguita e non attestata sulla passata precedente, perche' il codice e' cambiato con il commit 31669eb: accettare su REVIEW-047 avrebbe attestato un albero che non esiste piu'.\n\nIl controllo piu' stringente e' su RF-001: allargare di un solo campo la rimozione in `transactions_root_of` fa fallire tre test, quindi la rimozione e' esattamente quella che `ledger.md` definisce per `tx_id` — un errore li' avrebbe fatto rifiutare proposte oneste o accettare carichi divergenti, e su un percorso di consenso e' un fork. La reviewer ha inoltre verificato che il motivo scritto per RF-002 sia vero e non solo plausibile: `block_id` copre davvero l'header, `round` incluso, e la POL a `vr` e' verificata contro il log proprio.\n\nSette rilievi nuovi, nessuno bloccante. I due che contano sono promossi a debito con un bersaglio e un criterio invece di aprire un terzo giro: DEBT-047 sul carico slegato in `FinalizedBlock::verify`, instradato su SPEC-029 perche' e' la consegna che rende il buco raggiungibile portando disco e rete; DEBT-048 sull'ordine della radice non provato, instradato sulla stessa spec perche' vi aggiungera' un secondo sito che ricalcola la radice.\n\nLa gate e' soddisfatta con il residuo dichiarato e tracciato, non con il residuo taciuto."
+    id: "SPEC-025-ATTEST-004"
+    requirement_digest: "c177f49122193d8c7aaf6fb04646b1aefb94019ba93c89d9a5f4e3d7b25d809e"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T18:43:03.876765200+02:00"
 ---
 # Il motore di consenso: prevoto, blocco, e una catena finalizzata da quattro validatori
 
@@ -184,7 +198,7 @@ Da lì il crux di [ADR-018]: con un solo voto firmato un protocollo è sicuro **
 - [x] GATE-NOTHING-PUBLISHED-CHANGED | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Il diff non tocca `BlockHeader`, `QuorumCertificate`, il predicato di quorum, né la preimmagine del voto esistente. È la premessa di [ADR-018] e si verifica guardando il diff.
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Passata eseguita, `published_artifacts.py` `PASS`, probe nuove nella prova in negativo.
 - [x] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **È la superficie di sicurezza più grande che il progetto abbia prodotto finora**: finora il rischio stava nelle regole, da qui sta in un protocollo distribuito con stati, timeout e avversari che tacciono.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007. **È la superficie di sicurezza più grande che il progetto abbia prodotto finora**: finora il rischio stava nelle regole, da qui sta in un protocollo distribuito con stati, timeout e avversari che tacciono.
 - [x] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente il caso del proponente muto e almeno una esecuzione avversa, invece di prenderli dall'evidenza.
 
 ## Production quality and documentation
