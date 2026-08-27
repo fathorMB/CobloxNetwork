@@ -1,7 +1,7 @@
 ---
 id: DEBT-036
 title: "Dieci parametri di consenso su venti non sono ne limitati in genesi ne dichiarati aperti"
-status: open
+status: superseded
 category: "security"
 severity: "high"
 origin_severity: null
@@ -16,13 +16,15 @@ related_decisions: ["ADR-017","ADR-010"]
 target_specs: []
 blocked_by: []
 resolution_refs: []
-superseded_by: null
+superseded_by: ["DEBT-044"]
 revisit_condition: null
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 tags: ["security","governance","ledger"]
 links: []
-activity: []
+activity:
+  - date: 2026-08-27
+    action: "superseded: Il conteggio non e' piu' vero. Questo debito dichiara dieci parametri privi sia di limite di genesi sia di dichiarazione DRAFT; sono nove. `min_revocation_effective_delay_blocks` e' uscito dalla classe perche' SPEC-022 ha attuato la parte 2 di ADR-017, che imponeva ai tre parametri della revoca di entrare nel blocco dei vincoli di genesi: `min_revocation_effective_delay_blocks_max` e' oggi in ElectionBounds ed e' imposto in check_magnitudes, verificato dal Lead il 2026-08-27 a core/coblox-core/src/params.rs:38 e :589. Rilevato da AGENT-007 in REVIEW-043 RF-004.\n\nSuperseduto invece che corretto a mano perche' il titolo stesso porta il numero: \"Dieci parametri di consenso su venti\" sarebbe rimasto falso in ogni digest e in ogni riga di STATUS.md, e riscriverlo sarebbe stata una mutazione non governata su un artefatto governato. La supersessione lascia leggibile da entrambi i lati che la classe si e' ristretta perche' un parametro e' stato chiuso da una consegna, non perche' qualcuno abbia cambiato una cifra.\n\nIl difetto resta aperto nella sua sostanza su DEBT-044, con la stessa severita' high, lo stesso proprietario e gli stessi criteri di chiusura."
 debt_events:
   - schema_version: "1"
     id: "DEBT-036-EVENT-001"
@@ -34,6 +36,16 @@ debt_events:
     actor: "AGENT-LEAD"
     rationale: "Aperto dal Lead perche' l'operatore stava per decidere tre parametri di taratura uno alla volta, ed erano tre sintomi della stessa lacuna.\n\nVale la pena registrare come e' stato trovato, perche' e' la sesta occorrenza della famiglia e la prima trovata **cercando la classe invece dell'occorrenza**. Le prime cinque - `SECURITY.md` fuori dall'inventario di [ADR-012], due liste in `published_artifacts.py` senza lato disco, `CadenceBand` assente dai portatori in `lib.rs`, `src/` fuori dallo scopo della passata, SKILL-004 assente dal registro - sono state trovate una per volta, ciascuna come un membro mancante da un elenco. Questa e' stata trovata perche' il Lead, dovendo portare la terza decisione di taratura in due giorni, si e' chiesto se le tre fossero tre o fossero una.\n\nLa lezione che vale oltre questo debito: **quando la stessa forma di questione si presenta tre volte, la terza volta la domanda giusta non e' la questione ma la classe.** Il progetto aveva registrato due decisioni pendenti in [HANDOFF-003] e ne stava aggiungendo una terza, e nessuna delle tre registrazioni aveva chiesto quante altre ce ne fossero."
     evidence_refs: []
+  - schema_version: "1"
+    id: "DEBT-036-EVENT-002"
+    timestamp: "2026-08-27T10:46:33.668726+02:00"
+    action: "superseded"
+    from_status: "open"
+    to_status: "superseded"
+    actor_role: "project-lead"
+    actor: "AGENT-LEAD"
+    rationale: "Il conteggio non e' piu' vero. Questo debito dichiara dieci parametri privi sia di limite di genesi sia di dichiarazione DRAFT; sono nove. `min_revocation_effective_delay_blocks` e' uscito dalla classe perche' SPEC-022 ha attuato la parte 2 di ADR-017, che imponeva ai tre parametri della revoca di entrare nel blocco dei vincoli di genesi: `min_revocation_effective_delay_blocks_max` e' oggi in ElectionBounds ed e' imposto in check_magnitudes, verificato dal Lead il 2026-08-27 a core/coblox-core/src/params.rs:38 e :589. Rilevato da AGENT-007 in REVIEW-043 RF-004.\n\nSuperseduto invece che corretto a mano perche' il titolo stesso porta il numero: \"Dieci parametri di consenso su venti\" sarebbe rimasto falso in ogni digest e in ogni riga di STATUS.md, e riscriverlo sarebbe stata una mutazione non governata su un artefatto governato. La supersessione lascia leggibile da entrambi i lati che la classe si e' ristretta perche' un parametro e' stato chiuso da una consegna, non perche' qualcuno abbia cambiato una cifra.\n\nIl difetto resta aperto nella sua sostanza su DEBT-044, con la stessa severita' high, lo stesso proprietario e gli stessi criteri di chiusura."
+    evidence_refs: ["DEBT-044"]
 ---
 # Dieci parametri di consenso su venti non sono ne limitati in genesi ne dichiarati aperti
 

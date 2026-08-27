@@ -23,8 +23,7 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Sbloccata: [ADR-017] e' corretta e approvata. In coda dopo [SPEC-023], perche' toccano `ledger.md` e `core/` entrambe |
-| [SPEC-023] | `review`, quarta remediation consegnata | AGENT-002 | Sette rilievi su sette di [REVIEW-041] chiusi. Attende la ri-esecuzione di `GATE-SECREVIEW` da AGENT-007, che l'operatore deve richiedere |
+| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Sbloccata e prima in coda: [ADR-017] e' corretta e approvata, e [SPEC-023] ha liberato `ledger.md` e `core/` |
 
 Nessun agente in esecuzione.
 
@@ -70,7 +69,7 @@ oggi pendente.
 
 ## Debiti aperti
 
-Sedici aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
+Diciassette aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
 a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 
 | ID | Sev | Owner | Questione |
@@ -78,7 +77,7 @@ a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 | [DEBT-028] | high | AGENT-002 | `election_epoch` dipende da un parametro governato senza che il documento lo dichiari |
 | [DEBT-033] | high | AGENT-002 | `effective_height` non ha tetto, e il campo `reason` che porterebbe la distinzione non e' vincolato |
 | [DEBT-034] | high | AGENT-007 | Un verdetto locale del ricevente puo' entrare in catena |
-| [DEBT-036] | high | AGENT-002 | Dieci parametri di consenso su venti non sono ne' limitati in genesi ne' governati |
+| [DEBT-044] | high | AGENT-002 | **Nove** parametri di consenso su venti non sono ne' limitati in genesi ne' dichiarati aperti. Successore di [DEBT-036], che diceva dieci |
 | [DEBT-037] | high | AGENT-007 | Tre campi di `EnrollmentParametersBody` non sono ne' limitati ne' validati |
 | [DEBT-024] | medium | AGENT-007 | `ComputeAssignment` lascia al validatore la scelta del modulo |
 | [DEBT-025] | medium | AGENT-007 | Coerenza fra matrice del threat model ed elenchi asset degli scenari |
@@ -89,16 +88,18 @@ a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 | [DEBT-035] | medium | AGENT-007 | Dentro la classe 0 l'ordine e' per ID di transazione, e il revocante puo' sfruttarlo |
 | [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
 | [DEBT-040] | medium | AGENT-007 | La finestra di inclusione piu' stretta tocca il `reason` piu' urgente: ordinamento invertito rispetto all'urgenza |
+| [DEBT-043] | medium | AGENT-007 | Le righe 2, 4, 5 e 6 dell'analisi non hanno mai avuto un attacco nel merito in quattro passate |
 | [DEBT-041] | medium | AGENT-002 | `ledger.md` si contraddice sull'aggregazione su `K` blocchi: non presa in v0 in una sezione, presa in un'altra |
 | [DEBT-039] | low | AGENT-008 | `glib` resta vulnerabile: `javascriptcore-rs` la pinna esattamente, nessun aggiornamento fino a `wry`. Rischio accettato |
 
 ## Done
 
-Ventuno spec, tutte con la propria review. Storia e finding stanno nella spec e
+Ventidue spec, tutte con la propria review. Storia e finding stanno nella spec e
 nella sua review, non qui.
 
 | Spec | Chi | Chiusa |
 | --- | --- | --- |
+| [SPEC-023] I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe | AGENT-002 | 2026-08-27 |
 | [SPEC-021] I valori della banda di cadenza nei documenti e nell'ancora di genesi | AGENT-002 | 2026-08-26 |
 | [SPEC-020] L'orologio su cui si misura la scadenza di un'attestazione | AGENT-001 | 2026-08-26 |
 | [SPEC-019] Cosa significa "non revocata" per autorizzare una spesa | AGENT-002 | 2026-08-26 |

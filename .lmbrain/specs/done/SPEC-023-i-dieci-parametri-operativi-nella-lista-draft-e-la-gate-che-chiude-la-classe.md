@@ -2,7 +2,7 @@
 id: SPEC-023
 # Note: Quote the title if it contains a colon
 title: "I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe"
-status: review
+status: done
 kind: feature
 priority: high
 area: governance
@@ -36,6 +36,45 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-26
     action: "transitioned working -> review"
+  - date: 2026-08-27
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-27
+    action: "attested verification GATE-SECREVIEW by lead"
+  - date: 2026-08-27
+    action: "attested verification GATE-CI-GREEN by lead"
+  - date: 2026-08-27
+    action: "transitioned review -> done"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "407fd67db000b9a9fb1fb88aa007fe966d27b93d00f93f349a757c2c826c6ba5"
+    evidence_ref: "REVIEW-043, accepted, di AGENT-007: quarta esecuzione della gate sull'analisi. Sette rilievi su sette di REVIEW-041 chiusi e verificati nei tre luoghi; sei rilievi nuovi registrati come note non bloccanti. La review ha attaccato i tre bersagli che il Lead le ha dichiarato perche' privi di verifica indipendente — il residuo autodichiarato della riga 7, le righe 3 e 8 mai esaminate nel merito, la riga 9 allineata di iniziativa — e sono caduti tutti e tre. La gate e' soddisfatta con il residuo dichiarato: le righe 2, 4, 5 e 6 non hanno mai avuto un attacco nel merito, ed e' su DEBT-042."
+    id: "SPEC-023-ATTEST-001"
+    requirement_digest: "feeffcfd8a981c60404b0ab134af2170cfe9634f5f8c4e56ca45bda29b0532a5"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T10:44:11.208210300+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "67993f1c27daaf33a272b4065d4145ac6e7a0da0f6226fb903d16c26825c806f"
+    evidence_ref: "CORREZIONE di SPEC-023-ATTEST-001, che cita DEBT-042: quell'ID non esiste. Il debito sulle quattro righe mai attaccate nel merito e' DEBT-043. Il numero 042 era stato consumato da un tentativo di creazione rifiutato per frontmatter incompleto, e il Lead aveva scritto l'ID prima di averlo ricevuto invece che dopo. L'attestazione precedente resta nel registro perche' immutabile; questa la sostituisce nel merito. Nient'altro di quel testo cambia: REVIEW-043 e' accepted, i sette rilievi di REVIEW-041 sono chiusi e verificati nei tre luoghi, i sei rilievi nuovi sono note non bloccanti, e i tre bersagli privi di verifica indipendente — riga 7, righe 3 e 8, riga 9 — sono caduti tutti e tre. La gate e' soddisfatta con il residuo dichiarato su DEBT-043."
+    id: "SPEC-023-ATTEST-002"
+    requirement_digest: "feeffcfd8a981c60404b0ab134af2170cfe9634f5f8c4e56ca45bda29b0532a5"
+    requirement_id: "GATE-SECREVIEW"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T10:45:18.611660600+02:00"
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "109dd7851bb3370d97d5892bc1d9fabb078b3f3b7fabab672f380b363cbe2a14"
+    evidence_ref: "Run GitHub Actions 33054222382 sul commit 78da559 di main, che porta la consegna della quarta passata: sei job su sei verdi — Protocol document guards, Rust (windows-latest), Rust (ubuntu-latest), Tauri desktop (windows-latest), Tauri desktop (ubuntu-latest), Android arm64 + Kotlin bindings. Verificato dal Lead interrogando i job della run, non il solo esito complessivo. Questa spec non tocca codice: la pipeline conferma che la consegna documentale non ha rotto le gate di documento, ed e' \"Protocol document guards\" il job che conta qui. Attestata dal Lead e non dall'agente perche' la gate e' stata riformulata a owner=lead, phase=before-done il 2026-08-27: la combinazione owner=agent con before-done non e' ammessa dal contratto, e chiedere a uno specialista la pipeline verde su un commit che gli e' vietato produrre e' insoddisfacibile per costruzione."
+    id: "SPEC-023-ATTEST-003"
+    requirement_digest: "f8e43a5fdd0ae9021563670cf903511159d3c6e03749a1f62b79d01126d324fd"
+    requirement_id: "GATE-CI-GREEN"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T10:45:46.775339+02:00"
 ---
 # I dieci parametri operativi nella lista DRAFT, e la gate che chiude la classe
 
@@ -131,8 +170,8 @@ Sono la metà **operativa e di sicurezza**: orologi, finestre di validità, cach
 - [x] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato **osservato fallire** in entrambe le direzioni: un campo dello schema fuori da entrambe le liste, e una voce di lista senza campo corrispondente ([SKILL-001]).
 - [x] GATE-SEEN-IT-FAIL-FIRST | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Lo strumento è stato eseguito **prima** della correzione della lista, e la trascrizione mostra che nominava i dieci parametri reali. Una gate che nasce verde non ha mai dimostrato di vedere.
 - [x] GATE-DRAFT-NO-LOSS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Confronto fra la sezione DRAFT prima e dopo, che dimostra che nessuna voce preesistente è stata persa nella riorganizzazione.
-- [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
-- [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007 **sull'analisi**, non sullo strumento: è l'analisi che l'operatore userà per decidere, e un errore lì si propaga in un ADR.
+- [x] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | Pipeline reale verde, con numero di run e commit.
+- [x] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di AGENT-007 **sull'analisi**, non sullo strumento: è l'analisi che l'operatore userà per decidere, e un errore lì si propaga in un ADR.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
