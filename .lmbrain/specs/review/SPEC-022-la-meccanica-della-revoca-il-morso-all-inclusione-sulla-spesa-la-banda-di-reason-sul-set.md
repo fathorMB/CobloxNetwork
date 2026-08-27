@@ -36,6 +36,19 @@ activity:
     action: "transitioned ready -> working"
   - date: 2026-08-26
     action: "transitioned working -> review"
+  - date: 2026-08-27
+    action: "attested verification GATE-LEAD-REPRO by lead"
+verification_attestations:
+  - actor: "AGENT-LEAD"
+    actor_role: "lead"
+    evidence_digest: "976754ebe25e7a57604d9033888a0ef65ccda63e22b7e46b065ee2a7c2a1141b"
+    evidence_ref: "Riprodotta dal Lead, non presa dall'evidenza, in due meta'.\n\nDERIVAZIONE DI AUTH-0, indipendente. Non ho eseguito auth0_oracle.py per questo: sarebbe stato rieseguire lo strumento dell'implementatrice. Ho preso i tre fatti dalla prosa della fixture (ledger.md:246-249: valid_from_height 5, revoca inclusa al blocco 20, effective_height 50), ho reimplementato le due clausole dal loro testo — clausola 1 \"enrolled by h\" come valid_from <= h, clausola 2 \"no revoke_identity included at a height at most h\" come non (20 <= h) — e ho cercato le frontiere per esaurimento su 0..60 senza guardare la tabella. Risultato: altezze di flip [5, 20]. Le otto righe di cblx1revokedfixture sono riprodotte 8 su 8, zero discordanti, piu' la riga dell'identita' senza revoca a h=51 che risulta valid. effective_height NON e' una frontiera: 49, 50 e 51 danno lo stesso verdetto, che e' precisamente la firma del ribaltamento che REVIEW-042 sospettava e che qui non compare.\n\nMUTAZIONE NEGATIVA, eseguita sull'albero. Ho sostituito il predicato del pavimento in ConsensusParameters::check_magnitudes — riga \"self.revocation_effective_grace_blocks >= bounds.revocation_effective_grace_blocks_min\" — con true, ho eseguito cargo test --workspace e ho osservato 194 passed, 1 failed, con il fallimento su the_grace_floor_is_taken_from_genesis_and_not_from_the_document, cioe' esattamente il test che quella regola esiste per tenere e non un altro. Albero ripristinato con git checkout dal commit 9b46b22 e riverificato pulito.\n\nGate di contorno rieseguite dal Lead: 195 test verdi 0 falliti, clippy --workspace --all-features --all-targets -D warnings pulito, cargo fmt --all --check pulito, sette strumenti di progetto a exit 0, auth0_oracle --negative PASS. Queste sono riesecuzioni e non riproduzioni indipendenti, e sono dichiarate come tali."
+    id: "SPEC-022-ATTEST-001"
+    requirement_digest: "c59b8c8ef382946f5b2595310cb3f077ad106adc23811acc7fbddfaa75852024"
+    requirement_id: "GATE-LEAD-REPRO"
+    result: "passed"
+    schema_version: "1"
+    timestamp: "2026-08-27T11:21:56.929427700+02:00"
 ---
 # La meccanica della revoca: il morso all'inclusione sulla spesa, la banda di reason sul set
 
@@ -162,7 +175,7 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 - [x] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]). *Spuntata la prima volta a torto: [REVIEW-042] ha accertato che la seconda derivazione non era stata fatta e che la trascrizione portava solo i due oracoli dei digest. La seconda derivazione esiste da questa remediation, è `sim/tools/auth0_oracle.py`, ed è trascritta sotto con l'elenco di ciò che legge.*
 - [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di sicurezza di AGENT-007 sulla consegna. **Non è facoltativa**: questa spec cambia il predicato di autorizzazione delle transazioni, ed è la superficie su cui [REVIEW-036] ha già trovato dieci voci sulla sola decisione.
-- [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
+- [x] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
 
 ## Production quality and documentation
 - Follow [[QUALITY]]; this is production work, not a prototype.
