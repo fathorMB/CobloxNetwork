@@ -124,6 +124,59 @@ fn a_revocation_included_at_20_bites_at_49() {
     assert_eq!(included_height, INCLUDED_HEIGHT);
 }
 
+/// The reported `included_height` does not depend on the order of the slice.
+///
+/// [REVIEW-042] RF-007. The predicate used `find`, which returns the **first**
+/// qualifying record in iteration order: for the same subject at the same
+/// height, `[20, 30]` reported `20` and `[30, 20]` reported `30`. The verdict
+/// was the same either way, so no fork existed today — but `included_height` is
+/// a field this delivery introduced, and a consensus artifact that serialized it
+/// would have had two conformant verifiers writing different values.
+///
+/// The answer that is a fact about the chain is the **earliest** qualifying
+/// revocation: an identity revoked twice is revoked from the first of the two.
+#[test]
+fn the_reported_inclusion_height_is_the_earliest_and_not_the_first_in_the_slice() {
+    let early = RevocationRecord {
+        node_id: REVOKED.to_owned(),
+        included_height: 20,
+    };
+    let late = RevocationRecord {
+        node_id: REVOKED.to_owned(),
+        included_height: 30,
+    };
+
+    for revocations in [
+        vec![early.clone(), late.clone()],
+        vec![late.clone(), early.clone()],
+    ] {
+        let order: Vec<u64> = revocations.iter().map(|r| r.included_height).collect();
+        let Err(Error::Authorization(AuthorizationError::Revoked {
+            included_height, ..
+        })) = enrolled_unrevoked(REVOKED, 40, &enrollments(), &revocations)
+        else {
+            panic!("expected the revocation to bite at height 40, slice order {order:?}");
+        };
+        assert_eq!(
+            included_height, 20,
+            "the earliest qualifying revocation is 20, slice order {order:?}"
+        );
+    }
+
+    // The filter still runs before the minimum: a revocation above the height
+    // under test is not eligible to be reported, whichever way the slice is
+    // ordered.
+    for revocations in [vec![early.clone(), late.clone()], vec![late, early]] {
+        let Err(Error::Authorization(AuthorizationError::Revoked {
+            included_height, ..
+        })) = enrolled_unrevoked(REVOKED, 25, &enrollments(), &revocations)
+        else {
+            panic!("expected the revocation to bite at height 25");
+        };
+        assert_eq!(included_height, 20);
+    }
+}
+
 #[test]
 fn the_revocation_bites_at_50() {
     assert!(matches!(

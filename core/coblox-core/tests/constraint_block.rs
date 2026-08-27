@@ -255,6 +255,87 @@ fn the_genesis_magnitude_bounds_are_enforced() {
     assert!(frozen.validate(&bounds, 1, 1, None).is_err());
 }
 
+/// The floor under `revocation_effective_grace_blocks` is a **genesis** bound,
+/// so a `consensus_parameters` document below it is rejected on acceptance.
+///
+/// [REVIEW-042] RF-001, and the correction [ADR-017] took on 2026-08-27. Before
+/// it, `G >= 1` lived in `check_relations` — among the rules a governed document
+/// satisfies by itself — while only the ceiling was anchored in
+/// `ElectionBounds`. A sitting quorum could therefore publish `G = 1`, and from
+/// that height a `key_compromise` had to be signed by a quorum and included
+/// inside a **two-block** window predicted before the signing round began.
+///
+/// The two cases below are the two halves of the closure: the document is held
+/// to a floor it does not carry, and the floor itself is held to the genesis
+/// relation that gives it a magnitude.
+#[test]
+fn the_grace_floor_is_taken_from_genesis_and_not_from_the_document() {
+    let chain = zero_chain_id();
+
+    // A distribution that demands a window of at least eight blocks: `G >= 7`.
+    let bounds = ElectionBounds {
+        revocation_effective_grace_blocks_min: 7,
+        ..permissive_bounds()
+    };
+    bounds.validate(&chain).expect("7 + 1 >= 1");
+
+    // `PD-0` carries `G = 1`, which satisfies every relational rule and is
+    // exactly the value the review measured. Under these bounds it is refused.
+    assert_eq!(
+        consensus_parameters_pd0()
+            .validate(&bounds, 1, 1, None)
+            .unwrap_err(),
+        Error::Parameter(ParameterError::Constraint {
+            rule: "revocation_effective_grace_blocks >= revocation_effective_grace_blocks_min",
+        })
+    );
+
+    // At the floor it is accepted, and one below it is not: the boundary is
+    // `G == G_min` and it is pinned rather than approached.
+    let at_floor = ConsensusParameters {
+        revocation_effective_grace_blocks: 7,
+        max_planned_revocation_delay_blocks: 64,
+        ..consensus_parameters_pd0()
+    };
+    at_floor
+        .validate(&bounds, 1, 1, None)
+        .expect("G exactly at the genesis floor is accepted");
+    assert!(
+        ConsensusParameters {
+            revocation_effective_grace_blocks: 6,
+            ..at_floor
+        }
+        .validate(&bounds, 1, 1, None)
+        .is_err()
+    );
+
+    // The floor is a relation between genesis constants and not a number: the
+    // `key_compromise` window is `G + 1` blocks wide and must span at least one
+    // full rotation of the minimum set. A distribution whose floor is too small
+    // for its own minimum set size is refused — by the bounds object, and again
+    // by the document path, which does not go through `ElectionBounds::validate`.
+    let too_small = ElectionBounds {
+        revocation_effective_grace_blocks_min: 7,
+        validator_min_set_size_min: 9, // 7 + 1 = 8 < 9
+        ..permissive_bounds()
+    };
+    let expected = Error::Parameter(ParameterError::Bounds {
+        rule: "revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min",
+    });
+    assert_eq!(too_small.validate(&chain).unwrap_err(), expected);
+    assert_eq!(
+        at_floor.validate(&too_small, 1, 1, None).unwrap_err(),
+        expected
+    );
+
+    // Exactly at the relation the same distribution is admissible.
+    let exact = ElectionBounds {
+        validator_min_set_size_min: 8, // 7 + 1 = 8
+        ..too_small
+    };
+    exact.validate(&chain).expect("8 >= 8");
+}
+
 /// The change ratio, the activation gap, the monotonic term limit and the
 /// strictly increasing sequence, each against the currently active document.
 #[test]
@@ -1254,6 +1335,7 @@ fn the_election_rate_of_change_binds_downward_on_every_parameter() {
         chain_id: zero_chain_id(),
         min_revocation_effective_delay_blocks_max: u64::MAX,
         revocation_effective_grace_blocks_max: u64::MAX,
+        revocation_effective_grace_blocks_min: 1,
         max_planned_revocation_delay_blocks_max: u64::MAX,
         election_epoch_blocks_max: u64::MAX,
         validator_max_consecutive_terms_max: u64::MAX,
@@ -1270,6 +1352,15 @@ fn the_election_rate_of_change_binds_downward_on_every_parameter() {
     // in this test can only come from the ratio. Every swept value divides by
     // both 4 and 5, so each boundary is an exact integer.
     let base = ConsensusParameters {
+        // The three revocation-delay parameters joined `ELECTION_PARAMETERS` on
+        // [REVIEW-042] RF-003, so they are swept here like the rest. `PD-0`
+        // carries them at 1, 1 and 2, which divide by neither 4 nor 5, so the
+        // sweep base sets them to values that do — with `P` slack enough that
+        // `P >= F + G` still holds one step past every boundary in both
+        // directions, which is the trap this test's doc comment describes.
+        min_revocation_effective_delay_blocks: 10_000,
+        revocation_effective_grace_blocks: 10_000,
+        max_planned_revocation_delay_blocks: 40_000,
         election_epoch_blocks: 10_000,
         candidacy_close_blocks: 5_000,
         election_entropy_blocks: 500,
@@ -1304,7 +1395,67 @@ fn the_election_rate_of_change_binds_downward_on_every_parameter() {
 
     // One row per parameter per direction. `down` selects which boundary is
     // exercised; the base is chosen per row, for the reason in the doc comment.
-    let sweep: [(&str, ConsensusParameters, u64, Setter, bool); 18] = [
+    let sweep: [(&str, ConsensusParameters, u64, Setter, bool); 24] = [
+        (
+            "min_revocation_effective_delay_blocks",
+            base,
+            10_000,
+            |p, v| ConsensusParameters {
+                min_revocation_effective_delay_blocks: v,
+                ..p
+            },
+            true,
+        ),
+        (
+            "min_revocation_effective_delay_blocks",
+            base,
+            10_000,
+            |p, v| ConsensusParameters {
+                min_revocation_effective_delay_blocks: v,
+                ..p
+            },
+            false,
+        ),
+        (
+            "revocation_effective_grace_blocks",
+            base,
+            10_000,
+            |p, v| ConsensusParameters {
+                revocation_effective_grace_blocks: v,
+                ..p
+            },
+            true,
+        ),
+        (
+            "revocation_effective_grace_blocks",
+            base,
+            10_000,
+            |p, v| ConsensusParameters {
+                revocation_effective_grace_blocks: v,
+                ..p
+            },
+            false,
+        ),
+        (
+            "max_planned_revocation_delay_blocks",
+            base,
+            40_000,
+            |p, v| ConsensusParameters {
+                max_planned_revocation_delay_blocks: v,
+                ..p
+            },
+            true,
+        ),
+        (
+            "max_planned_revocation_delay_blocks",
+            base,
+            40_000,
+            |p, v| ConsensusParameters {
+                max_planned_revocation_delay_blocks: v,
+                ..p
+            },
+            false,
+        ),
         (
             "election_epoch_blocks",
             base,

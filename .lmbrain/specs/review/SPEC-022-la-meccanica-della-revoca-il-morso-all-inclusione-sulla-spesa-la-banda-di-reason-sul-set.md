@@ -159,7 +159,7 @@ max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 <!-- Canonical form: ID | kind=executable|manual|operator | owner=agent|kit|lead|operator | phase=before-submit|before-done | evidence=transcript|observation|artifact | requirement -->
 - [x] GATE-ADR012-PASS | kind=manual | owner=agent | phase=before-submit | evidence=transcript | `python sim/tools/published_artifacts.py` è `PASS`, e la trascrizione mostra che la passata ha cercato **entrambe le grafie** di `effective_height` e ha classificato ogni occorrenza.
 - [x] GATE-NEGATIVE-PROOF | kind=manual | owner=agent | phase=before-submit | evidence=transcript | Ogni regola nuova è stata **osservata fallire** su un albero mutato, una mutazione per regola, con la trascrizione di ciascun fallimento. Include il ribaltamento di `AUTH-0`: rimettere la regola vecchia deve far fallire il test di conformità.
-- [x] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]).
+- [x] GATE-TWO-ORACLES | kind=manual | owner=agent | phase=before-submit | evidence=transcript | La tabella `AUTH-0` è derivata **due volte per strade indipendenti**, nessuna delle quali legge l'output dell'altra, e la trascrizione dichiara cosa è stato letto per costruire la seconda ([SKILL-004]). *Spuntata la prima volta a torto: [REVIEW-042] ha accertato che la seconda derivazione non era stata fatta e che la trascrizione portava solo i due oracoli dei digest. La seconda derivazione esiste da questa remediation, è `sim/tools/auth0_oracle.py`, ed è trascritta sotto con l'elenco di ciò che legge.*
 - [ ] GATE-CI-GREEN | kind=manual | owner=lead | phase=before-done | evidence=transcript | La pipeline reale è verde su tutti i job, con numero di run e commit.
 - [ ] GATE-SECREVIEW | kind=manual | owner=lead | phase=before-done | evidence=artifact | Review di sicurezza di AGENT-007 sulla consegna. **Non è facoltativa**: questa spec cambia il predicato di autorizzazione delle transazioni, ed è la superficie su cui [REVIEW-036] ha già trovato dieci voci sulla sola decisione.
 - [ ] GATE-LEAD-REPRO | kind=manual | owner=lead | phase=before-done | evidence=transcript | Il Lead riesegue in modo indipendente la derivazione di `AUTH-0` e almeno una delle mutazioni negative, invece di prenderle dall'evidenza.
@@ -354,3 +354,354 @@ Negative proof: PASS - all defect classes observed failing.
 exit=0
 ```
 
+
+### Remediation of [REVIEW-042]
+
+Remediation autorizzata dall'operatore, eseguita da AGENT-002 sull'albero a
+`7c95267`. La spec resta in `review`. Le tre gate `owner=lead` restano `[ ]` e
+non sono state toccate.
+
+**Baseline contata prima di qualunque modifica:** `191 passed, 0 failed`,
+sommata sulle righe `test result:` di `cargo test --workspace --all-features
+--no-fail-fast`. E' lo stesso numero che [REVIEW-042] dichiara di aver contato.
+**Dopo:** `195 passed, 0 failed`.
+
+#### File toccati
+
+| file | rilievo |
+| --- | --- |
+| `core/coblox-core/src/params.rs` | RF-001, RF-003 |
+| `core/coblox-core/src/authorization.rs` | RF-002 (documentazione), RF-007 |
+| `core/coblox-core/src/identity.rs` | RF-004 |
+| `core/coblox-core/tests/common/mod.rs` | RF-001 (fixture dei bounds) |
+| `core/coblox-core/tests/constraint_block.rs` | RF-001, RF-003 |
+| `core/coblox-core/tests/authorization_unrevoked.rs` | RF-007 |
+| `core/coblox-core/tests/identity_revocation.rs` | RF-004 |
+| `docs/protocol/ledger.md` | RF-001, RF-002, RF-003, RF-004, RF-006, RF-008 |
+| `docs/protocol/README.md` | RF-001, RF-003 |
+| `SECURITY.md` | RF-005 |
+| `.lmbrain/knowledge/threat-model.md` | RF-005 |
+| `sim/tools/published_artifacts.toml` | RF-002, RF-005, RF-006, e le probe dei rilievi nuovi |
+| `sim/tools/auth0_oracle.py` | **nuovo**, `GATE-TWO-ORACLES` |
+
+#### RF-001 (high) â€” il pavimento di `G` e' in genesi, ed e' una relazione
+
+`ElectionBounds` guadagna `revocation_effective_grace_blocks_min`.
+`ConsensusParameters::check_magnitudes` impone
+`revocation_effective_grace_blocks >= revocation_effective_grace_blocks_min`, e
+impone **anche** la relazione fra costanti di genesi
+`revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`,
+richiamando `ElectionBounds::check_revocation_grace_floor`, che
+`ElectionBounds::validate` chiama a sua volta. La seconda chiamata non e'
+ridondante: `ConsensusParameters::validate` **non** passa da
+`ElectionBounds::validate`, quindi ogni chiamante diretto â€” la suite di
+conformita' e qualunque verificatore che non sia un light client â€” applicherebbe
+altrimenti un pavimento che la distribuzione ha potuto azzerare. E' la seconda
+linea che `RewardPolicy::check_against_active` porta per il rapporto degenere,
+per la ragione di [REVIEW-017] RF-001.
+
+Nessun valore e' stato inventato: il pavimento e' la relazione decisa
+dall'operatore nella correzione di [ADR-017], e `revocation_effective_grace_blocks_min`
+resta una costante di genesi senza valore di lancio, come i due pavimenti gemelli
+`validator_min_set_size_min` e `validator_min_capture_epochs_min`.
+
+Documento: `docs/protocol/ledger.md`, blocco dei vincoli (due righe nuove) piu'
+tre paragrafi â€” il pavimento come larghezza, la relazione della rotazione, e
+**cio' che il pavimento non chiude** ([DEBT-040], l'ordinamento invertito fra i
+`reason`). `docs/protocol/README.md`, schema `ElectionBounds` e la regola sul
+campo nuovo.
+
+#### RF-002 (high) â€” la frase, il preambolo e la giustificazione
+
+- Preambolo: *Â«against the finalized state that block builds onÂ»* diventa *Â«of
+  the chain formed by **that block and its ancestors**Â»*, e la frase successiva
+  dichiara che il blocco a `h` e' **dentro** lo scopo.
+- Clausola 2: *Â«no finalized `revoke_identity` naming `node_id` is included at a
+  height at most `h`Â»* diventa *Â«no `revoke_identity` in that chain names
+  `node_id` at a height at most `h` â€” the block at `h` includedÂ»*. La parola
+  *finalized* e' tolta anche dalla clausola 1, per la stessa ragione.
+- Paragrafo nuovo che dichiara **perche'** *finalized* non c'e': una revoca nel
+  blocco `h` e una spesa nel blocco `h` condividono la sorte del blocco `h`, e
+  una condizione sulla finalita' della revoca valutata mentre `h` e' in
+  validazione sarebbe la lettura verificatore-dipendente che la sezione esiste
+  per eliminare.
+- La giustificazione sull'ordine e' **riscritta**. La ragione vera â€”
+  *Â«The predicate never consults intra-block execution order, and that is the
+  reason it is safeÂ»* â€” e' ora la frase portante, con la conseguenza scritta: il
+  predicato e' a granularita' di altezza, quindi insensibile all'ordine dentro
+  la classe 0 e quindi immune a `created_at_ms` macinabile ([DEBT-035]). L'ordine
+  di esecuzione resta nel documento **etichettato come coerenza e non come
+  giustificazione**.
+- Il commento di modulo di `authorization.rs`, il contratto di
+  `RevocationRecord` e la documentazione di `enrolled_unrevoked` dicono la
+  stessa cosa, perche' e' da li' che una seconda implementazione legge.
+- Probe **ripuntata**: `unrevoked-anchored-to-the-including-height` e la sua
+  gemella `guide-revocation-bites-at-a-written-height` pinnavano la frase nella
+  forma ambigua. Cinque probe nuove pinnano la forma corretta e le due frasi che
+  la spiegano.
+
+#### RF-003 (medium) â€” scelta: i tre parametri entrano nel rapporto
+
+Scelta l'inclusione e non l'esclusione. `ELECTION_PARAMETERS` passa da dieci a
+**tredici**: `min_revocation_effective_delay_blocks`,
+`revocation_effective_grace_blocks`, `max_planned_revocation_delay_blocks`.
+Motivo: alzare `F` in un colpo **autorizza** ad allungare
+`max_weak_subjectivity_age_ms` per il MUST di
+`ledger.md#revocation-forces-a-validator-set-transition`, cioe' la saldatura che
+[ADR-017] dichiara di aver rotto con il limite di genesi; senza il rapporto la
+spaziatura da sola rende il cammino un salto. I tre valori sono tutti non nulli
+per costruzione (`F >= 1`, `G >= 1`, `P >= F + G >= 2`), quindi il rapporto non
+e' degenere su nessuno di essi. Il test
+`the_election_rate_of_change_binds_downward_on_every_parameter` passa da 18 a
+**24 righe** di sweep, ciascuna al confine esatto e un passo oltre, in entrambe
+le direzioni.
+
+#### RF-004 (medium) â€” scelta: il selettore, non la dichiarazione documentale
+
+Scelto il selettore. `RevokeIdentityBody::validate_effective_height_in_block(
+chain_id, including_header, unsigned_consensus_document, bounds)` deriva
+**entrambi** gli argomenti dallo stesso `BlockHeader`: l'altezza da
+`header.height`, i parametri dal documento che hasha a
+`header.consensus_parameters_hash`, riusando
+`light_client::authenticate_consensus_parameters` invece di reimplementare il
+legame. La coppia non e' piu' componibile a mano.
+
+`validate_effective_height` resta pubblica e resta l'aritmetica, con la
+documentazione che ora dichiara di **non** imporre la corrispondenza e rimanda
+al selettore. Il test vacuo e' stato **rinominato** in
+`the_band_is_read_from_the_parameters_argument`, che e' cio' che dimostra
+davvero; due test nuovi coprono la clausola 3:
+`clause_three_selects_the_parameters_the_including_header_commits_to` (stesso
+corpo, stessa altezza, due epoche di parametri, verdetti opposti; piu' la stessa
+epoca a due altezze diverse) e
+`clause_three_refuses_a_parameter_document_the_header_does_not_commit_to`.
+
+#### RF-005 (medium) â€” le tre righe, e la probe allargata
+
+- `SECURITY.md`: la riga sul rallentamento distingue i due percorsi â€” allunga il
+  ritardo **sul set di validatori**, e **non** ritarda il momento in cui una
+  chiave revocata smette di spendere, che e' zero blocchi. Due probe nuove
+  pinnano le due meta'; quella esistente pinnava solo l'apertura della frase.
+- `.lmbrain/knowledge/threat-model.md`, cella della chiave di identita' rubata,
+  contromisura (a): il ritardo attribuito a `effective_height` era sul percorso
+  del saldo, dove `effective_height` non governa piu'. Riscritta con i due
+  ritardi distinti e con cio' che resta davvero esposto â€” il giro di firma fino
+  all'**inclusione**, che nessun parametro limita.
+- `sim/tools/published_artifacts.toml`, voce `AUTH-0`: `covers` non descrive piu'
+  *Â«the interval in which a revocation is finalized but not yet effectiveÂ»*, che
+  e' la finestra abolita su questo percorso.
+
+#### RF-006 (low) â€” `bites`
+
+`morde` -> `bites` sulla frase che enuncia la parte 1. Zero occorrenze residue su
+`docs/` + `core/` + `sim/` + `SECURITY.md`, con l'unica stringa rimasta dentro il
+campo `why` della probe che documenta la correzione. Probe
+`unrevoked-spending-path-bites-in-english` sulla frase corretta.
+
+#### RF-007 (low) â€” `min_by_key`
+
+`find` -> `filter(...).min_by_key(...)`: la revoca riportata e' la **piu'
+antica** fra quelle qualificanti, che e' un fatto della catena e non dell'ordine
+di iterazione del chiamante. Test
+`the_reported_inclusion_height_is_the_earliest_and_not_the_first_in_the_slice`,
+con le due permutazioni `[20,30]` e `[30,20]` a due altezze diverse.
+
+#### RF-008 (low) â€” dichiarato e **non** risolto, come istruito
+
+`P = F + G` resta lecito e l'ADR non e' stata toccata: la disuguaglianza resta
+`>=`. `ledger.md` dichiara ora, in un paragrafo dedicato, che quello stato e'
+raggiungibile con un documento solo e che sotto di esso `reason` e' letto,
+impegnato nell'ID della transazione, e **non seleziona nulla** perche' i due
+tetti coincidono; nomina `P - (F + G)` come la grandezza che rende `reason`
+operativo e rimanda a [ADR-017] per il fatto che e' taratura. Probe
+`revocation-planned-delay-may-equal-floor-plus-grace`. **Resta questione aperta
+per il Lead**: la remediation che [REVIEW-042] propone include `P > F + G`
+stretto, che contraddirebbe [ADR-017].
+
+#### `GATE-TWO-ORACLES`: la seconda derivazione, fatta
+
+`sim/tools/auth0_oracle.py`, strumento versionato con prova in negativo.
+
+**Cosa legge, dichiarato perche' la gate lo esige:** (1) il **testo normativo
+delle clausole 1 e 2** di `ledger.md`, che reimplementa come predicato di due
+righe, e di cui verifica la presenza letterale a ogni esecuzione perche' un
+oracolo che sopravvive alla regola che traduce e' peggio di nessun oracolo;
+(2) i **tre fatti dichiarati dalla fixture**, estratti per espressione regolare
+dalla prosa della fixture â€” `valid_from_height`, l'identita' che la revoca
+nomina, l'altezza del blocco che l'ha inclusa; (3) la **tabella**, *estratta*
+dal documento e non trascritta, unicamente per essere confrontata con cio' che
+(1) e (2) producono. Non legge `core/coblox-core/`. `effective_height` e' letto
+per un solo scopo â€” asserire che **non** e' una frontiera â€” e mai per calcolare
+un verdetto.
+
+**Le altezze di flip sono trovate per esaurimento** su `0..60`, non per
+campionamento: e' cio' che la derivazione precedente non poteva aver fatto,
+perche' uno sweep di ogni altezza trova `20` senza che nessuno sappia di doverlo
+cercare. Lo strumento fallisce anche se una frontiera trovata per esaurimento
+non ha una riga nella tabella â€” il difetto che [REVIEW-039] RF-001 ha trovato a
+mano â€” e se `effective_height` risulta essere una frontiera, che e' la firma di
+una tabella ottenuta ribaltando le righe della vecchia.
+
+**Limite dichiarato:** la prima strada e' la tabella pubblicata insieme alla
+suite di conformita' Rust, che le **trascrive**. Questa e' la seconda. Le due
+sono indipendenti nell'origine dei verdetti e nel modo in cui l'insieme dei casi
+e' determinato, che e' precisamente la proprieta' che [REVIEW-042] ha trovato
+assente.
+
+#### Trascrizione
+
+```text
+=== baseline, prima di qualunque modifica ===
+$ cargo test --workspace --all-features --no-fail-fast
+191 passed, 0 failed   (somma sulle righe `test result:`)
+
+=== dopo la remediation ===
+$ cargo test --workspace --all-features --no-fail-fast
+195 passed, 0 failed
+
+$ cargo clippy --workspace --all-features --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.34s
+    (nessun warning)
+
+$ cargo fmt --check
+    (nessun output)
+
+=== GATE-ADR012-PASS ===
+$ python sim/tools/published_artifacts.py
+  C1-DOMAIN         40 candidate(s) checked
+  C2-TAG            24 candidate(s) checked
+  C3-FIXTURE-ID     20 candidate(s) checked
+  C4-VALUE          60 candidate(s) checked
+  C5-MIRROR         53 candidate(s) checked
+  C7-COVERAGE       51 candidate(s) checked
+  C8-ENCODING        1 candidate(s) checked
+  C9-EXAMPLE         1 candidate(s) checked
+  C5-DISCOVERED     67 candidate(s) checked
+  C10-PROBE        172 candidate(s) checked
+  C11-CLAIMDOC       8 candidate(s) checked
+
+published-artifact inventory: PASS
+
+  Probe: 158 alla consegna precedente, 159 dopo [REVIEW-039], 172 ora.
+  Undici probe nuove piu' due ripuntate, il conteggio letto dalla riga
+  `C10-PROBE` dello strumento stesso in entrambe le esecuzioni.
+
+$ python sim/tools/published_artifacts_negative.py
+deleting each probe's own pinned passage from its own document, 172 case(s)
+negative proof: PASS - 17 mutations across 11 defect classes, plus every probe
+individually, each observed failing
+
+$ python sim/tools/protocol_hashes.py               -> exit 0
+$ python sim/tools/genesis_chain_id.py              -> exit 0
+$ python sim/tools/consensus_parameters_closure.py  -> exit 0
+$ python sim/tools/threat_model_matrix_coherence.py -> exit 0
+$ python sim/tools/non_consensus_containment.py     -> exit 0
+$ python sim/tools/lead_claims_check.py             -> exit 0
+$ python sim/tools/reward_rules.py                  -> exit 0
+
+=== GATE-TWO-ORACLES: la seconda derivazione di AUTH-0 ===
+$ python sim/tools/auth0_oracle.py
+facts read from the fixture prose (not from the table):
+  valid_from_height   = 5
+  revoked identity    = cblx1revokedfixture
+  included at height  = 20
+  effective_height    = 50  (read, never used in a verdict)
+
+verdicts derived from clauses 1 and 2, compared with the 9 table rows:
+  ok    h=4   cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=5   cblx1revokedfixture      table=valid   rule=valid
+  ok    h=19  cblx1revokedfixture      table=valid   rule=valid
+  ok    h=20  cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=21  cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=49  cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=50  cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=51  cblx1revokedfixture      table=invalid rule=invalid
+  ok    h=51  cblx1ci6q36gqm6u3spknxzr table=valid   rule=valid
+
+flip heights over 0..60, by exhaustion and not by sampling: [5, 20]
+
+AUTH-0 second derivation: PASS - 9 rows agree, boundaries [5, 20] found by
+exhaustion, effective_height 50 is not a boundary
+exit=0
+
+$ python sim/tools/auth0_oracle.py --negative
+=== mutation: clause 2 read as `<` instead of `at most`: the revocation would
+    not bite at its own inclusion height ===
+  FAIL row at h=20: table says invalid, the rule derives valid
+  FAIL the verdict changes at [5, 21]; clauses 1 and 2 place the two changes
+       at [5, 20]
+exit=1 (must be non-zero)
+
+=== mutation: clause 2 anchored to `effective_height` instead of the inclusion
+    height: the reading ADR-017 part 1 replaced ===
+  FAIL row at h=20 (cblx1revokedfixture, ledger.md:256): table says invalid,
+       the rule derives valid
+  FAIL row at h=21 (cblx1revokedfixture, ledger.md:257): table says invalid,
+       the rule derives valid
+  FAIL row at h=49 (cblx1revokedfixture, ledger.md:258): table says invalid,
+       the rule derives valid
+  FAIL the verdict changes at [5, 50]; clauses 1 and 2 place the two changes
+       at [5, 20]
+  FAIL `effective_height` 50 is a boundary of the verdict, which is the
+       previous reading and not part 1 of ADR-017
+exit=1 (must be non-zero)
+
+negative proof: PASS - 2 mutations, each observed failing
+exit=0
+
+=== GATE-NEGATIVE-PROOF: cinque mutazioni sull'albero, ognuna osservata fallire ===
+Perimetro: `cargo test --workspace --all-features --no-fail-fast`, intero
+workspace, conteggi sommati sulle righe `test result:`. Ogni file e' ripristinato
+da una copia presa prima della mutazione, mai con `git checkout`, perche'
+l'albero porta modifiche non committate.
+
+M1  rimossa da `check_magnitudes` la riga
+    `revocation_effective_grace_blocks >= revocation_effective_grace_blocks_min`
+    -> 194 passed, 1 failed
+    failures: the_grace_floor_is_taken_from_genesis_and_not_from_the_document
+
+M2  rimossa da `check_magnitudes` la chiamata
+    `bounds.check_revocation_grace_floor()?`, cioe' la relazione fra costanti di
+    genesi non e' piu' riverificata dove i bounds sono consumati
+    -> 194 passed, 1 failed
+    failures: the_grace_floor_is_taken_from_genesis_and_not_from_the_document
+
+M3  i tre parametri di revoca tolti da `ELECTION_PARAMETERS` (13 -> 10)
+    -> 194 passed, 1 failed
+    failures: the_election_rate_of_change_binds_downward_on_every_parameter
+
+M4  `validate_effective_height_in_block` smette di legare il documento a
+    `consensus_parameters_hash` e legge il corpo direttamente
+    -> 194 passed, 1 failed
+    failures: clause_three_refuses_a_parameter_document_the_header_does_not_commit_to
+
+M5  `min_by_key` rimesso a `find`
+    -> 194 passed, 1 failed
+    failures: the_reported_inclusion_height_is_the_earliest_and_not_the_first_in_the_slice
+
+albero ripristinato -> 195 passed, 0 failed
+
+Ogni mutazione fa fallire **esattamente un** test, e in tutti e cinque i casi
+quello che la regola esiste per tenere.
+```
+
+#### Limiti noti di questa remediation
+
+- **`GATE-CI-GREEN` non e' stata eseguita** e non e' mia: nessuna pipeline. Tutto
+  quanto sopra e' locale, su un solo ambiente, Windows 11.
+- **`sim/coblox_sim/params.py` non e' stato toccato**, ed e' fuori perimetro. E'
+  il secondo verificatore del blocco dei vincoli in questo repository e la sua
+  intestazione promette che *Â«every rule carries the exact text it
+  transcribesÂ»*: non porta i tre parametri di revoca ne' alcuno dei vincoli che
+  li riguardano, e il suo elenco del rapporto di variazione resta a dieci nomi
+  mentre `ledger.md` ora ne dichiara tredici. Il difetto **precede** questa
+  remediation. Riportato al Lead invece che corretto.
+- **Il costo reale della rifirma sotto censura resta non misurato**, ed e' la
+  stessa grandezza che [ADR-017] nomina nelle proprie condizioni di revisione.
+  Il pavimento nuovo e' strutturale e non poggia su quella misura, ma non la
+  sostituisce.
+- **La composizione fra la banda e la regola di contrazione del set** non e'
+  stata attaccata qui, come non lo era in [REVIEW-042].
+- **Nessun valore di lancio** per `F`, `G`, `P`, ne' per
+  `revocation_effective_grace_blocks_min`. Restano DRAFT e decisione
+  dell'operatore.

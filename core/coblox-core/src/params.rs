@@ -38,6 +38,28 @@ pub struct ElectionBounds {
     pub min_revocation_effective_delay_blocks_max: u64,
     /// Ceiling on `revocation_effective_grace_blocks`.
     pub revocation_effective_grace_blocks_max: u64,
+    /// Floor under `revocation_effective_grace_blocks`.
+    ///
+    /// **This floor is the side the band defends from, and it is a genesis
+    /// constant for that reason** ([ADR-017], corrected 2026-08-27 on
+    /// [REVIEW-042] RF-001). `revocation_effective_grace_blocks` is the *width*
+    /// term of the `key_compromise` band: given a signed body with
+    /// `effective_height = e`, the admissible inclusion heights are
+    /// `[e - F - G, e - F]`, so the window is `G + 1` blocks wide and must be
+    /// predicted before the quorum round begins. A floor living only among the
+    /// relational constraints is a floor a sitting quorum satisfies by itself:
+    /// with `G = 1` the window is two blocks, and two blocks of censorship — or
+    /// a reorganization of depth two — invalidate the revocation and force the
+    /// quorum round to be redone.
+    ///
+    /// The floor is a **relation between genesis constants and not a number**.
+    /// Block cadence is not imposed by any rule, so `G + 1` does not convert
+    /// into real time and cannot be justified in seconds; the genesis relation
+    /// [`ElectionBounds::validate`] enforces is structural instead —
+    /// `revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`,
+    /// i.e. **the window lasts at least one full rotation of the minimum set**,
+    /// so every validator of that set holds a proposal turn inside it.
+    pub revocation_effective_grace_blocks_min: u64,
     /// Ceiling on `max_planned_revocation_delay_blocks`.
     pub max_planned_revocation_delay_blocks_max: u64,
     /// Ceiling on `election_epoch_blocks`.
@@ -84,6 +106,35 @@ impl ElectionBounds {
         if self.election_parameter_min_activation_gap_blocks == 0 {
             return Err(ParameterError::Bounds {
                 rule: "election_parameter_min_activation_gap_blocks MUST be positive",
+            }
+            .into());
+        }
+        self.check_revocation_grace_floor()?;
+        Ok(())
+    }
+
+    /// The genesis relation that gives `revocation_effective_grace_blocks_min`
+    /// its magnitude: the `key_compromise` window is `G + 1` blocks wide, and it
+    /// must span at least one full rotation of the minimum validator set.
+    ///
+    /// It is checked here, where the bounds object is validated before being
+    /// trusted, **and** again from
+    /// [`ConsensusParameters::check_magnitudes`], where the bounds are consumed.
+    /// The second call is not redundant: [`ConsensusParameters::validate`] does
+    /// not call this method, so a caller reaching it directly — as every
+    /// conformance suite and every non-light-client verifier does — would
+    /// otherwise apply a floor the distribution had set below the value that
+    /// makes it mean anything. It is the same second line
+    /// [`RewardPolicy::check_against_active`] carries for the degenerate change
+    /// ratio, and for the same reason [REVIEW-017] RF-001 gave.
+    fn check_revocation_grace_floor(&self) -> Result<()> {
+        let window_blocks = self
+            .revocation_effective_grace_blocks_min
+            .checked_add(1)
+            .ok_or(Error::Arithmetic("revocation grace window"))?;
+        if window_blocks < self.validator_min_set_size_min {
+            return Err(ParameterError::Bounds {
+                rule: "revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min",
             }
             .into());
         }
@@ -396,10 +447,29 @@ pub struct ConsensusParameters {
     pub validator_min_capture_epochs: u64,
 }
 
-/// The ten election parameters the change ratio governs.
+/// The thirteen election parameters the change ratio governs.
+///
+/// The three revocation-delay parameters are in this list and not outside it
+/// ([REVIEW-042] RF-003). [ADR-010] asks three layers of every governed
+/// magnitude — relational constraints, a genesis bound, and a limit on the rate
+/// of change — and until this list carried them the three had two: a document
+/// could move `min_revocation_effective_delay_blocks` from its floor to its
+/// genesis ceiling **in one step**, and raising it is what *authorizes*
+/// lengthening `max_weak_subjectivity_age_ms` under the MUST of
+/// `ledger.md#revocation-forces-a-validator-set-transition`. Spacing alone made
+/// that a jump rather than a path.
 type ElectionParameterAccessor = (&'static str, fn(&ConsensusParameters) -> u64);
 
-const ELECTION_PARAMETERS: [ElectionParameterAccessor; 10] = [
+const ELECTION_PARAMETERS: [ElectionParameterAccessor; 13] = [
+    ("min_revocation_effective_delay_blocks", |p| {
+        p.min_revocation_effective_delay_blocks
+    }),
+    ("revocation_effective_grace_blocks", |p| {
+        p.revocation_effective_grace_blocks
+    }),
+    ("max_planned_revocation_delay_blocks", |p| {
+        p.max_planned_revocation_delay_blocks
+    }),
     ("election_epoch_blocks", |p| p.election_epoch_blocks),
     ("candidacy_close_blocks", |p| p.candidacy_close_blocks),
     ("election_entropy_blocks", |p| p.election_entropy_blocks),
@@ -592,6 +662,17 @@ impl ConsensusParameters {
         require(
             self.revocation_effective_grace_blocks <= bounds.revocation_effective_grace_blocks_max,
             "revocation_effective_grace_blocks <= revocation_effective_grace_blocks_max",
+        )?;
+        // The floor of the band, anchored in genesis rather than among the
+        // relational constraints a sitting quorum satisfies by itself
+        // ([ADR-017] as corrected on [REVIEW-042] RF-001). Its own magnitude is
+        // fixed by the genesis relation checked immediately below, so a
+        // distribution cannot make this floor vacuous by shipping a
+        // `revocation_effective_grace_blocks_min` of zero either.
+        bounds.check_revocation_grace_floor()?;
+        require(
+            self.revocation_effective_grace_blocks >= bounds.revocation_effective_grace_blocks_min,
+            "revocation_effective_grace_blocks >= revocation_effective_grace_blocks_min",
         )?;
         require(
             self.max_planned_revocation_delay_blocks

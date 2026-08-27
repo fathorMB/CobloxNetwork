@@ -110,7 +110,13 @@ block stays valid.
 **The two directions cost different things, do not substitute for each other,
 and are not bought at the same price.** **Stretching** lengthens, in real time,
 everything the protocol denominates in blocks: validator incumbency, and the
-effective delay of a revocation. It requires only a **blocking third**, which
+delay before a revocation takes effect **on the validator set** — the window
+`effective_height` governs, in which a compromised validator keeps its voting
+power. It does **not** delay the moment a revoked key stops spending: on the
+transaction-authorization path a revocation bites at the height of the block
+that includes it, so its delay there is zero blocks and no cadence can stretch
+it. Revocation has two delays since those two paths were separated, and only one
+of them is denominated in blocks that a slow chain lengthens. It requires only a **blocking third**, which
 simply withholds the quorum. **Compressing** multiplies real issuance, because
 the reward-epoch index is derived from block height — an epoch that may be
 settled after a fixed number of blocks is settled sooner in real time when

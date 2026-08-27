@@ -5,12 +5,13 @@
 //! (ADR-015, `docs/protocol/identity.md`).
 
 use crate::SignatureVerifier;
+use crate::block::BlockHeader;
 use crate::cadence::AttestationClock;
 use crate::encoding::{base64url_decode_fixed, base64url_encode};
 use crate::error::{AttestationError, Error, JsonError, Result};
 use crate::hash::{ChainId, Domain, NodeId};
 use crate::json::{Json, JsonObject};
-use crate::params::ConsensusParameters;
+use crate::params::{ConsensusParameters, ElectionBounds};
 use crate::registry::signing_preimage;
 
 /// The two signed network parameters that bound an attestation in time.
@@ -396,10 +397,60 @@ impl RevokeIdentityBody {
         builder.build()
     }
 
+    /// Validates `effective_height` against the reason-dependent band, reading
+    /// **both** the height and the parameter version from the header of the
+    /// block that includes the revocation.
+    ///
+    /// This is clause 3 of [ADR-017] — *every constraint is evaluated against
+    /// the consensus parameters in force at the height of the block that
+    /// includes the `revoke_identity`* — expressed as code rather than as prose.
+    /// [`Self::validate_effective_height`] takes the height and the parameters
+    /// as two independent arguments and therefore states only the arithmetic;
+    /// which pair a verifier must pass was, until [REVIEW-042] RF-004, written
+    /// nowhere an implementation could read. Here the pair cannot be
+    /// mismatched: `including_header.height` is the height, and the parameters
+    /// are the ones whose document hashes to that same header's
+    /// `consensus_parameters_hash`.
+    ///
+    /// The binding is the one
+    /// [`crate::light_client::authenticate_consensus_parameters`] already
+    /// performs, reused rather than reimplemented, so a document that is
+    /// authentic but belongs to a different parameter epoch is rejected here
+    /// exactly as it is on the light-client path. As there, verifying the
+    /// quorum signature over the document is the caller's step: this crate
+    /// ships no signature verifier.
+    ///
+    /// # Errors
+    ///
+    /// Whatever [`crate::light_client::authenticate_consensus_parameters`]
+    /// returns when the document is not the one the including header commits
+    /// to, is not for this chain, or falls outside the genesis bounds; and
+    /// otherwise whatever [`Self::validate_effective_height`] returns.
+    pub fn validate_effective_height_in_block(
+        &self,
+        chain_id: &ChainId,
+        including_header: &BlockHeader,
+        unsigned_consensus_document: &JsonObject,
+        bounds: &ElectionBounds,
+    ) -> Result<()> {
+        let parameters = crate::light_client::authenticate_consensus_parameters(
+            chain_id,
+            including_header,
+            unsigned_consensus_document,
+            bounds,
+        )?;
+        self.validate_effective_height(including_header.height, parameters.get())
+    }
+
     /// Validates `effective_height` against the reason-dependent band defined in
     /// `ledger.md#identity-revocation` and [ADR-017].
     ///
-    /// Evaluated against the consensus parameters in force at `including_height` (the block proposing/including the revocation).
+    /// `including_height` is the height of the block that includes the
+    /// revocation and `params` MUST be the parameters in force at that height.
+    /// **This function does not enforce that correspondence** — it reads the two
+    /// arguments it is given — so a verifier applying clause 3 of [ADR-017]
+    /// calls [`Self::validate_effective_height_in_block`], which derives both
+    /// from the including block's header.
     ///
     /// # Errors
     ///

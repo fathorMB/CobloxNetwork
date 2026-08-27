@@ -353,6 +353,7 @@ pub fn permissive_bounds() -> ElectionBounds {
         chain_id: zero_chain_id(),
         min_revocation_effective_delay_blocks_max: 1_000_000,
         revocation_effective_grace_blocks_max: 1_000_000,
+        revocation_effective_grace_blocks_min: 1,
         max_planned_revocation_delay_blocks_max: 1_000_000,
         election_epoch_blocks_max: 1_000_000,
         validator_max_consecutive_terms_max: 1_000,

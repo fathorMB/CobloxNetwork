@@ -2072,9 +2072,17 @@ questo attore, e scrivere `n/a` in quella cella sarebbe stato l'errore di dire *
 può* dove la risposta giusta è *non gli serve* — cioè un motivo che R-NA.2 vieta.
 
 **Contromisura.** (a) *Revoca dell'identità*: è il rimedio previsto, funziona, ed è
-l'unico. Ha però il **ritardo reale** di TM-38 effetto 2, dove `effective_height` è
-prodotto dalla parte sorvegliata: finché [DEBT-013] è aperto, il tempo reale fra la
-scoperta e l'efficacia della revoca non è limitato da nulla. (b) *Custodia della
+l'unico. **Ha due ritardi e non uno, e su questo attacco conta il primo.** Dopo
+[ADR-017] la revoca morde sul percorso di **spesa** all'altezza del blocco che la
+include, quindi il ritardo in blocchi fra l'inclusione e il momento in cui la
+chiave rubata smette di spendere è **zero**, e `effective_height` non lo governa
+più; ciò che resta esposto è il tempo fra la scoperta e l'**inclusione** — il giro
+di firma a quorum, che nessun parametro limita. Il ritardo di TM-38 effetto 2,
+prodotto dalla parte sorvegliata attraverso `effective_height` e non limitato in
+tempo reale finché [DEBT-013] è aperto, riguarda il percorso del **set di
+validatori**: pesa se il soggetto è un validatore, non sul saldo. Fino al
+2026-08-27 questa cella attribuiva a `effective_height` il ritardo sul saldo e
+sovrastimava quindi il rischio ([REVIEW-042] RF-005). (b) *Custodia della
 chiave nel credential store della piattaforma*, con la chiave di identità mai esposta
 al processo del nodo — è materia di M-03 e M-04, ed è a carico di AGENT-004 e
 AGENT-005. (c) *Requisito di non-revoca al momento della spesa*: [DEBT-022] osserva

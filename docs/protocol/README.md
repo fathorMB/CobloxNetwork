@@ -1036,6 +1036,7 @@ ElectionBounds = {
   "chain_id":sha256-string,
   "min_revocation_effective_delay_blocks_max":u64-string,
   "revocation_effective_grace_blocks_max":u64-string,
+  "revocation_effective_grace_blocks_min":u64-string,
   "max_planned_revocation_delay_blocks_max":u64-string,
   "election_epoch_blocks_max":u64-string,
   "validator_max_consecutive_terms_max":u64-string,
@@ -1051,7 +1052,16 @@ ElectionBounds = {
 `chain_id` MUST equal the client's configured chain ID,
 `election_parameter_change_numerator` MUST exceed
 `election_parameter_change_denominator`, which MUST be positive, and
-`election_parameter_min_activation_gap_blocks` MUST be positive. The gap is what
+`election_parameter_min_activation_gap_blocks` MUST be positive.
+
+`revocation_effective_grace_blocks_min` MUST satisfy
+`revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min`, and a
+bounds object that violates it is refused wherever it is used. It is a floor and
+not a ceiling because the quantity it protects is the **width** of the window in
+which an emergency revocation may be included — `G + 1` blocks — and a narrow
+window is what a censoring coalition exploits; the relation is stated in
+[ledger.md](ledger.md#magnitudes-not-only-relations-the-bounds-are-fixed-at-genesis)
+together with why it is a relation and not a value. The gap is what
 makes the change ratio a limit **per unit of chain** rather than per document:
 `sequence` need only increase, so without it a quorum publishes a document per
 block and walks a parameter to its genesis ceiling in as many blocks as the ratio
@@ -1694,9 +1704,19 @@ not economic facts and remain open:
       transitions; constrained relationally with `max_weak_subjectivity_age_ms`
       and validator succession coordination margin;
     - `revocation_effective_grace_blocks`: maximum grace period added to minimum delay
-      for key compromise revocations; constrained by emergency validator replacement;
+      for key compromise revocations; it is also the **width** of the window in
+      which such a revocation may be included (`G + 1` blocks), so it carries a
+      genesis floor as well as a ceiling and its magnitude is a security choice
+      rather than a convenience;
     - `max_planned_revocation_delay_blocks`: maximum planned delay for planned revocations
       (misconduct and operator request); constrained by parameter bounds and term lengths.
+      The margin `max_planned_revocation_delay_blocks − (min_revocation_effective_delay_blocks
+      + revocation_effective_grace_blocks)` is what makes `reason` operative: at zero the two
+      rows of the band table coincide and `reason` selects nothing.
+
+    All three are governed by the election change ratio and the activation gap,
+    like the ten election parameters, so none of them can move from its floor to
+    its genesis ceiling in a single document.
 
 The Project Lead owns the economic choices with AGENT-002; AGENT-007 owns the
 security review of enrollment bounds. Until signed network parameters select

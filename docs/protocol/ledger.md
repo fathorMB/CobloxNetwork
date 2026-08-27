@@ -99,17 +99,37 @@ a block, which is a partition of the chain and costs an attacker nothing but one
 transaction.
 
 **Definition.** For a transaction included in the block at height `h`, a
-`node_id` is **enrolled, unrevoked** when both of the following hold against the
-finalized state that block builds on:
+`node_id` is **enrolled, unrevoked** when both of the following hold of the
+chain formed by **that block and its ancestors**:
 
-1. a finalized enrollment certificate names `node_id` and its
+1. an enrollment certificate in that chain names `node_id` and its
    `valid_from_height` is at most `h`; and
-2. no finalized `revoke_identity` naming `node_id` is included at a height
-   at most `h`.
+2. no `revoke_identity` in that chain names `node_id` at a height at most `h` —
+   the block at `h` included.
 
-Both clauses are facts about the block being validated and its ancestors.
-Neither is a fact about the verifier: not the height its own view has reached,
-not which quorum certificates it happens to hold, not wall-clock time.
+Both clauses are facts about the block being validated and its ancestors, and
+the block at `h` is **inside** that scope, not outside it. Neither is a fact
+about the verifier: not the height its own view has reached, not which quorum
+certificates it happens to hold, not wall-clock time.
+
+**Neither clause says *finalized*, and the block at `h` is in scope. Both are
+deliberate, and until 2026-08-27 the wording said otherwise.** The earlier text
+scoped the definition to *"the finalized state that block builds on"* and
+required *"no **finalized** `revoke_identity` … included at a height at most
+`h`"*. Read literally those two exclude the block at `h` itself — a revocation
+included **at** `h` is not in the state `h` builds on, is in no ancestor, and is
+not final while `h` is being validated — so the literal reading made the burn at
+`h = 20` of `AUTH-0` **valid** while the table and the conformance suite said
+invalid. That is [REVIEW-042] RF-002, and it is the same defect as
+[REVIEW-033] RF-004 one level up: in the sentence rather than in the code.
+
+The correct scope is the one stated above, and the reason it is sound is that a
+revocation in block `h` and a spend in block `h` **share the fate of block
+`h`**: if the block is not accepted neither of them exists, and if it is
+accepted both do. Finality is therefore not a separate condition on the
+revocation and could not be one — no block carries a `QuorumCertificate`, so a
+condition on the revocation's own finality, evaluated while `h` is validated,
+would be the verifier-dependent reading this section exists to eliminate.
 
 **What this definition reaches, stated as a scope and not as a spelling.** It
 governs the qualification wherever it authorizes a **transaction**, in any of
@@ -135,7 +155,7 @@ here — and it is written down instead of being left to look closed.
 
 **Why inclusion height on the spending path, and the separation of the two jobs of revocation.**
 [ADR-017] separates the two jobs a revocation performs:
-1. on the **spending path**, revocation morde at the **height of the block that includes it**,
+1. on the **spending path**, revocation **bites** at the **height of the block that includes it**,
    and `effective_height` stops governing transaction authorizations;
 2. on the **validator set path**, `effective_height` continues to govern validator set
    transitions, where its window is justified to give surviving validators time to commit
@@ -150,13 +170,36 @@ make block validity verifier-dependent.
 Inclusion height has the opposite shape: whether a `revoke_identity` transaction was included
 at a height at most `h` is an immutable, total fact about the block and its ancestors,
 committed in `transactions_root`, monotone in `h`, and read from the same bytes by every verifier.
-Furthermore, intra-block execution ordering (`ledger.md:2819`) places `revoke_identity` in class 0
-and spending transactions (`burn`, `fund_app`) in class 1, guaranteeing that a revocation included
-in block `h` executes before any spending transaction in the same block.
 
 This completely eliminates the vulnerability window where a compromised key could drain a
 balance between revocation finalization and `effective_height`, without introducing verifier-dependent
 forks.
+
+**The predicate never consults intra-block execution order, and that is the
+reason it is safe.** The qualification is evaluated at the granularity of a
+**height**: its inputs are `h`, the enrollment certificates and the
+`revoke_identity` transactions of the block at `h` and its ancestors. Nothing in
+it asks which transaction of block `h` runs first. So the position of a
+`revoke_identity` inside its own block moves no verdict, and neither does the
+ordering **inside** execution class 0, which is by raw transaction ID over a
+body carrying a grindable `created_at_ms`: a revoker who grinds milliseconds to
+order its own transaction before or after a target changes nothing this
+predicate reads. An implementation that instead evaluated the qualification *at
+the moment the transaction executes* would make the verdict depend on that
+ordering, and two conformant nodes would return opposite verdicts on the same
+block. That is a different predicate, and it is not this one.
+
+**Intra-block execution ordering is consistent with the rule and is not its
+justification.** [State transition order](#state-transition-order)
+places `revoke_identity` in class 0 and `burn`/`fund_app` in class 1, so the
+state transition a verifier computes for block `h` also applies the revocation
+before any spend of the same block. That agreement is worth stating because a
+reader checking the execution model would otherwise have to derive it — but the
+qualification above is what decides validity, and it would decide it the same
+way if the classes were reversed. Until 2026-08-27 this document gave the class
+ordering **as** the reason, which is [REVIEW-042] RF-002: a second
+implementation following that justification would have written the
+order-sensitive predicate rejected in the paragraph above.
 
 **One rule this definition does not govern.**
 [Authentication on a connection](identity.md#authentication-on-a-connection)
@@ -761,11 +804,27 @@ the reason-dependent band ([ADR-017]):
 | `validator_misconduct`, `operator_request` | `p + F <= effective_height <= p + P` |
 
 Every constraint is evaluated against the consensus parameters in force at
-height `p`. The lower bound `p + F` ensures that surviving validators have a
+height `p`, and **which document those are is a fact of the including block**:
+the `BlockHeader` at height `p` carries `consensus_parameters_hash`, so a
+verifier takes the parameters from the document that hashes to that field and
+from no other. The height and the parameter version therefore come from the same
+header and cannot be paired by hand; a document from another parameter epoch is
+refused by the hash comparison before any bound is computed. Stating the clause
+without naming the selector left it documented and unimplemented, which is
+[REVIEW-042] RF-004.
+
+The lower bound `p + F` ensures that surviving validators have a
 declared window in which to commit a compliant successor set. Because the genesis magnitude
 constraints enforce `F >= 1`, `effective_height >= p + F >= p + 1 > p` holds
 strictly, keeping this rule consistent with the requirement that effective height
 MUST be later than the proposing block.
+
+The upper bound is the side that carries the cost, and it is stated in
+[magnitudes, not only relations](#magnitudes-not-only-relations-the-bounds-are-fixed-at-genesis):
+the window admissible for a given signed `effective_height` is `G + 1` blocks
+wide for `key_compromise`, `revocation_effective_grace_blocks` has a genesis
+**floor** as well as a ceiling for that reason, and `P = F + G` is a lawful
+document under which `reason` is read and selects nothing.
 
 `replacement_node_id` receives no balance, nonce, or privileges from the old
 identity. Revocation authority and signatures are validator-governed; a node's
@@ -1992,6 +2051,7 @@ validator_eligibility_min_issuers >= 2
 // document under evaluation:
 min_revocation_effective_delay_blocks <= min_revocation_effective_delay_blocks_max
 revocation_effective_grace_blocks     <= revocation_effective_grace_blocks_max
+revocation_effective_grace_blocks     >= revocation_effective_grace_blocks_min
 max_planned_revocation_delay_blocks   <= max_planned_revocation_delay_blocks_max
 election_epoch_blocks <= election_epoch_blocks_max
 T                     <= validator_max_consecutive_terms_max
@@ -1999,9 +2059,14 @@ validator_max_set_size<= validator_max_set_size_max
 validator_min_set_size>= validator_min_set_size_min
 m                     >= validator_min_capture_epochs_min
 
+// a relation between two genesis constants, checked wherever ElectionBounds is
+// used, because the floor above is a width and not a number:
+revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min
+
 // rate of change, against the currently active document, for every election
-// parameter x above, with num > den > 0 from the genesis ElectionBounds and
-// checked u128 intermediates:
+// parameter x above — the thirteen listed under "the rate of change governs
+// thirteen parameters" below, which include the three revocation delays — with
+// num > den > 0 from the genesis ElectionBounds and checked u128 intermediates:
 x_new * den <= x_old * num   and   x_old * den <= x_new * num
 
 // minimum spacing, so that the rate limit is a limit per unit of chain and not
@@ -2012,6 +2077,72 @@ activation_height(new) >= activation_height(active)
 // direction, for the one parameter whose reduction desynchronizes the stamps:
 T_new >= T_active
 ```
+
+**The floor under `revocation_effective_grace_blocks` is a genesis bound, and it
+is a width rather than a number.** `G` is the width term of the
+`key_compromise` band: given a body signed with `effective_height = e`, the
+admissible inclusion heights are `[e − F − G, e − F]`, so the window is `G + 1`
+blocks wide and has to be predicted **before** the quorum round begins. Until
+2026-08-27 only the ceiling `revocation_effective_grace_blocks_max` was anchored
+in genesis, while `G >= 1` sat among the relational constraints — that is, among
+the rules a governed document satisfies by itself. A sitting set could therefore
+publish `G = 1` through ordinary governance, and from that height an emergency
+revocation had to be signed by a quorum and included inside a **two-block**
+window: two blocks of censorship, or a reorganization of depth two, invalidated
+it and forced the round to be redone. That is [REVIEW-042] RF-001 and the
+correction [ADR-017] took the same day.
+
+The floor is anchored as a **relation between genesis constants** and not as a
+value, because no rule of this protocol imposes a cadence
+([block format](#block-format)): `G + 1` blocks do not convert into real time,
+so the floor cannot be justified in seconds. The relation
+`revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min` states
+it structurally instead — **the window lasts at least one full rotation of the
+minimum set** — so every validator of the smallest lawful set holds a proposal
+turn inside it. A coalition able to censor an entire rotation already holds the
+quorum, and against that coalition this parameter is not the defence in
+question. `ElectionBounds` already carries two floors of this species,
+`validator_min_set_size_min` and `validator_min_capture_epochs_min`.
+
+**What this floor does not fix, stated rather than implied.** The *ceiling* of
+the band is new: the pre-existing clause 4 had a floor and no ceiling, so a
+delayed inclusion could only postpone a revocation and can now destroy it.
+Anchoring the floor removes a sitting set's ability to narrow the window; it
+does not reorder the widths across `reason`, and `key_compromise` — the reason
+with the cryptographic urgency — keeps the narrowest one. That inversion is
+[DEBT-040], open.
+
+**`max_planned_revocation_delay_blocks` may equal `F + G`, and at that value
+`reason` is read but changes nothing.** The constraint is `P >= F + G`, not
+`P > F + G`: a document setting `P = F + G` is valid, and under it the two rows
+of the band table coincide at every inclusion height, so no `effective_height`
+exists that one `reason` admits and another refuses. `reason` is still parsed,
+still committed in the transaction ID, and still governs which ceiling is
+computed — but the two ceilings are the same number. This state is reachable
+with a single governed document and nothing rejects it, which is stated here
+because a reader who sees `reason` in a validity rule would otherwise assume the
+rule always discriminates. The margin `P − (F + G)` is the quantity that makes
+`reason` operative, and [ADR-017] declares it a tuning quantity: the incentive to
+declare `operator_request` for a genuine compromise is proportional to it. It is
+[REVIEW-042] RF-008, recorded and deliberately not closed by a stricter
+inequality, because the `>=` is the operator's decision in [ADR-017].
+
+**The rate of change governs thirteen parameters, and three of them are the
+revocation delays.** [ADR-010] asks three layers of every governed magnitude —
+relational constraints, a genesis bound, and a limit on the rate of change — and
+until [REVIEW-042] RF-003 the three revocation-delay parameters had two. They
+are now in the list the ratio sweeps, in full:
+`min_revocation_effective_delay_blocks`, `revocation_effective_grace_blocks`,
+`max_planned_revocation_delay_blocks`, `election_epoch_blocks`,
+`candidacy_close_blocks`, `election_entropy_blocks`, `validator_min_set_size`,
+`validator_target_set_size`, `validator_max_set_size`,
+`validator_churn_cap_seats`, `validator_max_consecutive_terms`,
+`validator_cooldown_epochs`, `validator_min_capture_epochs`. Without the three,
+`min_revocation_effective_delay_blocks` could travel from its floor to its
+genesis ceiling in one document, and raising it is what **authorizes** a longer
+`max_weak_subjectivity_age_ms` under the MUST of
+[revocation forces a validator set transition](#revocation-forces-a-validator-set-transition):
+the spacing rule alone made that a jump rather than a path.
 
 **The relational bound on `validator_min_set_size` and what it prevents.** The
 rule `3 * validator_min_set_size >= 2 * V` ([ADR-010]) ties the minimum set size

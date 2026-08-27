@@ -23,7 +23,7 @@ applicate e verificate; nessuna ha prodotto un nodo che parla con un altro nodo.
 
 | Spec | Stato | Chi | Prossimo passo |
 | --- | --- | --- | --- |
-| [SPEC-022] | `review`, remediation aperta su [REVIEW-042] | AGENT-002 | Sbloccata e prima in coda: [ADR-017] e' corretta e approvata, e [SPEC-023] ha liberato `ledger.md` e `core/` |
+| [SPEC-022] | `review`, remediation consegnata | AGENT-002 | Otto rilievi su otto di [REVIEW-042] chiusi, RF-008 escluso e rimesso all'operatore. Restano `GATE-LEAD-REPRO` e `GATE-SECREVIEW`, entrambe `owner=lead` |
 
 Nessun agente in esecuzione.
 
@@ -69,7 +69,7 @@ oggi pendente.
 
 ## Debiti aperti
 
-Diciassette aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
+Diciotto aperti, **cinque `high`**; nessun `critical`. Uno deferred ([DEBT-010],
 a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 
 | ID | Sev | Owner | Questione |
@@ -89,6 +89,7 @@ a M-07). I due nuovi del 2026-08-27 sono in fondo alla tabella.
 | [DEBT-038] | medium | AGENT-002 | Il beacon di casualita' dedicato non ha un proprietario |
 | [DEBT-040] | medium | AGENT-007 | La finestra di inclusione piu' stretta tocca il `reason` piu' urgente: ordinamento invertito rispetto all'urgenza |
 | [DEBT-043] | medium | AGENT-007 | Le righe 2, 4, 5 e 6 dell'analisi non hanno mai avuto un attacco nel merito in quattro passate |
+| [DEBT-045] | medium | AGENT-002 | Il verificatore dei vincoli nel simulatore non conosce la revoca, e la sua intestazione promette di trascrivere tutto |
 | [DEBT-041] | medium | AGENT-002 | `ledger.md` si contraddice sull'aggregazione su `K` blocchi: non presa in v0 in una sezione, presa in un'altra |
 | [DEBT-039] | low | AGENT-008 | `glib` resta vulnerabile: `javascriptcore-rs` la pinna esattamente, nessun aggiornamento fino a `wry`. Rischio accettato |
 

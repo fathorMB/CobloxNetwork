@@ -429,7 +429,7 @@ covers = "the suspended app account, its account_key and its app_leaf"
 [[fixture]]
 id = "AUTH-0"
 site = "ledger.md"
-covers = "the enrolled, unrevoked qualification across the interval in which a revocation is finalized but not yet effective (behavioural, not a digest)"
+covers = "the enrolled, unrevoked qualification on the spending path, where a revocation bites at the height of the block that includes it, and the two clause boundaries (behavioural, not a digest). The description used to name 'the interval in which a revocation is finalized but not yet effective', which is the window [ADR-017] abolished on this path; the interval survives on the validator set path only, and the fixture stopped being about it. [REVIEW-042] RF-005."
 
 [[fixture]]
 id = "CMT-0"
@@ -1940,9 +1940,44 @@ why = "'Proved' and 'actually' are the two words this rule pays for. Without it 
 [[probe]]
 id = "unrevoked-anchored-to-the-including-height"
 site = "ledger.md"
-pattern = 'no finalized `revoke_identity` naming `node_id` is included at a height\s+at most `h`'
+pattern = 'no `revoke_identity` in that chain names `node_id` at a height at most `h` —\s+the block at `h` included'
 count = 1
-why = "The definition itself, clause 2. It is the clause that anchors transaction authorization revocation to inclusion height rather than finalization or effective_height, separating spending from validator set succession [ADR-017]."
+why = "The definition itself, clause 2. It anchors transaction-authorization revocation to inclusion height rather than to finalization or to effective_height [ADR-017]. Repointed by [REVIEW-042] RF-002: the wording it used to pin said 'no **finalized** revoke_identity ... included at a height at most h' while the preamble scoped both clauses to the state the block builds on, and read literally the two excluded the block at h itself — the exact singleton where the readings diverge, and the row the conformance suite calls invalid. The probe held the ambiguous form in place, so the gate was green on it."
+
+[[probe]]
+id = "unrevoked-clause-two-includes-the-block-at-h"
+site = "ledger.md"
+pattern = 'Neither clause says \*finalized\*, and the block at `h` is in scope'
+count = 1
+why = "[REVIEW-042] RF-002. The scope of the definition is the block being validated **and** its ancestors, and the word 'finalized' is deliberately absent from both clauses. Without this paragraph the correction reads as a rewording rather than as a decision, and the next editor restores 'finalized' as a tightening."
+
+[[probe]]
+id = "unrevoked-revocation-shares-the-fate-of-its-block"
+site = "ledger.md"
+pattern = 'share the fate of block\s+`h`'
+count = 1
+why = "[REVIEW-042] RF-002, the reason the scope above is sound rather than merely stipulated: a revocation in block h and a spend in block h stand or fall together, so the revocation's own finality is not a separate condition — and could not be one, since no block carries a quorum certificate."
+
+[[probe]]
+id = "unrevoked-predicate-ignores-intra-block-order"
+site = "ledger.md"
+pattern = '\*\*The predicate never consults intra-block execution order, and that is the\s+reason it is safe\.\*\*'
+count = 1
+why = "[REVIEW-042] RF-002, second face. The document used to give the class-0/class-1 execution order **as** the justification for biting at inclusion height. The predicate is evaluated at the granularity of a height and never reads the order, and that insensitivity is what makes it safe and what keeps [DEBT-035] out of it. An implementer following the old justification writes a predicate that reads revocations at execution time, whose verdict depends on a grindable created_at_ms."
+
+[[probe]]
+id = "unrevoked-execution-order-is-not-the-justification"
+site = "ledger.md"
+pattern = '\*\*Intra-block execution ordering is consistent with the rule and is not its\s+justification\.\*\*'
+count = 1
+why = "The other half of the same correction. Deleting the class ordering entirely would leave a reader checking the execution model to derive the agreement alone; leaving it unlabelled is how it was mistaken for the reason. This sentence is the label."
+
+[[probe]]
+id = "unrevoked-spending-path-bites-in-english"
+site = "ledger.md"
+pattern = 'on the \*\*spending path\*\*, revocation \*\*bites\*\* at the \*\*height of the block that includes it\*\*'
+count = 1
+why = "[REVIEW-042] RF-006. The sentence that states part 1 of [ADR-017] carried the Italian word 'morde' in English normative prose — the single occurrence counted over docs/, core/ and sim/, and published_artifacts.py was PASS on it. This probe pins the corrected sentence so the verb cannot drift back."
 
 [[probe]]
 id = "unrevoked-no-block-carries-a-quorum-certificate"
@@ -1971,6 +2006,48 @@ site = "ledger.md"
 pattern = '\*\*Rows `20`, `21` and `49` are the divergent ones of this table\*\*'
 count = 1
 why = "Names which rows of AUTH-0 are the guard and which are arithmetic. A later editor tidying the table would otherwise delete the two rows the fixture exists for and keep the ones both readings already agreed on. Reworded by [REVIEW-033] RF-007: the sentence used to say those rows were the only divergent cases, which is true of the table and false of the heights. Row `20` was added by [REVIEW-039] RF-001, and it is the boundary of clause 2 as well as a divergent row."
+
+[[probe]]
+id = "revocation-grace-floor-is-a-genesis-bound"
+site = "ledger.md"
+pattern = '\*\*The floor under `revocation_effective_grace_blocks` is a genesis bound, and it\s+is a width rather than a number\.\*\*'
+count = 1
+why = "[REVIEW-042] RF-001, and the correction [ADR-017] took on 2026-08-27. The band is paid for at the price of `G`, which the decision described as discretion 'declared and bounded at genesis'; for one delivery only the ceiling was anchored and `G >= 1` sat among the relational constraints, so a sitting set could publish `G = 1` and reduce the emergency window to two blocks through ordinary governance. This paragraph is where the floor stops being an implementation detail."
+
+[[probe]]
+id = "revocation-grace-floor-is-one-rotation-of-the-minimum-set"
+site = "ledger.md"
+pattern = '\*\*the window lasts at least one full rotation of the\s+minimum set\*\*'
+count = 1
+why = "The reason the floor is a relation between genesis constants and not a value: no rule imposes a cadence, so `G + 1` blocks do not convert into real time and the floor cannot be justified in seconds. Deleting this sentence turns `revocation_effective_grace_blocks_min + 1 >= validator_min_set_size_min` into an unexplained inequality that the next tuning pass would relax."
+
+[[probe]]
+id = "revocation-band-ceiling-is-new-and-inverted"
+site = "ledger.md"
+pattern = '\*\*What this floor does not fix, stated rather than implied\.\*\*'
+count = 1
+why = "[REVIEW-042] RF-001, the half the correction does not close: the ceiling of the band is new to [SPEC-022] — the pre-existing clause 4 had a floor and no ceiling — so a delayed inclusion can now destroy a revocation instead of only postponing it, and `key_compromise` keeps the narrowest window despite carrying the highest urgency. That is [DEBT-040], and a floor described without it reads as a closure."
+
+[[probe]]
+id = "revocation-planned-delay-may-equal-floor-plus-grace"
+site = "ledger.md"
+pattern = '\*\*`max_planned_revocation_delay_blocks` may equal `F \+ G`, and at that value\s+`reason` is read but changes nothing\.\*\*'
+count = 1
+why = "[REVIEW-042] RF-008. `P >= F + G` is the constraint [ADR-017] decided, and `P = F + G` is therefore a lawful document under which the two rows of the band table coincide at every height: `reason` is parsed, committed in the transaction ID, and selects nothing. Nothing rejects that state and one document reaches it. Declared here rather than closed with a strict inequality, because the `>=` is the operator's decision."
+
+[[probe]]
+id = "revocation-delays-are-in-the-change-ratio"
+site = "ledger.md"
+pattern = '\*\*The rate of change governs thirteen parameters, and three of them are the\s+revocation delays\.\*\*'
+count = 1
+why = "[REVIEW-042] RF-003: the three revocation delays had two of the three layers [ADR-010] requires. Without the ratio, `min_revocation_effective_delay_blocks` could travel from its floor to its genesis ceiling in one document, and raising it authorizes a longer `max_weak_subjectivity_age_ms` — the very coupling [ADR-017] claims to have broken with the genesis bound."
+
+[[probe]]
+id = "revocation-band-parameters-come-from-the-including-header"
+site = "ledger.md"
+pattern = '\*\*which document those are is a fact of the including block\*\*'
+count = 1
+why = "[REVIEW-042] RF-004: clause 3 of [ADR-017] was documented and not implemented, and the test carrying its name called the checker twice at the same height, proving only that the function reads its own argument. `BlockHeader` carries `consensus_parameters_hash`, so the selector exists; this sentence is where the document names it, and it is what a second implementation reads to know which pair to pass."
 
 [[probe]]
 id = "unrevoked-effective-height-reason-band"
@@ -2481,10 +2558,10 @@ why = "REVIEW-031 RF-006: the other half. Without the forced transition a revoke
 [[probe]]
 id = "guide-revocation-bites-at-a-written-height"
 site = "ledger.md"
-pattern = 'no finalized `revoke_identity` naming `node_id` is included at a height\s+at most `h`'
+pattern = 'no `revoke_identity` in that chain names `node_id` at a height at most `h` —\s+the block at `h` included'
 count = 1
 claims = ["The quorum that revokes writes into the revocation the height from which it bites"]
-why = "[ADR-017] defined `enrolled, unrevoked` on the transaction authorization path against inclusion height."
+why = "[ADR-017] defined `enrolled, unrevoked` on the transaction authorization path against inclusion height. Repointed together with `unrevoked-anchored-to-the-including-height` on [REVIEW-042] RF-002: the guide claim it holds honest is about which height a revocation bites at, and the clause it reads had two readings on exactly the boundary row."
 
 [[probe]]
 id = "guide-revoked-key-still-authorises-until-then"
@@ -2620,6 +2697,20 @@ site = "SECURITY.md"
 pattern = '\*\*Stretching\*\* lengthens, in real time'
 count = 1
 why = "The slow half of the two-sided cadence claim. Deleting it returns the paragraph to naming one direction, which is the defect [REVIEW-025] RF-001 raised; for one revision it was unpinned while its twin was pinned, and the gate stayed green on the deletion."
+
+[[probe]]
+id = "security-cadence-stretching-set-path-only"
+site = "SECURITY.md"
+pattern = 'the\s+delay before a revocation takes effect \*\*on the validator set\*\*'
+count = 1
+why = "[REVIEW-042] RF-005. The sentence named 'the effective delay of a revocation' as one quantity, which [ADR-017] made two: `effective_height` governs the set path, and the spending path bites at inclusion height. This probe pins the half that says *which* delay stretching lengthens. The opening of the sentence was already pinned by the probe above, and only the opening was, so the gate was green on the list that had become ambiguous."
+
+[[probe]]
+id = "security-cadence-does-not-stretch-the-spending-path"
+site = "SECURITY.md"
+pattern = 'a revocation bites at the height of the block\s+that includes it, so its delay there is zero blocks'
+count = 1
+why = "[REVIEW-042] RF-005, the other half. Naming which delay stretches without naming which one does not leaves a reader to infer that both do, which is the reading the sentence had before [ADR-017] and which overstates the harm of a slow chain."
 
 [[probe]]
 id = "security-cadence-two-thresholds"
